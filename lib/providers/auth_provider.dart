@@ -35,11 +35,7 @@ class AuthState extends Equatable {
 
 // User Model
 class User extends Equatable {
-  const User({
-    required this.id,
-    required this.email,
-    required this.name,
-  });
+  const User({required this.id, required this.email, required this.name});
 
   final String id;
   final String email;
@@ -59,11 +55,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String name,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
       // Simulate API call
       await Future.delayed(const Duration(seconds: 2));
-      
+
       // TODO: Implement actual signup logic here
       // For now, just simulate success
       final user = User(
@@ -71,7 +67,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         email: email,
         name: name,
       );
-      
+
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: true,
@@ -85,16 +81,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> signIn({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> signIn({required String email, required String password}) async {
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
       // Simulate API call
       await Future.delayed(const Duration(seconds: 2));
-      
+
       // TODO: Implement actual login logic here
       // For now, just simulate success
       final user = User(
@@ -102,7 +95,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         email: email,
         name: 'User Name', // Would come from API
       );
-      
+
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: true,
@@ -118,16 +111,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> forgotPassword({required String email}) async {
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
       // Simulate API call
       await Future.delayed(const Duration(seconds: 2));
-      
+
       // TODO: Implement actual forgot password logic
-      state = state.copyWith(
-        isLoading: false,
-        error: null,
-      );
+      state = state.copyWith(isLoading: false, error: null);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,

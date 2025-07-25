@@ -16,6 +16,8 @@ class CustomTextField extends StatefulWidget {
     this.prefixIcon,
     this.enabled = true,
     this.maxLines = 1,
+    this.maxLength,
+    this.showCharacterCount = false,
     this.textInputAction,
     this.onFieldSubmitted,
   });
@@ -31,6 +33,8 @@ class CustomTextField extends StatefulWidget {
   final Widget? prefixIcon;
   final bool enabled;
   final int maxLines;
+  final int? maxLength;
+  final bool showCharacterCount;
   final TextInputAction? textInputAction;
   final void Function(String)? onFieldSubmitted;
 
@@ -68,11 +72,13 @@ class _CustomTextFieldState extends State<CustomTextField> {
           onChanged: widget.onChanged,
           enabled: widget.enabled,
           maxLines: widget.maxLines,
+          maxLength: widget.maxLength,
           textInputAction: widget.textInputAction,
           onFieldSubmitted: widget.onFieldSubmitted,
           decoration: InputDecoration(
             hintText: widget.hintText,
             prefixIcon: widget.prefixIcon,
+            counterText: widget.showCharacterCount ? null : '',
             suffixIcon: widget.obscureText
                 ? IconButton(
                     icon: Icon(
@@ -150,7 +156,9 @@ class CustomButton extends StatelessWidget {
                   width: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
                   ),
                 )
               : Row(
@@ -169,7 +177,4 @@ class CustomButton extends StatelessWidget {
   }
 }
 
-enum ButtonVariant {
-  primary,
-  secondary,
-}
+enum ButtonVariant { primary, secondary }

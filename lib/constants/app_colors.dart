@@ -26,8 +26,8 @@ class AppColors {
   static const Color greyDark = Color(0xFF374151);
 
   // Text colors
-  static const Color textPrimary = Color(0xFF1E1B4B);
-  static const Color textSecondary = Color(0xFF64748B);
+  static const Color textPrimary = Color(0xFF101219);
+  static const Color textSecondary = Color(0xFF101219);
   static const Color textLight = Color(0xFF9CA3AF);
   static const Color textHint = Color(0xFF9CA3AF);
 
@@ -41,16 +41,16 @@ class AppColors {
   static const Color background = Color(0xFFFAFAFA);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color scaffold = Color(0xFFF8FAFC);
-  
+
   // Input field colors
   static const Color inputBackground = Color(0xFFFFFFFF);
   static const Color inputBorder = Color(0xFFD1D5DB);
   static const Color inputBorderFocused = Color(0xFF1E1B4B);
-  
+
   // Card colors
   static const Color cardBackground = Color(0xFFFFFFFF);
   static const Color cardShadow = Color(0x1A000000);
-  
+
   // Social button colors
   static const Color googleRed = Color(0xFFEA4335);
   static const Color appleBlack = Color(0xFF000000);

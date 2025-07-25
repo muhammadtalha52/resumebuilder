@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:skillresy/constants/app_colors.dart';
 import 'package:skillresy/constants/app_sizes.dart';
 import 'package:skillresy/constants/app_strings.dart';
 import 'package:skillresy/providers/auth_provider.dart';
 import 'package:skillresy/utils/validators.dart';
-import 'package:skillresy/widgets/common/custom_text_field.dart';
+import 'package:skillresy/widgets/common/custom_button.dart';
+import 'package:skillresy/widgets/common/custom_text_field.dart'
+    hide CustomButton;
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -78,23 +81,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: EdgeInsets.all(
-                  isTablet ? AppSizes.paddingXL : AppSizes.paddingM,
-                ),
+                padding: EdgeInsets.all(isTablet ? AppSizes.paddingXL : 10),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     maxWidth: isTablet ? 600 : double.infinity,
                   ),
                   child: Column(
                     children: [
-                      // Logo
-                      SvgPicture.asset(
-                        'assets/svg/skillresy-logo.svg',
-                        width: isTablet ? 200 : 150,
-                        height: isTablet ? 80 : 60,
-                      ),
-                      const SizedBox(height: AppSizes.spaceXL),
-
                       // Card
                       Card(
                         elevation: 0,
@@ -108,23 +101,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                // Title
-                                Text(
-                                  'Make Hiring superfast',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineLarge
-                                      ?.copyWith(
-                                        color: AppColors.textPrimary,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                  textAlign: TextAlign.center,
+                                // Fox Mascot
+                                Image.asset(
+                                  'assets/icons/fox-mascot.png',
+                                  width: isTablet ? 90 : 65,
+                                  height: isTablet ? 90 : 65,
                                 ),
+                                const SizedBox(height: AppSizes.spaceL),
+
+                                // SkillResy Logo
+                                SvgPicture.asset(
+                                  'assets/svg/skillresy-logo.svg',
+                                  height: isTablet ? 75 : 60,
+                                ),
+
                                 const SizedBox(height: AppSizes.spaceS),
 
                                 // Subtitle
                                 Text(
-                                  'Sign in to Skillresy today & start your new job quickly.',
+                                  'Welcome back! Sign in to be guided by instinct, enhanced by AI.',
                                   style: Theme.of(context).textTheme.bodyMedium
                                       ?.copyWith(
                                         color: AppColors.textSecondary,
@@ -188,29 +183,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: AppSizes.spaceL),
-                      
+
                       // Signup Link
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
                             "Don't have a Skillresy account? ",
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: AppColors.textSecondary),
                           ),
                           TextButton(
                             onPressed: () {
-                              // TODO: Navigate to signup
+                              context.go('/onboarding');
                             },
                             style: TextButton.styleFrom(
                               padding: EdgeInsets.zero,
                               minimumSize: Size.zero,
-                              tapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             child: Text(
                               'Create Account',

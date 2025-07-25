@@ -31,11 +31,13 @@ class AppStrings {
   // Validation
   static const String fieldRequired = 'This field is required';
   static const String invalidEmail = 'Please enter a valid email address';
-  static const String passwordTooShort = 'Password must be at least 8 characters';
+  static const String passwordTooShort =
+      'Password must be at least 8 characters';
   static const String passwordsDoNotMatch = 'Passwords do not match';
 
   // Error Messages
   static const String genericError = 'Something went wrong. Please try again.';
-  static const String networkError = 'Network error. Please check your connection.';
+  static const String networkError =
+      'Network error. Please check your connection.';
   static const String serverError = 'Server error. Please try again later.';
 }
