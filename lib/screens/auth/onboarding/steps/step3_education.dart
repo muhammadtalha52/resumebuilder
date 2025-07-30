@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../constants/app_colors.dart';
-import '../../../providers/onboarding_provider.dart';
+
+import '../../../../constants/app_colors.dart';
+import '../../../../providers/onboarding_provider.dart';
+import '../../../../widgets/common/custom_dropdown.dart';
 
 class Step3Education extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -19,6 +21,12 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
   DateTime? _graduationDate;
   bool _degreeNotCompleted = false;
   List<String> _selectedCertifications = [];
+
+  // Error state variables
+  String? _degreeTypeError;
+  String? _majorError;
+  String? _institutionError;
+  String? _graduationDateError;
 
   // Dropdown options
   final List<String> _degreeTypes = [
@@ -124,69 +132,6 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
     }
   }
 
-  Widget _buildDropdown({
-    required String label,
-    required bool isRequired,
-    required String? value,
-    required List<String> items,
-    required Function(String?) onChanged,
-    bool multiSelect = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            if (isRequired)
-              const Text(
-                ' *',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.error,
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.inputBorder),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value,
-              hint: const Text(
-                'Select Options',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
-              ),
-              icon: const Icon(
-                Icons.keyboard_arrow_down,
-                color: AppColors.textSecondary,
-              ),
-              isExpanded: true,
-              items: items.map((String item) {
-                return DropdownMenuItem<String>(value: item, child: Text(item));
-              }).toList(),
-              onChanged: onChanged,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildDatePicker() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,6 +173,7 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
                   if (picked != null) {
                     setState(() {
                       _graduationDate = picked;
+                      _graduationDateError = null;
                     });
                   }
                 },
@@ -238,6 +184,8 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
               border: Border.all(
                 color: _degreeNotCompleted
                     ? AppColors.grey.withValues(alpha: 0.3)
+                    : _graduationDateError != null
+                    ? AppColors.error
                     : AppColors.inputBorder,
               ),
               borderRadius: BorderRadius.circular(12),
@@ -273,6 +221,20 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
             ),
           ),
         ),
+        // Error message
+        if (_graduationDateError != null && !_degreeNotCompleted) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 12.0),
+            child: Text(
+              _graduationDateError!,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -289,6 +251,7 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
                 _degreeNotCompleted = value ?? false;
                 if (_degreeNotCompleted) {
                   _graduationDate = null;
+                  _graduationDateError = null;
                 }
               });
             },
@@ -436,33 +399,51 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
   }
 
   void _handleSubmit() {
-    // Validation
-    if (_selectedDegreeType == null ||
-        _selectedMajor == null ||
-        _selectedInstitution == null ||
-        (!_degreeNotCompleted && _graduationDate == null)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in all required fields'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
+    bool hasErrors = false;
+
+    // Validate all fields and set error states
+    setState(() {
+      _degreeTypeError = null;
+      _majorError = null;
+      _institutionError = null;
+      _graduationDateError = null;
+
+      if (_selectedDegreeType == null) {
+        _degreeTypeError = 'Please select degree type';
+        hasErrors = true;
+      }
+
+      if (_selectedMajor == null) {
+        _majorError = 'Please select major';
+        hasErrors = true;
+      }
+
+      if (_selectedInstitution == null) {
+        _institutionError = 'Please select institution';
+        hasErrors = true;
+      }
+
+      if (!_degreeNotCompleted && _graduationDate == null) {
+        _graduationDateError = 'Please select graduation date';
+        hasErrors = true;
+      }
+    });
+
+    if (!hasErrors) {
+      // Save data
+      ref
+          .read(onboardingProvider.notifier)
+          .updateEducation(
+            degreeType: _selectedDegreeType,
+            major: _selectedMajor,
+            institution: _selectedInstitution,
+            graduationDate: _graduationDate,
+            degreeNotCompleted: _degreeNotCompleted,
+            certifications: _selectedCertifications,
+          );
+
+      widget.onNext();
     }
-
-    // Save data
-    ref
-        .read(onboardingProvider.notifier)
-        .updateEducation(
-          degreeType: _selectedDegreeType,
-          major: _selectedMajor,
-          institution: _selectedInstitution,
-          graduationDate: _graduationDate,
-          degreeNotCompleted: _degreeNotCompleted,
-          certifications: _selectedCertifications,
-        );
-
-    widget.onNext();
   }
 
   @override
@@ -470,38 +451,47 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildDropdown(
-          label: 'Degree Type',
+        CustomStringDropdown(
+          labelText: 'Degree Type',
           isRequired: true,
           value: _selectedDegreeType,
           items: _degreeTypes,
+          hintText: 'Select Options',
+          errorText: _degreeTypeError,
           onChanged: (value) {
             setState(() {
               _selectedDegreeType = value;
+              _degreeTypeError = null;
             });
           },
         ),
         const SizedBox(height: 20),
-        _buildDropdown(
-          label: 'Major',
+        CustomStringDropdown(
+          labelText: 'Major',
           isRequired: true,
           value: _selectedMajor,
           items: _majors,
+          hintText: 'Select Options',
+          errorText: _majorError,
           onChanged: (value) {
             setState(() {
               _selectedMajor = value;
+              _majorError = null;
             });
           },
         ),
         const SizedBox(height: 20),
-        _buildDropdown(
-          label: 'Institution',
+        CustomStringDropdown(
+          labelText: 'Institution',
           isRequired: true,
           value: _selectedInstitution,
           items: _institutions,
+          hintText: 'Select Options',
+          errorText: _institutionError,
           onChanged: (value) {
             setState(() {
               _selectedInstitution = value;
+              _institutionError = null;
             });
           },
         ),

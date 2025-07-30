@@ -20,6 +20,7 @@ class CustomTextField extends StatefulWidget {
     this.showCharacterCount = false,
     this.textInputAction,
     this.onFieldSubmitted,
+    this.isRequired = false,
   });
 
   final TextEditingController controller;
@@ -37,6 +38,7 @@ class CustomTextField extends StatefulWidget {
   final bool showCharacterCount;
   final TextInputAction? textInputAction;
   final void Function(String)? onFieldSubmitted;
+  final bool isRequired;
 
   @override
   State<CustomTextField> createState() => _CustomTextFieldState();
@@ -56,42 +58,66 @@ class _CustomTextFieldState extends State<CustomTextField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          widget.labelText,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w500,
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: widget.isRequired && widget.labelText.endsWith(' *')
+                    ? widget.labelText.substring(0, widget.labelText.length - 2)
+                    : widget.labelText,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (widget.isRequired && widget.labelText.endsWith(' *'))
+                TextSpan(
+                  text: ' *',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: AppColors.error,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: AppSizes.spaceS),
-        TextFormField(
-          controller: widget.controller,
-          obscureText: _obscureText,
-          keyboardType: widget.keyboardType,
-          validator: widget.validator,
-          onChanged: widget.onChanged,
-          enabled: widget.enabled,
-          maxLines: widget.maxLines,
-          maxLength: widget.maxLength,
-          textInputAction: widget.textInputAction,
-          onFieldSubmitted: widget.onFieldSubmitted,
-          decoration: InputDecoration(
-            hintText: widget.hintText,
-            prefixIcon: widget.prefixIcon,
-            counterText: widget.showCharacterCount ? null : '',
-            suffixIcon: widget.obscureText
-                ? IconButton(
-                    icon: Icon(
-                      _obscureText ? Icons.visibility_off : Icons.visibility,
-                      color: AppColors.textSecondary,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureText = !_obscureText;
-                      });
-                    },
-                  )
-                : widget.suffixIcon,
+        Theme(
+          data: Theme.of(context).copyWith(
+            inputDecorationTheme: Theme.of(
+              context,
+            ).inputDecorationTheme.copyWith(alignLabelWithHint: true),
+          ),
+          child: TextFormField(
+            controller: widget.controller,
+            obscureText: _obscureText,
+            keyboardType: widget.keyboardType,
+            validator: widget.validator,
+            onChanged: widget.onChanged,
+            enabled: widget.enabled,
+            maxLines: widget.maxLines,
+            maxLength: widget.maxLength,
+            textInputAction: widget.textInputAction,
+            onFieldSubmitted: widget.onFieldSubmitted,
+            decoration: InputDecoration(
+              hintText: widget.hintText,
+              prefixIcon: widget.prefixIcon,
+              counterText: widget.showCharacterCount ? null : '',
+              errorMaxLines: 2,
+              suffixIcon: widget.obscureText
+                  ? IconButton(
+                      icon: Icon(
+                        _obscureText ? Icons.visibility_off : Icons.visibility,
+                        color: AppColors.textSecondary,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureText = !_obscureText;
+                        });
+                      },
+                    )
+                  : widget.suffixIcon,
+            ),
           ),
         ),
       ],

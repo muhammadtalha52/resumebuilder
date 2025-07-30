@@ -65,161 +65,163 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     });
 
-    return Scaffold(
-      backgroundColor: AppColors.scaffold,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Background pattern
-          Positioned.fill(
-            child: Image.asset(
-              'assets/icons/background.png',
-              fit: BoxFit.cover,
+    return GestureDetector(
+      onTap: () {
+        // Unfocus when tapping outside text fields
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.scaffold,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Background pattern
+            Positioned.fill(
+              child: Image.asset(
+                'assets/icons/background.png',
+                fit: BoxFit.cover,
+              ),
             ),
-          ),
-          // Content
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(isTablet ? AppSizes.paddingXL : 10),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: isTablet ? 600 : double.infinity,
-                  ),
-                  child: Column(
-                    children: [
-                      // Card
-                      Card(
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSizes.radiusL),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSizes.paddingL),
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                // Fox Mascot
-                                Image.asset(
-                                  'assets/icons/fox-mascot.png',
-                                  width: isTablet ? 90 : 65,
-                                  height: isTablet ? 90 : 65,
-                                ),
-                                const SizedBox(height: AppSizes.spaceL),
+            // Content
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(isTablet ? AppSizes.paddingXL : 10),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: isTablet ? 600 : double.infinity,
+                    ),
+                    child: Column(
+                      children: [
+                        // Card
+                        Card(
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radiusL,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSizes.paddingL),
+                            child: Form(
+                              key: _formKey,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // SkillResy Logo
+                                  Image.asset(
+                                    'assets/icons/logo-fox-on-top.png',
+                                    height: isTablet ? 150 : 120,
+                                  ),
 
-                                // SkillResy Logo
-                                SvgPicture.asset(
-                                  'assets/svg/skillresy-logo.svg',
-                                  height: isTablet ? 75 : 60,
-                                ),
+                                  const SizedBox(height: AppSizes.spaceS),
 
-                                const SizedBox(height: AppSizes.spaceS),
+                                  // Subtitle
+                                  Text(
+                                    'Welcome back! Sign in to be guided by instinct, enhanced by AI.',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: AppSizes.spaceXL),
 
-                                // Subtitle
-                                Text(
-                                  'Welcome back! Sign in to be guided by instinct, enhanced by AI.',
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: AppColors.textSecondary,
-                                      ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: AppSizes.spaceXL),
+                                  // Email Field
+                                  CustomTextField(
+                                    controller: _emailController,
+                                    labelText: AppStrings.email,
+                                    hintText: 'Enter email',
+                                    keyboardType: TextInputType.emailAddress,
+                                    textInputAction: TextInputAction.next,
+                                    validator: Validators.validateEmail,
+                                  ),
+                                  const SizedBox(height: AppSizes.spaceL),
 
-                                // Email Field
-                                CustomTextField(
-                                  controller: _emailController,
-                                  labelText: AppStrings.email,
-                                  hintText: 'Enter email',
-                                  keyboardType: TextInputType.emailAddress,
-                                  textInputAction: TextInputAction.next,
-                                  validator: Validators.validateEmail,
-                                ),
-                                const SizedBox(height: AppSizes.spaceL),
+                                  // Password Field
+                                  CustomTextField(
+                                    controller: _passwordController,
+                                    labelText: AppStrings.password,
+                                    hintText: 'Enter password',
+                                    obscureText: true,
+                                    textInputAction: TextInputAction.done,
+                                    validator: Validators.validatePassword,
+                                    onFieldSubmitted: (_) => _handleLogin(),
+                                  ),
+                                  const SizedBox(height: AppSizes.spaceM),
 
-                                // Password Field
-                                CustomTextField(
-                                  controller: _passwordController,
-                                  labelText: AppStrings.password,
-                                  hintText: 'Enter password',
-                                  obscureText: true,
-                                  textInputAction: TextInputAction.done,
-                                  validator: Validators.validatePassword,
-                                  onFieldSubmitted: (_) => _handleLogin(),
-                                ),
-                                const SizedBox(height: AppSizes.spaceM),
-
-                                // Forgot Password Link
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton(
-                                    onPressed: () {
-                                      // TODO: Navigate to forgot password
-                                    },
-                                    child: Text(
-                                      AppStrings.forgotPassword,
-                                      style: TextStyle(
-                                        color: AppColors.primary,
-                                        fontSize: 14,
+                                  // Forgot Password Link
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: TextButton(
+                                      onPressed: () {
+                                        // TODO: Navigate to forgot password
+                                      },
+                                      child: Text(
+                                        AppStrings.forgotPassword,
+                                        style: TextStyle(
+                                          color: AppColors.primary,
+                                          fontSize: 14,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: AppSizes.spaceL),
+                                  const SizedBox(height: AppSizes.spaceL),
 
-                                // Login Button
-                                CustomButton(
-                                  text: AppStrings.login,
-                                  onPressed: authState.isLoading
-                                      ? null
-                                      : _handleLogin,
-                                  isLoading: authState.isLoading,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.spaceL),
-
-                      // Signup Link
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Don't have a Skillresy account? ",
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: AppColors.textSecondary),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              context.go('/onboarding');
-                            },
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: Text(
-                              'Create Account',
-                              style: TextStyle(
-                                color: AppColors.accent,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
+                                  // Login Button
+                                  CustomButton(
+                                    text: AppStrings.login,
+                                    onPressed: authState.isLoading
+                                        ? null
+                                        : _handleLogin,
+                                    isLoading: authState.isLoading,
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                        const SizedBox(height: AppSizes.spaceL),
+
+                        // Signup Link
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Don't have a Skillresy account? ",
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: AppColors.textSecondary),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                context.go('/onboarding');
+                              },
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Text(
+                                'Create Account',
+                                style: TextStyle(
+                                  color: AppColors.accent,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

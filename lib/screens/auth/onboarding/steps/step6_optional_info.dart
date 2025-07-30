@@ -1,25 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../constants/app_colors.dart';
-import '../../../providers/onboarding_provider.dart';
 
-class Step2CareerGoals extends ConsumerStatefulWidget {
+import '../../../../constants/app_colors.dart';
+import '../../../../providers/onboarding_provider.dart';
+
+class Step6OptionalInfo extends ConsumerStatefulWidget {
   final VoidCallback onNext;
 
-  const Step2CareerGoals({super.key, required this.onNext});
+  const Step6OptionalInfo({super.key, required this.onNext});
 
   @override
-  ConsumerState<Step2CareerGoals> createState() => _Step2CareerGoalsState();
+  ConsumerState<Step6OptionalInfo> createState() => _Step6OptionalInfoState();
 }
 
-class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
-  final TextEditingController _jobTitlesController = TextEditingController();
-  final TextEditingController _industriesController = TextEditingController();
-  final TextEditingController _longTermGoalsController =
+class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
+  final TextEditingController _languagesController = TextEditingController();
+  final TextEditingController _volunteerWorkController =
       TextEditingController();
+  final TextEditingController _hobbiesController = TextEditingController();
+  final TextEditingController _referencesController = TextEditingController();
 
-  List<String> _jobTitles = [];
-  List<String> _industries = [];
+  List<String> _languages = [];
+  List<String> _volunteerWork = [];
+  List<String> _hobbies = [];
 
   @override
   void initState() {
@@ -28,21 +31,23 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
   }
 
   void _loadExistingData() {
-    final careerGoals = ref.read(onboardingProvider).careerGoals;
-    if (careerGoals != null) {
+    final optionalInfo = ref.read(onboardingProvider).optionalInfo;
+    if (optionalInfo != null) {
       setState(() {
-        _jobTitles = List.from(careerGoals['jobTitles'] ?? []);
-        _industries = List.from(careerGoals['industries'] ?? []);
-        _longTermGoalsController.text = careerGoals['longTermGoals'] ?? '';
+        _languages = List.from(optionalInfo['languages'] ?? []);
+        _volunteerWork = List.from(optionalInfo['volunteerWork'] ?? []);
+        _hobbies = List.from(optionalInfo['hobbies'] ?? []);
+        _referencesController.text = optionalInfo['references'] ?? '';
       });
     }
   }
 
   @override
   void dispose() {
-    _jobTitlesController.dispose();
-    _industriesController.dispose();
-    _longTermGoalsController.dispose();
+    _languagesController.dispose();
+    _volunteerWorkController.dispose();
+    _hobbiesController.dispose();
+    _referencesController.dispose();
     super.dispose();
   }
 
@@ -162,7 +167,6 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
             tag,
             style: const TextStyle(
               color: Colors.black,
-              // White text for better contrast on the blue background
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -243,22 +247,13 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
   }
 
   void _handleSubmit() {
-    if (_jobTitles.isEmpty || _industries.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Please add at least one desired job title and preferred industry',
-          ),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
-
-    ref.read(onboardingProvider.notifier).updateCareerGoals({
-      'jobTitles': _jobTitles,
-      'industries': _industries,
-      'longTermGoals': _longTermGoalsController.text.trim(),
+    // Since this is optional info, we don't need strict validation
+    // Save whatever data is available
+    ref.read(onboardingProvider.notifier).updateOptionalInfo({
+      'languages': _languages,
+      'volunteerWork': _volunteerWork,
+      'hobbies': _hobbies,
+      'references': _referencesController.text.trim(),
     });
 
     widget.onNext();
@@ -270,30 +265,39 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildTagField(
-          label: 'Desired Job Titles',
-          isRequired: true,
-          tags: _jobTitles,
-          controller: _jobTitlesController,
-          onAdd: (tag) => _addTag(tag, _jobTitles, _jobTitlesController),
-          onRemove: (tag) => _removeTag(tag, _jobTitles),
+          label: 'Languages',
+          isRequired: false,
+          tags: _languages,
+          controller: _languagesController,
+          onAdd: (tag) => _addTag(tag, _languages, _languagesController),
+          onRemove: (tag) => _removeTag(tag, _languages),
         ),
         const SizedBox(height: 20),
         _buildTagField(
-          label: 'Preferred Industries',
-          isRequired: true,
-          tags: _industries,
-          controller: _industriesController,
-          onAdd: (tag) => _addTag(tag, _industries, _industriesController),
-          onRemove: (tag) => _removeTag(tag, _industries),
+          label: 'Volunteer Work',
+          isRequired: false,
+          tags: _volunteerWork,
+          controller: _volunteerWorkController,
+          onAdd: (tag) =>
+              _addTag(tag, _volunteerWork, _volunteerWorkController),
+          onRemove: (tag) => _removeTag(tag, _volunteerWork),
+        ),
+        const SizedBox(height: 20),
+        _buildTagField(
+          label: 'Hobbies & Interests',
+          isRequired: false,
+          tags: _hobbies,
+          controller: _hobbiesController,
+          onAdd: (tag) => _addTag(tag, _hobbies, _hobbiesController),
+          onRemove: (tag) => _removeTag(tag, _hobbies),
         ),
         const SizedBox(height: 20),
         _buildTextField(
-          label: 'Long-term Goals',
+          label: 'References',
           isRequired: false,
-          controller: _longTermGoalsController,
-          hintText:
-              'e.g., Become a technical lead and mentor junior developers',
-          maxLines: 3,
+          controller: _referencesController,
+          hintText: 'Type here',
+          maxLines: 4,
         ),
         const SizedBox(height: 20),
         // Next button

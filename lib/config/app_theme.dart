@@ -76,6 +76,10 @@ class AppTheme {
           borderRadius: BorderRadius.circular(AppSizes.radiusM),
           borderSide: const BorderSide(color: AppColors.error, width: 2),
         ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusM),
+          borderSide: const BorderSide(color: AppColors.error, width: 2),
+        ),
         labelStyle: const TextStyle(
           color: AppColors.textSecondary,
           fontSize: 16,
@@ -84,6 +88,11 @@ class AppTheme {
         hintStyle: const TextStyle(
           color: AppColors.textHint,
           fontSize: 16,
+          fontWeight: FontWeight.normal,
+        ),
+        errorStyle: const TextStyle(
+          color: AppColors.error,
+          fontSize: 12,
           fontWeight: FontWeight.normal,
         ),
       ),

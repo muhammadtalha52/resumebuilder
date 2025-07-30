@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../constants/app_colors.dart';
-import '../../../providers/onboarding_provider.dart';
+
+import '../../../../constants/app_colors.dart';
+import '../../../../providers/onboarding_provider.dart';
+import '../../../../widgets/common/custom_text_field.dart';
 
 class Step4WorkExperience extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -14,6 +16,7 @@ class Step4WorkExperience extends ConsumerStatefulWidget {
 }
 
 class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
+  final _formKey = GlobalKey<FormState>();
   List<WorkExperienceEntry> _workExperiences = [WorkExperienceEntry()];
 
   @override
@@ -51,82 +54,92 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
   }
 
   void _handleSubmit() {
-    // Validate required fields for all experiences
+    bool isValid = _formKey.currentState!.validate();
+    bool hasDateErrors = false;
+
+    // Validate dates
     for (int i = 0; i < _workExperiences.length; i++) {
       final exp = _workExperiences[i];
-      if (exp.jobTitle.text.trim().isEmpty ||
-          exp.company.text.trim().isEmpty ||
-          exp.startDate == null ||
-          (!exp.currentJob && exp.endDate == null)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Please fill in all required fields for experience ${i + 1}',
-            ),
-            backgroundColor: AppColors.error,
-          ),
-        );
-        return;
-      }
+      setState(() {
+        exp.startDateError = null;
+        exp.endDateError = null;
+
+        if (exp.startDate == null) {
+          exp.startDateError = 'Please select start date';
+          hasDateErrors = true;
+        }
+
+        if (!exp.currentJob && exp.endDate == null) {
+          exp.endDateError = 'Please select end date';
+          hasDateErrors = true;
+        }
+      });
     }
 
-    // Save data
-    final experiencesData = _workExperiences.map((exp) => exp.toMap()).toList();
-    ref.read(onboardingProvider.notifier).updateWorkExperience({
-      'experiences': experiencesData,
-    });
+    if (isValid && !hasDateErrors) {
+      // Save data
+      final experiencesData = _workExperiences
+          .map((exp) => exp.toMap())
+          .toList();
+      ref.read(onboardingProvider.notifier).updateWorkExperience({
+        'experiences': experiencesData,
+      });
 
-    widget.onNext();
+      widget.onNext();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // File upload section
-        _buildFileUploadSection(),
-        const SizedBox(height: 24),
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // File upload section
+          _buildFileUploadSection(),
+          const SizedBox(height: 24),
 
-        // Work experiences
-        ...List.generate(_workExperiences.length, (index) {
-          return Column(
-            children: [
-              _buildWorkExperienceForm(index),
-              if (index < _workExperiences.length - 1)
-                const SizedBox(height: 24),
-            ],
-          );
-        }),
+          // Work experiences
+          ...List.generate(_workExperiences.length, (index) {
+            return Column(
+              children: [
+                _buildWorkExperienceForm(index),
+                if (index < _workExperiences.length - 1)
+                  const SizedBox(height: 24),
+              ],
+            );
+          }),
 
-        const SizedBox(height: 24),
+          const SizedBox(height: 24),
 
-        // Add more experience button
-        _buildAddMoreButton(),
+          // Add more experience button
+          _buildAddMoreButton(),
 
-        const SizedBox(height: 32),
+          const SizedBox(height: 32),
 
-        // Next button
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton(
-            onPressed: _handleSubmit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          // Next button
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: _handleSubmit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
               ),
-              elevation: 0,
-            ),
-            child: const Text(
-              'Next',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              child: const Text(
+                'Next',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -223,20 +236,32 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
           ),
 
         // Job title
-        _buildTextField(
-          label: 'Job title',
-          isRequired: true,
+        CustomTextField(
           controller: experience.jobTitle,
+          labelText: 'Job title *',
           hintText: 'Type here',
+          isRequired: true,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Please enter Job title';
+            }
+            return null;
+          },
         ),
         const SizedBox(height: 20),
 
         // Company
-        _buildTextField(
-          label: 'Company',
-          isRequired: true,
+        CustomTextField(
           controller: experience.company,
+          labelText: 'Company *',
           hintText: 'Type here',
+          isRequired: true,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Please enter Company';
+            }
+            return null;
+          },
         ),
         const SizedBox(height: 20),
 
@@ -245,9 +270,11 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
           label: 'Start Date',
           isRequired: true,
           selectedDate: experience.startDate,
+          errorText: experience.startDateError,
           onDateSelected: (date) {
             setState(() {
               experience.startDate = date;
+              experience.startDateError = null;
             });
           },
         ),
@@ -258,9 +285,11 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
           label: 'End Date',
           isRequired: !experience.currentJob,
           selectedDate: experience.endDate,
+          errorText: experience.endDateError,
           onDateSelected: (date) {
             setState(() {
               experience.endDate = date;
+              experience.endDateError = null;
             });
           },
           isDisabled: experience.currentJob,
@@ -275,6 +304,7 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
               experience.currentJob = value ?? false;
               if (experience.currentJob) {
                 experience.endDate = null;
+                experience.endDateError = null;
               }
             });
           },
@@ -282,67 +312,13 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
         const SizedBox(height: 20),
 
         // Key Responsibilities
-        _buildResponsibilitiesField(experience),
-      ],
-    );
-  }
-
-  Widget _buildTextField({
-    required String label,
-    required bool isRequired,
-    required TextEditingController controller,
-    required String hintText,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            if (isRequired)
-              const Text(
-                ' *',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.error,
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: hintText,
-            hintStyle: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 16,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.inputBorder),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.inputBorder),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.inputBorderFocused),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-          ),
+        CustomTextField(
+          controller: experience.responsibilities,
+          labelText: 'Key Responsibilities (Optional)',
+          hintText: 'Enter a description...',
+          maxLines: 5,
+          maxLength: 500,
+          showCharacterCount: true,
         ),
       ],
     );
@@ -353,6 +329,7 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
     required bool isRequired,
     required DateTime? selectedDate,
     required Function(DateTime) onDateSelected,
+    String? errorText,
     bool isDisabled = false,
   }) {
     return Column(
@@ -403,6 +380,8 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
               border: Border.all(
                 color: isDisabled
                     ? AppColors.grey.withValues(alpha: 0.3)
+                    : errorText != null
+                    ? AppColors.error
                     : AppColors.inputBorder,
               ),
               borderRadius: BorderRadius.circular(12),
@@ -436,6 +415,19 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
             ),
           ),
         ),
+        if (errorText != null && !isDisabled) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 12.0),
+            child: Text(
+              errorText,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -467,55 +459,6 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
         const Text(
           'I still work here',
           style: TextStyle(fontSize: 16, color: AppColors.textPrimary),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildResponsibilitiesField(WorkExperienceEntry experience) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Key Responsibilities (Optional)',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: experience.responsibilities,
-          maxLines: 5,
-          maxLength: 500,
-          decoration: InputDecoration(
-            hintText: 'Enter a description...',
-            hintStyle: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 16,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.inputBorder),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.inputBorder),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.inputBorderFocused),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-            counterStyle: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
-            ),
-          ),
         ),
       ],
     );
@@ -554,6 +497,8 @@ class WorkExperienceEntry {
   DateTime? startDate;
   DateTime? endDate;
   bool currentJob = false;
+  String? startDateError;
+  String? endDateError;
 
   WorkExperienceEntry();
 

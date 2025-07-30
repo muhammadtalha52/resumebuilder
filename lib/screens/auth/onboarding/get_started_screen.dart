@@ -29,7 +29,7 @@ class GetStartedScreen extends ConsumerWidget {
               const Spacer(flex: 2),
               // Fox mascot
               Image.asset(
-                'assets/icons/skillresy-fox.png',
+                'assets/icons/white-logo-fox-top.png',
                 width: isTablet ? 180 : 190,
                 height: isTablet ? 180 : 190,
               ),

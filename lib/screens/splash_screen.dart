@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import '../services/app_preferences.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -33,12 +34,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _navigateToNextScreen();
   }
 
-  void _navigateToNextScreen() {
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        context.go('/login');
-      }
-    });
+  void _navigateToNextScreen() async {
+    // Wait for animation to complete
+    await Future.delayed(const Duration(seconds: 3));
+
+    if (!mounted) return;
+
+    // Check if this is the first time user opens the app
+    final hasSeenWelcome = await AppPreferences.hasSeenWelcome();
+
+    if (hasSeenWelcome) {
+      // Returning user - go to login
+      context.go('/login');
+    } else {
+      // First time user - show welcome screens
+      context.go('/welcome');
+    }
   }
 
   @override
@@ -70,15 +81,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   // Responsive sizing for tablets and phones
                   double logoWidth = constraints.maxWidth < 600
                       ? constraints.maxWidth *
-                            0.6 // Mobile: 60% of screen width
+                            0.75 // Mobile: 75% of screen width
                       : constraints.maxWidth *
-                            0.4; // Tablet: 40% of screen width
+                            0.5; // Tablet: 50% of screen width
 
                   // Maximum width limit
-                  logoWidth = logoWidth.clamp(200.0, 400.0);
+                  logoWidth = logoWidth.clamp(250.0, 500.0);
 
-                  return SvgPicture.asset(
-                    'assets/svg/skillresy-logo.svg',
+                  return Image.asset(
+                    'assets/icons/logo-fox-on-left.png',
                     width: logoWidth,
                     fit: BoxFit.contain,
                   );

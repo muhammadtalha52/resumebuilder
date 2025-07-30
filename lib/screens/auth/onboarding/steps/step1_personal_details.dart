@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
-import '../../../constants/app_colors.dart';
-import '../../../providers/onboarding_provider.dart';
-import '../../../utils/validators.dart';
-import '../../../widgets/common/custom_text_field.dart';
+import '../../../../constants/app_colors.dart';
+import '../../../../providers/onboarding_provider.dart';
+import '../../../../utils/validators.dart';
+import '../../../../widgets/common/custom_text_field.dart';
 
 class Step1PersonalDetails extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -36,8 +36,8 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
   void _loadExistingData() {
     final state = ref.read(onboardingProvider);
     _fullNameController.text = state.fullName ?? '';
-    _emailController.text = state.email ?? '';
-    _phoneController.text = state.phone ?? '';
+    _emailController.text = 'john@gmail.com';
+    _phoneController.text = '4444777553';
     _linkedInController.text = state.linkedIn ?? '';
     _websiteController.text = state.website ?? '';
   }
@@ -83,6 +83,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
             keyboardType: TextInputType.name,
             textInputAction: TextInputAction.next,
             maxLength: 50,
+            isRequired: true,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Please enter your full name';
@@ -98,18 +99,33 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             maxLength: 100,
+            isRequired: true,
             validator: Validators.validateEmail,
           ),
           const SizedBox(height: 20),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Phone Number *',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+              RichText(
+                text: const TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Phone Number',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' *',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 8),
