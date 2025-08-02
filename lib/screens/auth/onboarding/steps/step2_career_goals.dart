@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../constants/app_colors.dart';
+import '../../../../constants/salary_ranges.dart';
 import '../../../../providers/onboarding_provider.dart';
 import '../../../../widgets/common/custom_dropdown.dart';
 
@@ -20,15 +21,15 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
   final TextEditingController _industriesController = TextEditingController();
   final TextEditingController _longTermGoalsController =
       TextEditingController();
-  final TextEditingController _desiredPayRangeController =
-      TextEditingController();
 
   List<String> _jobTitles = [];
   List<String> _industries = [];
   String? _locationPreference;
+  String? _desiredSalaryRange;
   String? _jobTitlesError;
   String? _industriesError;
   String? _locationError;
+  String? _salaryError;
 
   @override
   void initState() {
@@ -43,8 +44,7 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
         _jobTitles = List.from(careerGoals['jobTitles'] ?? []);
         _industries = List.from(careerGoals['industries'] ?? []);
         _longTermGoalsController.text = careerGoals['longTermGoals'] ?? '';
-        _desiredPayRangeController.text = (careerGoals['desiredPayRange'] ?? '')
-            .toString();
+        _desiredSalaryRange = careerGoals['desiredPayRange'];
         _locationPreference = careerGoals['locationPreference'];
       });
     }
@@ -55,7 +55,6 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
     _jobTitlesController.dispose();
     _industriesController.dispose();
     _longTermGoalsController.dispose();
-    _desiredPayRangeController.dispose();
     super.dispose();
   }
 
@@ -382,6 +381,7 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
       _jobTitlesError = null;
       _industriesError = null;
       _locationError = null;
+      _salaryError = null;
 
       if (_jobTitles.isEmpty) {
         _jobTitlesError = 'Please add at least one job title';
@@ -397,18 +397,18 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
         _locationError = 'Please select a location preference';
         hasCustomErrors = true;
       }
+
+      if (_desiredSalaryRange == null) {
+        _salaryError = 'Please select a salary range';
+        hasCustomErrors = true;
+      }
     });
 
     if (isValid && !hasCustomErrors) {
-      // Parse desired pay range, default to empty string if invalid
-      final desiredPayRange = _desiredPayRangeController.text.trim().isEmpty
-          ? ''
-          : _desiredPayRangeController.text.trim();
-
       ref.read(onboardingProvider.notifier).updateCareerGoals({
         'jobTitles': _jobTitles,
         'industries': _industries,
-        'desiredPayRange': desiredPayRange,
+        'desiredPayRange': _desiredSalaryRange,
         'locationPreference': _locationPreference,
         'longTermGoals': _longTermGoalsController.text.trim(),
       });
@@ -459,26 +459,18 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
             },
           ),
           const SizedBox(height: 20),
-          _buildTextField(
-            label: 'Desired Salary',
+          CustomStringDropdown(
+            labelText: 'Desired Salary Range',
             isRequired: true,
-            controller: _desiredPayRangeController,
-            hintText: 'Enter your desired salary',
-            keyboardType: TextInputType.number,
-            prefixText: '\$',
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Please enter your desired salary';
-              }
-              // Check if it's a valid number
-              final numValue = int.tryParse(value.trim());
-              if (numValue == null) {
-                return 'Please enter a valid number';
-              }
-              if (numValue <= 0) {
-                return 'Please enter a positive amount';
-              }
-              return null;
+            value: _desiredSalaryRange,
+            items: SalaryRanges.ranges,
+            hintText: 'Select salary range',
+            errorText: _salaryError,
+            onChanged: (value) {
+              setState(() {
+                _desiredSalaryRange = value;
+                _salaryError = null;
+              });
             },
           ),
           const SizedBox(height: 20),
