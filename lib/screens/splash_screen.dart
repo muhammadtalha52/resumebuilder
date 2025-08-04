@@ -45,7 +45,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     if (hasSeenWelcome) {
       // Returning user - go to login
-      context.go('/login');
+      context.go('/home');
     } else {
       // First time user - show welcome screens
       context.go('/welcome');

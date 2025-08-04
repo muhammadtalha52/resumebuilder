@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_colors.dart';
 import 'dashboard/dashboard_screen.dart';
+import 'profile/profile_screen.dart';
 
 // Provider to track current navigation index
 final navigationIndexProvider = StateProvider<int>((ref) => 0);
@@ -20,7 +21,7 @@ class MainScreen extends ConsumerWidget {
           DashboardScreen(),
           _PlaceholderScreen(title: 'Resume'),
           _PlaceholderScreen(title: 'Interview'),
-          _PlaceholderScreen(title: 'Profile'),
+          ProfileScreen(),
         ],
       ),
       bottomNavigationBar: _buildBottomNavigationBar(ref, currentIndex),
@@ -33,15 +34,16 @@ class MainScreen extends ConsumerWidget {
         color: AppColors.white,
         boxShadow: [
           BoxShadow(
-            color: AppColors.grey.withOpacity(0.1),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
             offset: const Offset(0, -5),
           ),
         ],
       ),
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -60,6 +62,8 @@ class MainScreen extends ConsumerWidget {
                 icon: Icons.description_outlined,
                 activeIcon: Icons.description,
                 label: 'Resume',
+                isCustomIcon: true,
+                customIconPath: 'assets/icons/resume.png',
               ),
               _buildNavItem(
                 ref: ref,
@@ -68,6 +72,8 @@ class MainScreen extends ConsumerWidget {
                 icon: Icons.headset_mic_outlined,
                 activeIcon: Icons.headset_mic,
                 label: 'Interview',
+                isCustomIcon: true,
+                customIconPath: 'assets/icons/session.png',
               ),
               _buildNavItem(
                 ref: ref,
@@ -91,6 +97,8 @@ class MainScreen extends ConsumerWidget {
     required IconData icon,
     required IconData activeIcon,
     required String label,
+    bool isCustomIcon = false,
+    String? customIconPath,
   }) {
     final isActive = currentIndex == index;
 
@@ -100,25 +108,35 @@ class MainScreen extends ConsumerWidget {
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isActive ? activeIcon : icon,
-              color: isActive ? AppColors.primary : AppColors.textSecondary,
-              size: 24,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: isActive ? AppColors.primary : AppColors.textSecondary,
-                fontSize: 12,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              isCustomIcon && customIconPath != null
+                  ? Image.asset(
+                      customIconPath,
+                      width: 24,
+                      height: 24,
+                      color: isActive ? AppColors.accent : AppColors.textLight,
+                    )
+                  : Icon(
+                      isActive ? activeIcon : icon,
+                      color: isActive ? AppColors.accent : AppColors.textLight,
+                      size: 24,
+                    ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isActive ? AppColors.accent : AppColors.textLight,
+                  fontSize: 11,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
