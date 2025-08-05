@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/svg.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skillresy/constants/app_colors.dart';
 import 'package:skillresy/constants/app_sizes.dart';
-import 'package:skillresy/widgets/common/custom_text_field.dart';
 
 class GetStartedScreen extends ConsumerWidget {
   const GetStartedScreen({super.key});

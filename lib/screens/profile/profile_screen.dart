@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/onboarding_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../utils/snackbar_utils.dart';
 import '../../widgets/common/custom_app_bar.dart';
+import '../../widgets/dialogs/confirmation_dialog.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/profile_card.dart';
 
@@ -16,9 +19,10 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
-      appBar: const CustomAppBar(
+      appBar: CustomAppBar(
         type: AppBarType.dashboard,
         showPremiumBadge: false,
+        actions: [_buildLogoutMenu(context, ref)],
       ),
       body: Stack(
         children: [
@@ -139,7 +143,11 @@ class ProfileScreen extends ConsumerWidget {
             Icons.trending_up_outlined,
             'Long-term Career Goals',
             ['Company Manager', 'Leadership Role', 'Product owner'],
-            [const Color(0xFF2196F3), const Color(0xFF4CAF50), const Color(0xFFFF9800)],
+            [
+              const Color(0xFF2196F3),
+              const Color(0xFF4CAF50),
+              const Color(0xFFFF9800),
+            ],
             showDivider: false,
           ),
         ],
@@ -332,7 +340,10 @@ class ProfileScreen extends ConsumerWidget {
                       runSpacing: 8,
                       children: List.generate(tags.length, (index) {
                         return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFEBEEFF),
                             borderRadius: BorderRadius.circular(15),
@@ -424,13 +435,16 @@ class ProfileScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              Icon(Icons.school_outlined, size: 20, color: AppColors.textSecondary),
+              Icon(
+                Icons.school_outlined,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     const SizedBox(height: 2),
                     Text(
                       degree,
@@ -583,6 +597,77 @@ class ProfileScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLogoutMenu(BuildContext context, WidgetRef ref) {
+    return Container(
+      margin: const EdgeInsets.only(right: 20),
+      child: PopupMenuButton<String>(
+        icon: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.more_vert,
+            color: Color(0xFF1A1A1A),
+            size: 20,
+          ),
+        ),
+        onSelected: (value) async {
+          if (value == 'logout') {
+            // Show logout confirmation dialog
+            final confirmed = await showConfirmationDialog(
+              context: context,
+              title: 'Want to Logout?',
+              icon: Icons.error_outline,
+              iconBackgroundColor: const Color(0xFF2C3E50),
+              confirmText: 'Yes',
+              cancelText: 'No',
+            );
+
+            if (confirmed == true) {
+              ref.read(authProvider.notifier).signOut();
+              showSuccessSnackBar(
+                context: context,
+                message: 'Logged out successfully!',
+              );
+              context.go('/login');
+            }
+          }
+        },
+        itemBuilder: (context) => [
+          const PopupMenuItem<String>(
+            value: 'logout',
+            child: Row(
+              children: [
+                Icon(Icons.logout, size: 18, color: Colors.red),
+                SizedBox(width: 12),
+                Text(
+                  'Logout',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 8,
+        offset: const Offset(0, 8),
+      ),
     );
   }
 }

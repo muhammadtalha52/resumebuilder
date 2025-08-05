@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+
 import '../services/app_preferences.dart';
+import '../providers/app_logic_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -35,17 +36,28 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   void _navigateToNextScreen() async {
+    // Initialize app logic (loads token and user data)
+    final appLogic = ref.read(appLogicProvider);
+    await appLogic.init();
+
     // Wait for animation to complete
     await Future.delayed(const Duration(seconds: 3));
 
     if (!mounted) return;
 
+    // Check if user is already logged in
+    if (appLogic.accessToken.isNotEmpty && appLogic.user != null) {
+      // User is logged in - go to home
+      context.go('/home');
+      return;
+    }
+
     // Check if this is the first time user opens the app
     final hasSeenWelcome = await AppPreferences.hasSeenWelcome();
 
     if (hasSeenWelcome) {
-      // Returning user - go to login
-      context.go('/home');
+      // Returning user but not logged in - go to login
+      context.go('/login');
     } else {
       // First time user - show welcome screens
       context.go('/welcome');

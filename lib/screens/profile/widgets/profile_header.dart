@@ -5,10 +5,7 @@ import '../../../providers/onboarding_provider.dart';
 class ProfileHeader extends StatelessWidget {
   final OnboardingState onboardingState;
 
-  const ProfileHeader({
-    super.key,
-    required this.onboardingState,
-  });
+  const ProfileHeader({super.key, required this.onboardingState});
 
   @override
   Widget build(BuildContext context) {
@@ -32,18 +29,20 @@ class ProfileHeader extends StatelessWidget {
               CircleAvatar(
                 radius: 30,
                 backgroundColor: AppColors.primary.withOpacity(0.1),
-                backgroundImage: const AssetImage('assets/images/profile_photo.jpg'),
+                backgroundImage: const AssetImage(
+                  'assets/images/profile_photo.jpg',
+                ),
                 onBackgroundImageError: (_, __) {},
-                child: onboardingState.fullName == null 
-                  ? Text(
-                      _getInitials(),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
-                    )
-                  : null,
+                child: onboardingState.fullName == null
+                    ? Text(
+                        _getInitials(),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      )
+                    : null,
               ),
               Positioned(
                 bottom: 0,

@@ -41,10 +41,7 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
   Widget _buildDashboardTitle() {
     return Row(
       children: [
-        Image.asset(
-          'assets/icons/logo-fox-on-left.png',
-          height: 32,
-        ),
+        Image.asset('assets/icons/logo-fox-on-left.png', height: 32),
         const SizedBox(width: 8),
       ],
     );

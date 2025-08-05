@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
+
 import '../../../../constants/app_colors.dart';
 import '../../../../providers/onboarding_provider.dart';
 import '../../../../utils/validators.dart';
 import '../../../../widgets/common/custom_text_field.dart';
+import '../../../../widgets/common/password_strength_indicator.dart';
 
 class Step1PersonalDetails extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -23,9 +25,13 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
   final _phoneController = TextEditingController();
   final _linkedInController = TextEditingController();
   final _websiteController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   String _completePhoneNumber = '';
   String? _phoneValidationError;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void initState() {
@@ -49,6 +55,8 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
     _phoneController.dispose();
     _linkedInController.dispose();
     _websiteController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -65,6 +73,16 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
             linkedIn: _linkedInController.text.trim(),
             website: _websiteController.text.trim(),
           );
+
+      // Also save password to onboarding provider
+      ref
+          .read(onboardingProvider.notifier)
+          .setUserDetails(
+            fullName: _fullNameController.text.trim(),
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
+
       widget.onNext();
     }
   }
@@ -205,8 +223,82 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
             labelText: 'Personal Website',
             hintText: 'https://www.yourwebsite.com',
             keyboardType: TextInputType.url,
-            textInputAction: TextInputAction.done,
+            textInputAction: TextInputAction.next,
             maxLength: 200,
+          ),
+          const SizedBox(height: 20),
+          CustomTextField(
+            controller: _passwordController,
+            labelText: 'Password *',
+            hintText: 'Enter your password',
+            textInputAction: TextInputAction.next,
+            obscureText: _obscurePassword,
+            isRequired: true,
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                color: AppColors.textSecondary,
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscurePassword = !_obscurePassword;
+                });
+              },
+            ),
+            validator: Validators.validatePassword,
+            onChanged: (value) {
+              setState(
+                () {},
+              ); // Trigger rebuild for password strength indicator
+            },
+          ),
+          const SizedBox(height: 12),
+          // Password strength indicator
+          PasswordStrengthIndicator(password: _passwordController.text),
+          const SizedBox(height: 8),
+          // Password requirements
+          if (_passwordController.text.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.inputBorder),
+              ),
+              child: PasswordRequirementsIndicator(
+                password: _passwordController.text,
+              ),
+            ),
+          const SizedBox(height: 20),
+          CustomTextField(
+            controller: _confirmPasswordController,
+            labelText: 'Confirm Password *',
+            hintText: 'Confirm your password',
+            textInputAction: TextInputAction.done,
+            obscureText: _obscureConfirmPassword,
+            isRequired: true,
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscureConfirmPassword
+                    ? Icons.visibility
+                    : Icons.visibility_off,
+                color: AppColors.textSecondary,
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscureConfirmPassword = !_obscureConfirmPassword;
+                });
+              },
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please confirm your password';
+              }
+              if (value != _passwordController.text) {
+                return 'Passwords do not match';
+              }
+              return null;
+            },
           ),
           const SizedBox(height: 32),
           // Next button

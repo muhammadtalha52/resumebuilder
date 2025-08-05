@@ -1,7 +1,6 @@
 import 'dart:developer';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../config/api_config.dart';
 import '../utils/endpoint_headers.dart';
 import '../utils/keys.dart';
 import '../providers/app_logic_provider.dart';
@@ -9,9 +8,9 @@ import '../providers/app_logic_provider.dart';
 class APIClient {
   static APIClient? _instance;
   late Dio dioClient;
-  
+
   APIClient._internal();
-  
+
   factory APIClient() {
     _instance ??= APIClient._internal();
     return _instance!;
@@ -20,10 +19,10 @@ class APIClient {
   void init({ProviderContainer? container}) {
     dioClient = Dio(
       BaseOptions(
-        baseUrl: ApiConfig.apiUrl,
-        connectTimeout: ApiConfig.connectTimeout,
-        receiveTimeout: ApiConfig.receiveTimeout,
-        sendTimeout: ApiConfig.sendTimeout,
+        baseUrl: ApiEndpoints.baseUrl,
+        connectTimeout: Duration(seconds: 180),
+        receiveTimeout: Duration(seconds: 180),
+        sendTimeout: Duration(seconds: 180),
         validateStatus: (status) => true,
       ),
     );
@@ -50,10 +49,12 @@ class APIClient {
         },
         onResponse: (response, handler) {
           /// Do something with response data
-          if (response.data["message"] == "Token expired." ||
-              response.data["message"] == "Unauthorized") {
-            ///Access token expire in this case logout user and redirect to login screen
-            logoutAndRemoveData(container);
+          if (response.data != null && response.data is Map) {
+            final message = response.data["message"];
+            if (message == "Token expired." || message == "Unauthorized") {
+              ///Access token expire in this case logout user and redirect to login screen
+              logoutAndRemoveData(container);
+            }
           }
           return handler.next(response); // continue
         },

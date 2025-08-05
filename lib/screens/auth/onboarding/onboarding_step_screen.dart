@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../providers/onboarding_provider.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../models/signup_request.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/fox_message_card.dart';
 import 'steps/step1_personal_details.dart';
 import 'steps/step2_career_goals.dart';
@@ -93,13 +96,55 @@ class _OnboardingStepScreenState extends ConsumerState<OnboardingStepScreen> {
     }
   }
 
-  void _handleNext() {
+  void _handleNext() async {
     if (widget.stepNumber < 6) {
       context.go('/onboarding/step/${widget.stepNumber + 1}');
     } else {
-      // Complete onboarding
+      // Complete onboarding by calling signup API
+      await _completeOnboardingWithSignup();
+    }
+  }
+
+  Future<void> _completeOnboardingWithSignup() async {
+    final onboardingState = ref.read(onboardingProvider);
+    final authNotifier = ref.read(authProvider.notifier);
+
+    // Check if we're mounted before showing any UI
+    if (!mounted) return;
+
+    try {
+      // Show loading state
+      showInfoSnackBar(context: context, message: 'Creating your account...');
+
+      // Create signup request from onboarding state
+      final signupRequest = SignUpRequest.fromOnboardingState(onboardingState);
+
+      // Call signup API using the DTO
+      await authNotifier.signUpFromOnboarding(signupRequest);
+
+      // Complete onboarding state
       ref.read(onboardingProvider.notifier).completeOnboarding();
+
+      // Check if we're still mounted before showing UI
+      if (!mounted) return;
+
+      // Show success message
+      showSuccessSnackBar(
+        context: context,
+        message: 'Account created successfully!',
+      );
+
+      // Navigate to home
       context.go('/home');
+    } catch (e) {
+      // Check if we're still mounted before showing UI
+      if (!mounted) return;
+
+      // Show error message
+      showErrorSnackBar(
+        context: context,
+        message: 'Failed to create account. Please try again.',
+      );
     }
   }
 

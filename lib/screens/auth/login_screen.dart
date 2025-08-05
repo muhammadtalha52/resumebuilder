@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skillresy/constants/app_colors.dart';
 import 'package:skillresy/constants/app_sizes.dart';
 import 'package:skillresy/constants/app_strings.dart';
 import 'package:skillresy/providers/auth_provider.dart';
 import 'package:skillresy/utils/validators.dart';
+import 'package:skillresy/utils/snackbar_utils.dart';
 import 'package:skillresy/widgets/common/custom_button.dart';
 import 'package:skillresy/widgets/common/custom_text_field.dart'
     hide CustomButton;
@@ -49,19 +49,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     // Listen for auth state changes
     ref.listen<AuthState>(authProvider, (previous, next) {
-      if (next.error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.error!),
-            backgroundColor: AppColors.error,
-          ),
-        );
-        ref.read(authProvider.notifier).clearError();
+      if (next.error != null && previous?.error != next.error) {
+        showErrorSnackBar(context: context, message: next.error!);
       }
 
-      if (next.isAuthenticated) {
-        // TODO: Navigate to home screen
-        // context.go('/home');
+      if (next.isAuthenticated && !previous!.isAuthenticated) {
+        showSuccessSnackBar(context: context, message: 'Login successful!');
+        context.go('/home');
       }
     });
 

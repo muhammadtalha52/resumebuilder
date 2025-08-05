@@ -7,8 +7,7 @@ class WAInterceptorHeaders {
 }
 
 class ApiEndpoints {
-  //?BaseUrl
-  static const String baseUrl =
-      'https://wrasufsfxgtfqmpnhwkt.supabase.co/functions/v1/v0';
-  static const String registerUser = '/register';
+  static const String baseUrl = 'https://api-dev.skillresy.com/api';
+  static const String register = '/auth/register/';
+  static const String login = '/auth/login/';
 }
