@@ -29,7 +29,6 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
   final _confirmPasswordController = TextEditingController();
 
   String _completePhoneNumber = '';
-  String? _phoneValidationError;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
@@ -62,14 +61,17 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
 
   void _handleSubmit() {
     if (_formKey.currentState!.validate()) {
+      // Ensure we use the complete phone number with country code
+      final phoneNumber = _completePhoneNumber.isNotEmpty
+          ? _completePhoneNumber
+          : '+1${_phoneController.text.trim()}'; // Default to US country code if not set
+
       ref
           .read(onboardingProvider.notifier)
           .updatePersonalDetails(
             fullName: _fullNameController.text.trim(),
             email: _emailController.text.trim(),
-            phone: _completePhoneNumber.isNotEmpty
-                ? _completePhoneNumber
-                : _phoneController.text.trim(),
+            phone: phoneNumber,
             linkedIn: _linkedInController.text.trim(),
             website: _websiteController.text.trim(),
           );
@@ -187,7 +189,6 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
                 onChanged: (phone) {
                   setState(() {
                     _completePhoneNumber = phone.completeNumber;
-                    _phoneValidationError = null;
                   });
                 },
                 validator: (phone) {

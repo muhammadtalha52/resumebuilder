@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../utils/date_helpers.dart';
 
 class OnboardingState {
   final int currentStep;
@@ -123,19 +124,27 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
   void updateEducation({
     String? degreeType,
+    int? degreeTypeId,
     String? major,
+    int? majorId,
     String? institution,
+    int? institutionId,
     DateTime? graduationDate,
     bool? degreeNotCompleted,
-    List<String>? certifications,
+    String? certification,
+    int? certificationId,
   }) {
     final educationData = {
       'degreeType': degreeType,
+      'degreeTypeId': degreeTypeId,
       'major': major,
+      'majorId': majorId,
       'institution': institution,
-      'graduationDate': graduationDate?.toIso8601String(),
+      'institutionId': institutionId,
+      'graduationDate': DateHelpers.formatToApiDate(graduationDate),
       'degreeNotCompleted': degreeNotCompleted ?? false,
-      'certifications': certifications ?? [],
+      'certification': certification,
+      'certificationId': certificationId,
     };
     state = state.copyWith(education: educationData);
   }

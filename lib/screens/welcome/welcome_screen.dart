@@ -32,9 +32,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     } else {
       // Mark welcome screens as complete
       await AppPreferences.markWelcomeComplete();
-      // Navigate to get-started screen
+      // Navigate to login screen for new users
       if (mounted) {
-        context.go('/get-started');
+        context.go('/login');
       }
     }
   }

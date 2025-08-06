@@ -7,7 +7,7 @@ import '../providers/app_logic_provider.dart';
 
 class APIClient {
   static APIClient? _instance;
-  late Dio dioClient;
+  late Dio dio;
 
   APIClient._internal();
 
@@ -17,7 +17,7 @@ class APIClient {
   }
 
   void init({ProviderContainer? container}) {
-    dioClient = Dio(
+    dio = Dio(
       BaseOptions(
         baseUrl: ApiEndpoints.baseUrl,
         connectTimeout: Duration(seconds: 180),
@@ -26,7 +26,7 @@ class APIClient {
         validateStatus: (status) => true,
       ),
     );
-    dioClient.interceptors.add(
+    dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           /// Do something before request is sent

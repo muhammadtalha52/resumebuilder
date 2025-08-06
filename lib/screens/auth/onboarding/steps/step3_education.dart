@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../constants/app_colors.dart';
 import '../../../../providers/onboarding_provider.dart';
-import '../../../../widgets/common/custom_dropdown.dart';
+import '../../../../providers/education_data_provider.dart';
+import '../../../../widgets/common/custom_picker_field.dart';
 
 class Step3Education extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -20,93 +21,13 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
   String? _selectedInstitution;
   DateTime? _graduationDate;
   bool _degreeNotCompleted = false;
-  List<String> _selectedCertifications = [];
+  String? _selectedCertification;
 
   // Error state variables
   String? _degreeTypeError;
   String? _majorError;
   String? _institutionError;
   String? _graduationDateError;
-
-  // Dropdown options
-  final List<String> _degreeTypes = [
-    'High School Diploma',
-    'Associate Degree',
-    'Bachelor\'s Degree',
-    'Master\'s Degree',
-    'Doctoral Degree (PhD)',
-    'Professional Degree',
-    'Certificate',
-    'Other',
-  ];
-
-  final List<String> _majors = [
-    'Computer Science',
-    'Information Technology',
-    'Software Engineering',
-    'Business Administration',
-    'Marketing',
-    'Finance',
-    'Accounting',
-    'Mechanical Engineering',
-    'Electrical Engineering',
-    'Civil Engineering',
-    'Psychology',
-    'Biology',
-    'Chemistry',
-    'Physics',
-    'Mathematics',
-    'English',
-    'Communications',
-    'Graphic Design',
-    'Art',
-    'History',
-    'Political Science',
-    'Economics',
-    'Other',
-  ];
-
-  final List<String> _institutions = [
-    'Harvard University',
-    'Stanford University',
-    'MIT',
-    'University of California, Berkeley',
-    'Yale University',
-    'Princeton University',
-    'Columbia University',
-    'University of Chicago',
-    'University of Pennsylvania',
-    'California Institute of Technology',
-    'Johns Hopkins University',
-    'Northwestern University',
-    'Duke University',
-    'Dartmouth College',
-    'Brown University',
-    'Vanderbilt University',
-    'Rice University',
-    'Washington University in St. Louis',
-    'Cornell University',
-    'University of Notre Dame',
-    'Other',
-  ];
-
-  final List<String> _certifications = [
-    'AWS Certified Solutions Architect',
-    'Google Cloud Professional',
-    'Microsoft Azure Fundamentals',
-    'Certified Information Systems Security Professional (CISSP)',
-    'Project Management Professional (PMP)',
-    'Certified Public Accountant (CPA)',
-    'Chartered Financial Analyst (CFA)',
-    'Certified Information Systems Auditor (CISA)',
-    'Cisco Certified Network Associate (CCNA)',
-    'CompTIA Security+',
-    'Certified Scrum Master (CSM)',
-    'Google Analytics Certified',
-    'HubSpot Content Marketing',
-    'Adobe Certified Expert',
-    'Other',
-  ];
 
   @override
   void initState() {
@@ -125,9 +46,7 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
             ? DateTime.parse(education['graduationDate'])
             : null;
         _degreeNotCompleted = education['degreeNotCompleted'] ?? false;
-        _selectedCertifications = List<String>.from(
-          education['certifications'] ?? [],
-        );
+        _selectedCertification = education['certification'];
       });
     }
   }
@@ -276,128 +195,6 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
     );
   }
 
-  Widget _buildMultiSelectDropdown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Certifications',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.inputBorder),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              hint: const Text(
-                'Select Options',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
-              ),
-              icon: const Icon(
-                Icons.keyboard_arrow_down,
-                color: AppColors.textSecondary,
-              ),
-              isExpanded: true,
-              items: _certifications.map((String item) {
-                return DropdownMenuItem<String>(
-                  value: item,
-                  child: StatefulBuilder(
-                    builder: (context, setState) {
-                      final isSelected = _selectedCertifications.contains(item);
-                      return Row(
-                        children: [
-                          Checkbox(
-                            value: isSelected,
-                            onChanged: (bool? value) {
-                              setState(() {
-                                if (value == true) {
-                                  if (!_selectedCertifications.contains(item)) {
-                                    _selectedCertifications.add(item);
-                                  }
-                                } else {
-                                  _selectedCertifications.remove(item);
-                                }
-                              });
-                              this.setState(() {});
-                            },
-                            activeColor: AppColors.primary,
-                          ),
-                          Expanded(child: Text(item)),
-                        ],
-                      );
-                    },
-                  ),
-                );
-              }).toList(),
-              onChanged: (_) {},
-            ),
-          ),
-        ),
-        if (_selectedCertifications.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _selectedCertifications.map((cert) {
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEBEEFF),
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(
-                    color: const Color(0xFF7777F8),
-                    width: 1.5,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        cert,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedCertifications.remove(cert);
-                        });
-                      },
-                      child: const Icon(
-                        Icons.close,
-                        size: 14,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ],
-    );
-  }
-
   void _handleSubmit() {
     bool hasErrors = false;
 
@@ -430,16 +227,32 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
     });
 
     if (!hasErrors) {
-      // Save data
+      // Get IDs for selected items
+      final degreeTypeId = ref.read(
+        getDegreeTypeIdProvider(_selectedDegreeType),
+      );
+      final majorId = ref.read(getMajorIdProvider(_selectedMajor));
+      final institutionId = ref.read(
+        getInstitutionIdProvider(_selectedInstitution),
+      );
+      final certificationId = ref.read(
+        getCertificationIdProvider(_selectedCertification),
+      );
+
+      // Save data with both names and IDs
       ref
           .read(onboardingProvider.notifier)
           .updateEducation(
             degreeType: _selectedDegreeType,
+            degreeTypeId: degreeTypeId,
             major: _selectedMajor,
+            majorId: majorId,
             institution: _selectedInstitution,
+            institutionId: institutionId,
             graduationDate: _graduationDate,
             degreeNotCompleted: _degreeNotCompleted,
-            certifications: _selectedCertifications,
+            certification: _selectedCertification,
+            certificationId: certificationId,
           );
 
       widget.onNext();
@@ -448,16 +261,42 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
 
   @override
   Widget build(BuildContext context) {
+    // Get data from providers (already cached from GetStartedScreen)
+    final degreeTypes = ref.watch(degreeTypesProvider);
+    final majors = ref.watch(majorsProvider);
+    final institutions = ref.watch(institutionsProvider);
+    final certifications = ref.watch(certificationsProvider);
+    final educationDataAsync = ref.watch(educationDataProvider);
+
+    // Show loading indicator if data is still being fetched
+    if (educationDataAsync.isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(color: AppColors.primary),
+            const SizedBox(height: 16),
+            Text(
+              'Loading education options...',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CustomStringDropdown(
+        CustomPickerField(
           labelText: 'Degree Type',
           isRequired: true,
           value: _selectedDegreeType,
-          items: _degreeTypes,
-          hintText: 'Select Options',
+          items: degreeTypes,
+          hintText: 'Select degree type',
           errorText: _degreeTypeError,
+          pickerTitle: 'Select Degree Type',
+          searchHint: 'Search degree types...',
           onChanged: (value) {
             setState(() {
               _selectedDegreeType = value;
@@ -466,13 +305,15 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
           },
         ),
         const SizedBox(height: 20),
-        CustomStringDropdown(
+        CustomPickerField(
           labelText: 'Major',
           isRequired: true,
           value: _selectedMajor,
-          items: _majors,
-          hintText: 'Select Options',
+          items: majors,
+          hintText: 'Select major',
           errorText: _majorError,
+          pickerTitle: 'Select Major',
+          searchHint: 'Search majors...',
           onChanged: (value) {
             setState(() {
               _selectedMajor = value;
@@ -481,13 +322,15 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
           },
         ),
         const SizedBox(height: 20),
-        CustomStringDropdown(
+        CustomPickerField(
           labelText: 'Institution',
           isRequired: true,
           value: _selectedInstitution,
-          items: _institutions,
-          hintText: 'Select Options',
+          items: institutions,
+          hintText: 'Select institution',
           errorText: _institutionError,
+          pickerTitle: 'Select Institution',
+          searchHint: 'Search institutions...',
           onChanged: (value) {
             setState(() {
               _selectedInstitution = value;
@@ -500,7 +343,20 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
         const SizedBox(height: 16),
         _buildCheckbox(),
         const SizedBox(height: 20),
-        _buildMultiSelectDropdown(),
+        CustomPickerField(
+          labelText: 'Certification',
+          isRequired: false,
+          value: _selectedCertification,
+          items: certifications,
+          hintText: 'Select certification (optional)',
+          pickerTitle: 'Select Certification',
+          searchHint: 'Search certifications...',
+          onChanged: (value) {
+            setState(() {
+              _selectedCertification = value;
+            });
+          },
+        ),
         const SizedBox(height: 32),
         // Next button
         SizedBox(

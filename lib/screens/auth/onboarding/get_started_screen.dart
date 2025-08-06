@@ -3,12 +3,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skillresy/constants/app_colors.dart';
 import 'package:skillresy/constants/app_sizes.dart';
+import 'package:skillresy/providers/education_data_provider.dart';
 
-class GetStartedScreen extends ConsumerWidget {
+class GetStartedScreen extends ConsumerStatefulWidget {
   const GetStartedScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GetStartedScreen> createState() => _GetStartedScreenState();
+}
+
+class _GetStartedScreenState extends ConsumerState<GetStartedScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fetch education data in the background
+    // This will cache the data in the provider for later use
+    Future.microtask(() {
+      ref.read(educationDataProvider);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
     final isTablet = size.width >= AppSizes.tabletBreakpoint;

@@ -1,4 +1,5 @@
 import '../providers/onboarding_provider.dart';
+import '../utils/date_helpers.dart';
 
 class SignUpRequest {
   final String email;
@@ -101,16 +102,16 @@ class SignUpRequest {
         : null;
     final longTermCareerGoals = careerGoals?['longTermGoals'] as String?;
 
-    // Extract education data
+    // Extract education data with IDs
     final education = state.education;
-    final graduationDate = education?['graduationDate'] as String?;
-    // Use the actual values from education
-    final degreeType = education?['degreeType'] as String?;
-    final major = education?['major'] as String?;
-    final institution = education?['institution'] as String?;
-    final certifications = education?['certifications'] != null
-        ? (education!['certifications'] as List<dynamic>).join(', ')
-        : null;
+    // Ensure graduation date is in correct format (yyyy-MM-dd)
+    final graduationDate = DateHelpers.convertToApiDateFormat(
+      education?['graduationDate'] as String?,
+    );
+    final degreeTypeId = education?['degreeTypeId'] as int?;
+    final majorId = education?['majorId'] as int?;
+    final institutionId = education?['institutionId'] as int?;
+    final certificationId = education?['certificationId'] as int?;
 
     // Extract work experience data
     final workExp = state.workExperience;
@@ -145,11 +146,15 @@ class SignUpRequest {
           ? responsibilitiesList.join(', ')
           : null;
 
-      // Get start and end dates from first experience
+      // Get start and end dates from first experience and format them
       if (experiences.isNotEmpty) {
         final firstExp = experiences.first as Map<String, dynamic>;
-        workStartDate = firstExp['startDate'] as String?;
-        workEndDate = firstExp['endDate'] as String?;
+        workStartDate = DateHelpers.convertToApiDateFormat(
+          firstExp['startDate'] as String?,
+        );
+        workEndDate = DateHelpers.convertToApiDateFormat(
+          firstExp['endDate'] as String?,
+        );
       }
     }
 
@@ -200,15 +205,11 @@ class SignUpRequest {
       desiredJobTitles: desiredJobTitles,
       industryPreferences: industryPreferences,
       longTermCareerGoals: longTermCareerGoals,
-      degreeType: _mapToId(degreeType),
-      // Convert string to int if needed
-      major: _mapToId(major),
-      // Convert string to int if needed
-      institution: _mapToId(institution),
-      // Convert string to int if needed
+      degreeType: degreeTypeId,
+      major: majorId,
+      institution: institutionId,
       graduationDate: graduationDate,
-      certificationsTraining: _mapToId(certifications),
-      // Add certifications
+      certificationsTraining: certificationId,
       jobTitles: jobTitles,
       companyNames: companyNames,
       workDuration: workDuration,
@@ -242,65 +243,5 @@ class SignUpRequest {
       default:
         return 1; // Default to student
     }
-  }
-
-  // Helper method to map string values to IDs
-  static int? _mapToId(String? value) {
-    if (value == null || value.isEmpty) return null;
-
-    // For now, return a simple hash-based ID or default value
-    // TODO: Replace with actual mapping logic based on your API requirements
-    return value.hashCode.abs() % 1000 + 1; // Simple hash to positive int
-  }
-
-  // Convert to Map for easier parameter passing
-  Map<String, dynamic> toMap() {
-    return {
-      'email': email,
-      'password': password,
-      'confirmPassword': confirmPassword,
-      'fullName': fullName,
-      'firstName': firstName,
-      'lastName': lastName,
-      'phoneNumber': phoneNumber,
-      'dateOfBirth': dateOfBirth,
-      'address': address,
-      'city': city,
-      'userState': userState,
-      'country': country,
-      'postalCode': postalCode,
-      if (professionalSummary != null)
-        'professionalSummary': professionalSummary,
-      if (linkedinUrl != null) 'linkedinUrl': linkedinUrl,
-      if (githubUrl != null) 'githubUrl': githubUrl,
-      if (portfolioUrl != null) 'portfolioUrl': portfolioUrl,
-      if (desiredJobTitles != null) 'desiredJobTitles': desiredJobTitles,
-      if (industryPreferences != null)
-        'industryPreferences': industryPreferences,
-      if (longTermCareerGoals != null)
-        'longTermCareerGoals': longTermCareerGoals,
-      if (degreeType != null) 'degreeType': degreeType,
-      if (major != null) 'major': major,
-      if (institution != null) 'institution': institution,
-      if (graduationDate != null) 'graduationDate': graduationDate,
-      if (certificationsTraining != null)
-        'certificationsTraining': certificationsTraining,
-      if (jobTitles != null) 'jobTitles': jobTitles,
-      if (companyNames != null) 'companyNames': companyNames,
-      if (workDuration != null) 'workDuration': workDuration,
-      if (keyResponsibilities != null)
-        'keyResponsibilities': keyResponsibilities,
-      if (hardSkills != null) 'hardSkills': hardSkills,
-      if (softSkills != null) 'softSkills': softSkills,
-      if (toolsTechnologies != null) 'toolsTechnologies': toolsTechnologies,
-      if (languages != null) 'languages': languages,
-      if (volunteerWork != null) 'volunteerWork': volunteerWork,
-      if (hobbiesInterests != null) 'hobbiesInterests': hobbiesInterests,
-      if (references != null) 'references': references,
-      if (role != null) 'role': role,
-      if (resumeUrl != null) 'resumeUrl': resumeUrl,
-      if (workStartDate != null) 'workStartDate': workStartDate,
-      if (workEndDate != null) 'workEndDate': workEndDate,
-    };
   }
 }

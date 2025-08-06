@@ -49,6 +49,7 @@ class AppColors {
 
   // Card colors
   static const Color cardBackground = Color(0xFFFFFFFF);
+  static const Color smallCard = Color(0xFFF2F4F7);
   static const Color cardShadow = Color(0x1A000000);
 
   // Social button colors

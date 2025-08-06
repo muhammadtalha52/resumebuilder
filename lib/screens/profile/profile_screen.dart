@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
-import '../../providers/onboarding_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/education_data_provider.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/common/custom_app_bar.dart';
+import '../../widgets/common/tag_list.dart';
 import '../../widgets/dialogs/confirmation_dialog.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/profile_card.dart';
@@ -15,8 +16,6 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final onboardingState = ref.watch(onboardingProvider);
-
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       appBar: CustomAppBar(
@@ -37,19 +36,19 @@ class ProfileScreen extends ConsumerWidget {
             child: Column(
               children: [
                 const SizedBox(height: 10),
-                ProfileHeader(onboardingState: onboardingState),
+                const ProfileHeader(),
                 const SizedBox(height: 24),
-                _buildPersonalDetailsCard(context, onboardingState),
+                _buildPersonalDetailsCard(context, ref),
                 const SizedBox(height: 16),
-                _buildCareerGoalsCard(context, onboardingState),
+                _buildCareerGoalsCard(context, ref),
                 const SizedBox(height: 16),
-                _buildEducationCard(context, onboardingState),
+                _buildEducationCard(context, ref),
                 const SizedBox(height: 16),
-                _buildWorkExperienceCard(context, onboardingState),
+                _buildWorkExperienceCard(context, ref),
                 const SizedBox(height: 16),
-                _buildSkillsCard(context, onboardingState),
+                _buildSkillsCard(context, ref),
                 const SizedBox(height: 16),
-                _buildOthersCard(context, onboardingState),
+                _buildOthersCard(context, ref),
                 const SizedBox(height: 20),
               ],
             ),
@@ -59,10 +58,10 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPersonalDetailsCard(
-    BuildContext context,
-    OnboardingState state,
-  ) {
+  Widget _buildPersonalDetailsCard(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+
     return ProfileCard(
       title: '👤 Personal Details',
       onEdit: () => context.go('/onboarding/step/1'),
@@ -71,33 +70,31 @@ class ProfileScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildDetailRowWithDivider(
-            Icons.email_outlined,
+            'assets/icons/mail.png',
             'Email Address',
-            'abcd@gmail.com',
+            user?.email ?? 'Not provided',
             showDivider: true,
           ),
           _buildDetailRowWithDivider(
-            Icons.phone_outlined,
-            'Phone Number',
-            '000-000-000',
+            'assets/icons/whatsapp.png',
+            'Phone/whatsapp Number',
+            user?.phoneNumber ?? 'Not provided',
             showDivider: true,
           ),
           _buildDetailRowWithDivider(
-            Icons.phone_android_outlined,
-            'Whatsapp Number',
-            '000-000-000',
-            showDivider: true,
-          ),
-          _buildDetailRowWithDivider(
-            Icons.link_outlined,
+            'assets/icons/linkedin.png',
             'LinkedIn Profile',
-            'www.linkedin.com/in/yourname',
+            (user?.linkedinUrl != null && user!.linkedinUrl!.isNotEmpty)
+                ? user.linkedinUrl!
+                : 'Not provided',
             showDivider: true,
           ),
           _buildDetailRowWithDivider(
-            Icons.language_outlined,
+            'assets/icons/website.png',
             'Personal Website/Portfolio',
-            'www.website.com',
+            (user?.portfolioUrl != null && user!.portfolioUrl!.isNotEmpty)
+                ? user.portfolioUrl!
+                : 'Not provided',
             showDivider: false,
           ),
         ],
@@ -105,7 +102,10 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCareerGoalsCard(BuildContext context, OnboardingState state) {
+  Widget _buildCareerGoalsCard(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+
     return ProfileCard(
       title: '🎯 Career Goals & Preferences',
       onEdit: () => context.go('/onboarding/step/2'),
@@ -114,40 +114,21 @@ class ProfileScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildCareerDetailRow(
-            Icons.work_outline_rounded,
+            'assets/icons/goals.png',
             'Desired Job Titles',
-            [
-              'UX Design',
-              'UI Design',
-              'Website Design',
-              'Product Design',
-              'Interaction Design',
-            ],
-            [
-              const Color(0xFF2196F3),
-              const Color(0xFF4CAF50),
-              const Color(0xFFFF9800),
-              const Color(0xFF9C27B0),
-              const Color(0xFFF44336),
-            ],
+            _parseCommaSeparatedString(user?.desiredJobTitles),
             showDivider: true,
           ),
           _buildCareerDetailRow(
-            Icons.business_outlined,
+            'assets/icons/industry.png',
             'Industry Preferences',
-            ['IT Companies', 'Software House'],
-            [const Color(0xFF2196F3), const Color(0xFF4CAF50)],
+            _parseCommaSeparatedString(user?.industryPreferences),
             showDivider: true,
           ),
           _buildCareerDetailRow(
-            Icons.trending_up_outlined,
+            'assets/icons/long-term.png',
             'Long-term Career Goals',
-            ['Company Manager', 'Leadership Role', 'Product owner'],
-            [
-              const Color(0xFF2196F3),
-              const Color(0xFF4CAF50),
-              const Color(0xFFFF9800),
-            ],
+            _parseCommaSeparatedString(user?.longTermCareerGoals),
             showDivider: false,
           ),
         ],
@@ -155,7 +136,26 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEducationCard(BuildContext context, OnboardingState state) {
+  Widget _buildEducationCard(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+
+    // Get degree type name from ID
+    final degreeTypeName = ref.watch(
+      getDegreeTypeNameProvider(user?.degreeType),
+    );
+
+    // Get major name from ID
+    final majorName = ref.watch(getMajorNameProvider(user?.major));
+
+    // Get institution name from ID
+    final institutionName = ref.watch(
+      getInstitutionNameProvider(user?.institution),
+    );
+
+    // Format degree with major
+    final degreeText = _formatDegreeText(degreeTypeName, majorName);
+
     return ProfileCard(
       title: '🎓 Education',
       onEdit: () => context.go('/onboarding/step/3'),
@@ -164,9 +164,9 @@ class ProfileScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildEducationDetailRow(
-            'Bachelor\'s in Computer Science',
-            'Oxford University',
-            '25 October 2018',
+            degreeText,
+            institutionName ?? 'Not provided',
+            user?.graduationDate ?? 'Not provided',
             showDivider: false,
           ),
         ],
@@ -174,78 +174,115 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildWorkExperienceCard(BuildContext context, OnboardingState state) {
+  Widget _buildWorkExperienceCard(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+
+    // Parse work experience data
+    final jobTitles = _parseCommaSeparatedStringToList(user?.jobTitles);
+    final companyNames = _parseCommaSeparatedStringToList(user?.companyNames);
+    final workDuration = _parseCommaSeparatedStringToList(user?.workDuration);
+    final keyResponsibilities = _parseCommaSeparatedStringToList(
+      user?.keyResponsibilities,
+    );
+
+    // Create work experience entries (assume they correspond by index)
+    final workExperiences = _createWorkExperienceEntries(
+      jobTitles,
+      companyNames,
+      workDuration,
+      keyResponsibilities,
+    );
+
     return ProfileCard(
-      title: 'Work Experience',
+      title: '🧑‍💼 Work Experience',
       onEdit: () => context.go('/onboarding/step/4'),
+      showDividers: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildWorkEntry(
-            'Senior Software Engineer',
-            'Apple Inc.',
-            'Present',
-            'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text.',
-          ),
-          const SizedBox(height: 16),
-          _buildWorkEntry(
-            'Senior Software Engineer',
-            'Apple Inc.',
-            'July 2021 - May 2024',
-            'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text.',
-          ),
-        ],
+        children: workExperiences.asMap().entries.map((entry) {
+          final index = entry.key;
+          final workExp = entry.value;
+          final isLast = index == workExperiences.length - 1;
+
+          return _buildWorkExperienceDetailRow(
+            workExp['title'] ?? 'Not provided',
+            workExp['company'] ?? 'Not provided',
+            workExp['duration'] ?? 'Not provided',
+            workExp['responsibilities'] ?? 'Not provided',
+            showDivider: !isLast,
+          );
+        }).toList(),
       ),
     );
   }
 
-  Widget _buildSkillsCard(BuildContext context, OnboardingState state) {
+  Widget _buildSkillsCard(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+
     return ProfileCard(
-      title: 'Skills & Tools',
+      title: '🛠️ Skills & Tools',
       onEdit: () => context.go('/onboarding/step/5'),
+      showDividers: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionWithTags(
+          _buildCareerDetailRow(
+            'assets/icons/hard-soft-skills.png',
             'Hard Skills, Soft Skills',
-            ['Presentation', 'Speaking', 'Writing', 'Documentation'],
-            [Colors.blue, Colors.green, Colors.orange, Colors.purple],
+            _combineSkills(user?.hardSkills, user?.softSkills),
+            showDivider: true,
           ),
-          const SizedBox(height: 16),
-          _buildSectionWithTags(
+          _buildCareerDetailRow(
+            'assets/icons/tools-tech.png',
             'Tools/Technologies',
-            ['Figma', 'Miro', 'Coding', 'Frontend'],
-            [Colors.blue, Colors.green, Colors.orange, Colors.red],
+            _parseCommaSeparatedString(user?.toolsTechnologies),
+            showDivider: false,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildOthersCard(BuildContext context, OnboardingState state) {
+  Widget _buildOthersCard(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+
     return ProfileCard(
-      title: 'Others',
+      title: '🌍 Others',
       onEdit: () => context.go('/onboarding/step/6'),
+      showDividers: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionWithTags(
+          _buildCareerDetailRow(
+            'assets/icons/language-line.png',
             'Languages',
-            ['English', 'Spanish', 'Dutch', 'Latin'],
-            [Colors.blue, Colors.green, Colors.orange, Colors.purple],
+            _parseCommaSeparatedString(user?.languages),
+            showDivider: true,
           ),
-          const SizedBox(height: 16),
-          _buildSectionWithIcon('Volunteer Work', 'Field Work'),
-          const SizedBox(height: 16),
-          _buildSectionWithTags(
+          _buildDetailRowWithDivider(
+            'assets/icons/goals.png',
+            'Volunteer Work',
+            (user?.volunteerWork != null && user!.volunteerWork!.isNotEmpty)
+                ? user.volunteerWork!
+                : 'Not provided',
+            showDivider: true,
+          ),
+          _buildCareerDetailRow(
+            'assets/icons/industry.png',
             'Hobbies & Interests',
-            ['Painting', 'Singing', 'Dancing'],
-            [Colors.blue, Colors.green, Colors.orange],
+            _parseCommaSeparatedString(user?.hobbiesInterests),
+            showDivider: true,
           ),
-          const SizedBox(height: 16),
-          _buildSectionWithIcon(
+          _buildDetailRowWithDivider(
+            'assets/icons/user.png',
             'References',
-            'Alex John, Senior Software Engineer at Google',
+            (user?.references != null && user!.references!.isNotEmpty)
+                ? user.references!
+                : 'Not provided',
+            showDivider: false,
           ),
         ],
       ),
@@ -253,7 +290,7 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildDetailRowWithDivider(
-    IconData icon,
+    String icon,
     String label,
     String value, {
     required bool showDivider,
@@ -263,8 +300,9 @@ class ProfileScreen extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 20, color: AppColors.textSecondary),
+              Image.asset(icon, width: 20, height: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -273,8 +311,8 @@ class ProfileScreen extends ConsumerWidget {
                     Text(
                       label,
                       style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.textSecondary,
                       ),
                     ),
@@ -282,7 +320,7 @@ class ProfileScreen extends ConsumerWidget {
                     Text(
                       value,
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 13,
                         fontWeight: FontWeight.w400,
                         color: AppColors.textPrimary,
                       ),
@@ -307,10 +345,9 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildCareerDetailRow(
-    IconData icon,
+    String icon,
     String label,
-    List<String> tags,
-    List<Color> colors, {
+    List<String> tags, {
     required bool showDivider,
   }) {
     return Column(
@@ -320,7 +357,7 @@ class ProfileScreen extends ConsumerWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 20, color: AppColors.textSecondary),
+              Image.asset(icon, width: 20, height: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -329,35 +366,13 @@ class ProfileScreen extends ConsumerWidget {
                     Text(
                       label,
                       style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: List.generate(tags.length, (index) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEBEEFF),
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: Text(
-                            tags[index],
-                            style: const TextStyle(
-                              color: Color(0xFF7777F8),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
+                    TagList(tags: tags),
                   ],
                 ),
               ),
@@ -377,52 +392,6 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionWithTags(
-    String title,
-    List<String> tags,
-    List<Color> colors,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: List.generate(tags.length, (index) {
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: colors[index % colors.length].withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: colors[index % colors.length].withValues(alpha: 0.3),
-                  width: 1,
-                ),
-              ),
-              child: Text(
-                tags[index],
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: colors[index % colors.length],
-                ),
-              ),
-            );
-          }),
-        ),
-      ],
-    );
-  }
-
   Widget _buildEducationDetailRow(
     String degree,
     String institution,
@@ -434,6 +403,7 @@ class ProfileScreen extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
                 Icons.school_outlined,
@@ -450,44 +420,39 @@ class ProfileScreen extends ConsumerWidget {
                       degree,
                       style: const TextStyle(
                         fontSize: 14,
-                        fontWeight: FontWeight.w400,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      'Institution',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
                     Text(
                       institution,
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 13,
                         fontWeight: FontWeight.w400,
                         color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      'Graduation Date',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      date,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: AppColors.textPrimary,
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.smallCard,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          date,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -509,93 +474,67 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildWorkEntry(
+  Widget _buildWorkExperienceDetailRow(
     String title,
     String company,
     String duration,
-    String description,
-  ) {
+    String responsibilities, {
+    required bool showDivider,
+  }) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              Icons.business_center_outlined,
-              size: 20,
-              color: AppColors.textSecondary,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    company,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              duration,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
         Padding(
-          padding: const EdgeInsets.only(left: 32),
-          child: Text(
-            description,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-              height: 1.4,
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Image.asset('assets/icons/work.png', width: 20, height: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 2),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      company,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      responsibilities,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.textPrimary,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (showDivider)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: const Divider(
+              height: 1,
+              thickness: 1,
+              color: AppColors.inputBorder,
             ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSectionWithIcon(String title, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-            color: AppColors.textPrimary,
-          ),
-        ),
       ],
     );
   }
@@ -669,5 +608,102 @@ class ProfileScreen extends ConsumerWidget {
         offset: const Offset(0, 8),
       ),
     );
+  }
+
+  List<String> _parseCommaSeparatedString(String? input) {
+    if (input == null || input.trim().isEmpty) {
+      return ['Not provided'];
+    }
+
+    final parsed = input
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+
+    return parsed.isEmpty ? ['Not provided'] : parsed;
+  }
+
+  String _formatDegreeText(String? degreeType, String? major) {
+    if (degreeType == null || degreeType.isEmpty) {
+      return 'Not provided';
+    }
+
+    if (major == null || major.isEmpty) {
+      return degreeType;
+    }
+
+    return '$degreeType in $major';
+  }
+
+  List<String> _parseCommaSeparatedStringToList(String? input) {
+    if (input == null || input.trim().isEmpty) {
+      return [];
+    }
+
+    return input
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
+  List<Map<String, String?>> _createWorkExperienceEntries(
+    List<String> jobTitles,
+    List<String> companyNames,
+    List<String> workDuration,
+    List<String> keyResponsibilities,
+  ) {
+    // If no data exists, show a single "Not provided" entry
+    if (jobTitles.isEmpty &&
+        companyNames.isEmpty &&
+        workDuration.isEmpty &&
+        keyResponsibilities.isEmpty) {
+      return [
+        {
+          'title': 'Not provided',
+          'company': 'Not provided',
+          'duration': 'Not provided',
+          'responsibilities': 'Not provided',
+        },
+      ];
+    }
+
+    // Find the maximum length among all lists
+    final maxLength = [
+      jobTitles.length,
+      companyNames.length,
+      workDuration.length,
+      keyResponsibilities.length,
+    ].reduce((a, b) => a > b ? a : b);
+
+    // Create work experience entries
+    final List<Map<String, String?>> workExperiences = [];
+
+    for (int i = 0; i < maxLength; i++) {
+      workExperiences.add({
+        'title': i < jobTitles.length ? jobTitles[i] : 'Not provided',
+        'company': i < companyNames.length ? companyNames[i] : 'Not provided',
+        'duration': i < workDuration.length ? workDuration[i] : 'Not provided',
+        'responsibilities': i < keyResponsibilities.length
+            ? keyResponsibilities[i]
+            : 'Not provided',
+      });
+    }
+
+    return workExperiences;
+  }
+
+  List<String> _combineSkills(String? hardSkills, String? softSkills) {
+    final hardSkillsList = _parseCommaSeparatedStringToList(hardSkills);
+    final softSkillsList = _parseCommaSeparatedStringToList(softSkills);
+
+    final combinedSkills = [...hardSkillsList, ...softSkillsList];
+
+    if (combinedSkills.isEmpty) {
+      return ['Not provided'];
+    }
+
+    return combinedSkills;
   }
 }

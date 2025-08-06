@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../constants/app_colors.dart';
-import '../../../providers/onboarding_provider.dart';
+import '../../../providers/auth_provider.dart';
 
-class ProfileHeader extends StatelessWidget {
-  final OnboardingState onboardingState;
-
-  const ProfileHeader({super.key, required this.onboardingState});
+class ProfileHeader extends ConsumerWidget {
+  const ProfileHeader({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -26,30 +27,40 @@ class ProfileHeader extends StatelessWidget {
         children: [
           Stack(
             children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: AppColors.primary.withOpacity(0.1),
-                backgroundImage: const AssetImage(
-                  'assets/images/profile_photo.jpg',
+              Container(
+                width: 84,
+                height: 84,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFE8E8E8), width: 2),
                 ),
-                onBackgroundImageError: (_, __) {},
-                child: onboardingState.fullName == null
-                    ? Text(
-                        _getInitials(),
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
+                child: _hasProfileImage(user?.profileImage)
+                    ? CircleAvatar(
+                        radius: 40,
+                        backgroundColor: AppColors.primary.withOpacity(0.1),
+                        backgroundImage: NetworkImage(user!.profileImage!),
+                        onBackgroundImageError: (_, __) {},
+                        child: null,
                       )
-                    : null,
+                    : CircleAvatar(
+                        radius: 40,
+                        backgroundColor: AppColors.primary.withOpacity(0.1),
+                        child: Text(
+                          _getInitials(user?.fullName),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
               ),
               Positioned(
                 bottom: 0,
                 right: 0,
                 child: Container(
-                  width: 24,
-                  height: 24,
+                  width: 30,
+                  height: 30,
                   decoration: BoxDecoration(
                     color: AppColors.white,
                     shape: BoxShape.circle,
@@ -59,8 +70,8 @@ class ProfileHeader extends StatelessWidget {
                     ),
                   ),
                   child: const Icon(
-                    Icons.camera_alt,
-                    size: 14,
+                    Icons.add,
+                    size: 20,
                     color: AppColors.textSecondary,
                   ),
                 ),
@@ -73,7 +84,7 @@ class ProfileHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  onboardingState.fullName ?? 'Alex John',
+                  user?.fullName ?? 'Alex John',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -82,47 +93,13 @@ class ProfileHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  onboardingState.selectedRole ?? 'Software Engineer',
+                  user?.jobTitles ?? '',
                   style: const TextStyle(
                     fontSize: 14,
                     color: AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFB74D).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFFFFB74D),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset(
-                        'assets/icons/crown.png',
-                        width: 16,
-                        height: 16,
-                        color: const Color(0xFFFFB74D),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'Student plan Member',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFFFFB74D),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -131,8 +108,8 @@ class ProfileHeader extends StatelessWidget {
     );
   }
 
-  String _getInitials() {
-    final name = onboardingState.fullName ?? 'Alex John';
+  String _getInitials(String? fullName) {
+    final name = fullName ?? 'Alex John';
     final parts = name.split(' ');
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
@@ -140,5 +117,26 @@ class ProfileHeader extends StatelessWidget {
       return parts[0][0].toUpperCase();
     }
     return 'AJ';
+  }
+
+  String _getRoleDisplayName(int? roleId) {
+    switch (roleId) {
+      case 1:
+        return 'Student';
+      case 2:
+        return 'Professional';
+      case 3:
+        return 'Freelancer';
+      default:
+        return 'Software Engineer';
+    }
+  }
+
+  bool _hasProfileImage(dynamic profileImage) {
+    if (profileImage == null) return false;
+    if (profileImage is String) {
+      return profileImage.isNotEmpty;
+    }
+    return false;
   }
 }

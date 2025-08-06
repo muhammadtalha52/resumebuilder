@@ -43,9 +43,26 @@ class AuthState extends Equatable {
 
 // Auth State Notifier
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier(this._ref) : super(const AuthState());
+  AuthNotifier(this._ref) : super(const AuthState()) {
+    _initializeFromStorage();
+  }
 
   final Ref _ref;
+
+  /// Initialize auth state from stored user data on app startup
+  Future<void> _initializeFromStorage() async {
+    try {
+      final appLogic = _ref.read(appLogicProvider);
+
+      // Check if user data exists in storage
+      if (appLogic.user != null && appLogic.accessToken.isNotEmpty) {
+        state = state.copyWith(isAuthenticated: true, user: appLogic.user);
+      }
+    } catch (e) {
+      // If there's any error, just continue with empty state
+      print('Error initializing auth from storage: $e');
+    }
+  }
 
   Future<void> signIn({required String email, required String password}) async {
     // Clear any previous errors when starting a new login attempt

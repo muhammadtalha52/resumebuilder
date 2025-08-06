@@ -20,7 +20,7 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
     this.actions,
     this.onBackPressed,
     this.showPremiumBadge = true,
-    this.backgroundColor = Colors.transparent,
+    this.backgroundColor = AppColors.white,
     this.elevation = 0,
   });
 
@@ -29,6 +29,7 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
     return AppBar(
       backgroundColor: backgroundColor,
       elevation: elevation,
+      scrolledUnderElevation: 0.0,
       toolbarHeight: 56,
       automaticallyImplyLeading: false,
       title: type == AppBarType.dashboard
