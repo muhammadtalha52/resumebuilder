@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../constants/app_colors.dart';
 import '../../../../providers/onboarding_provider.dart';
+import '../../../../widgets/common/tag_field.dart';
+import '../../../../utils/snackbar_utils.dart';
 
 class Step5Skills extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -37,6 +39,25 @@ class _Step5SkillsState extends ConsumerState<Step5Skills> {
         _tools = List.from(skills['tools'] ?? []);
       });
     }
+
+    // Load from parsed resume data if available and no existing skills
+    _loadFromResumeIfAvailable();
+  }
+
+  void _loadFromResumeIfAvailable() {
+    final resumeData = ref.read(onboardingProvider.notifier).parsedResumeData;
+    if (resumeData != null &&
+        resumeData.skills != null &&
+        _hardSkills.isEmpty &&
+        _softSkills.isEmpty &&
+        _tools.isEmpty) {
+      setState(() {
+        // Populate from resume data
+        _hardSkills = List.from(resumeData.skills!.hardSkills);
+        _softSkills = List.from(resumeData.skills!.softSkills);
+        _tools = List.from(resumeData.skills!.toolsAndTechnologies);
+      });
+    }
   }
 
   @override
@@ -66,123 +87,11 @@ class _Step5SkillsState extends ConsumerState<Step5Skills> {
     });
   }
 
-  Widget _buildTagField({
-    required String label,
-    required bool isRequired,
-    required List<String> tags,
-    required TextEditingController controller,
-    required Function(String) onAdd,
-    required Function(String) onRemove,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Label
-        Row(
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            if (isRequired)
-              const Text(
-                ' *',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.error,
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          textInputAction: TextInputAction.done,
-          onFieldSubmitted: (value) {
-            if (value.isNotEmpty) {
-              onAdd(value);
-            }
-          },
-          decoration: InputDecoration(
-            hintText: 'Add tags...',
-            hintStyle: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 16,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.inputBorder),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.inputBorder),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.inputBorderFocused),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-          ),
-        ),
-        // Tags display (outside the input field)
-        if (tags.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: tags.map((tag) => _buildTag(tag, onRemove)).toList(),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildTag(String tag, Function(String) onRemove) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEBEEFF), // Surface color
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: const Color(0xFF7777F8),
-          width: 1.5,
-        ), // Border color
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            tag,
-            style: const TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: () => onRemove(tag),
-            child: const Icon(Icons.close, size: 16, color: Colors.black),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _handleSubmit() {
     if (_hardSkills.isEmpty || _softSkills.isEmpty || _tools.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please add at least one item in each category'),
-          backgroundColor: AppColors.error,
-        ),
+      showErrorSnackBar(
+        context: context,
+        message: 'Please add at least one item in each category',
       );
       return;
     }
@@ -198,10 +107,17 @@ class _Step5SkillsState extends ConsumerState<Step5Skills> {
 
   @override
   Widget build(BuildContext context) {
+    final resumeData = ref.read(onboardingProvider.notifier).parsedResumeData;
+    final hasResumeSkills =
+        resumeData?.skills != null &&
+        (resumeData!.skills!.hardSkills.isNotEmpty ||
+            resumeData.skills!.softSkills.isNotEmpty ||
+            resumeData.skills!.toolsAndTechnologies.isNotEmpty);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildTagField(
+        TagField(
           label: 'Hard Skills',
           isRequired: true,
           tags: _hardSkills,
@@ -210,7 +126,7 @@ class _Step5SkillsState extends ConsumerState<Step5Skills> {
           onRemove: (tag) => _removeTag(tag, _hardSkills),
         ),
         const SizedBox(height: 20),
-        _buildTagField(
+        TagField(
           label: 'Soft Skills',
           isRequired: true,
           tags: _softSkills,
@@ -219,7 +135,7 @@ class _Step5SkillsState extends ConsumerState<Step5Skills> {
           onRemove: (tag) => _removeTag(tag, _softSkills),
         ),
         const SizedBox(height: 20),
-        _buildTagField(
+        TagField(
           label: 'Tools/Technologies',
           isRequired: true,
           tags: _tools,

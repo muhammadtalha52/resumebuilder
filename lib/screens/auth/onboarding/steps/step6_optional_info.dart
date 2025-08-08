@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../constants/app_colors.dart';
 import '../../../../providers/onboarding_provider.dart';
+import '../../../../widgets/common/tag_field.dart';
 
 class Step6OptionalInfo extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -40,6 +41,15 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
         _referencesController.text = optionalInfo['references'] ?? '';
       });
     }
+    
+    // Load from parsed resume data if available
+    _loadFromResumeIfAvailable();
+  }
+
+  void _loadFromResumeIfAvailable() {
+    // Step 6 is optional info that doesn't directly map to resume fields
+    // We'll just provide a visual indicator if a resume was processed
+    // Users can manually add languages, volunteer work, hobbies, and references
   }
 
   @override
@@ -70,115 +80,6 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
     });
   }
 
-  Widget _buildTagField({
-    required String label,
-    required bool isRequired,
-    required List<String> tags,
-    required TextEditingController controller,
-    required Function(String) onAdd,
-    required Function(String) onRemove,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Label
-        Row(
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            if (isRequired)
-              const Text(
-                ' *',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.error,
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          textInputAction: TextInputAction.done,
-          onFieldSubmitted: (value) {
-            if (value.isNotEmpty) {
-              onAdd(value);
-            }
-          },
-          decoration: InputDecoration(
-            hintText: 'Add tags...',
-            hintStyle: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 16,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.inputBorder),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.inputBorder),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.inputBorderFocused),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-          ),
-        ),
-        // Tags display (outside the input field)
-        if (tags.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: tags.map((tag) => _buildTag(tag, onRemove)).toList(),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildTag(String tag, Function(String) onRemove) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEBEEFF), // Surface color
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: const Color(0xFF7777F8),
-          width: 1.5,
-        ), // Border color
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            tag,
-            style: const TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: () => onRemove(tag),
-            child: const Icon(Icons.close, size: 16, color: Colors.black),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildTextField({
     required String label,
@@ -261,10 +162,14 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
 
   @override
   Widget build(BuildContext context) {
+    final resumeData = ref.read(onboardingProvider.notifier).parsedResumeData;
+    final hasResumeData = resumeData != null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildTagField(
+
+        TagField(
           label: 'Languages',
           isRequired: false,
           tags: _languages,
@@ -273,7 +178,7 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
           onRemove: (tag) => _removeTag(tag, _languages),
         ),
         const SizedBox(height: 20),
-        _buildTagField(
+        TagField(
           label: 'Volunteer Work',
           isRequired: false,
           tags: _volunteerWork,
@@ -283,7 +188,7 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
           onRemove: (tag) => _removeTag(tag, _volunteerWork),
         ),
         const SizedBox(height: 20),
-        _buildTagField(
+        TagField(
           label: 'Hobbies & Interests',
           isRequired: false,
           tags: _hobbies,

@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 
 import '../../../../constants/app_colors.dart';
 import '../../../../providers/onboarding_provider.dart';
 import '../../../../widgets/common/custom_text_field.dart';
+import '../../../../models/resume_parse_model.dart';
+import '../../../../utils/snackbar_utils.dart';
+import '../../../../providers/resume_service_provider.dart';
+import '../../../../services/resume_service.dart';
 
 class Step4WorkExperience extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -18,6 +24,11 @@ class Step4WorkExperience extends ConsumerStatefulWidget {
 class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
   final _formKey = GlobalKey<FormState>();
   List<WorkExperienceEntry> _workExperiences = [WorkExperienceEntry()];
+
+  // Resume upload related
+  File? _selectedResumeFile;
+  String? _selectedFileName;
+  bool _isParsingResume = false;
 
   @override
   void initState() {
@@ -40,12 +51,20 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
   }
 
   void _addMoreExperience() {
+    if (_isParsingResume) {
+      _showParsingBlockedMessage();
+      return;
+    }
     setState(() {
       _workExperiences.add(WorkExperienceEntry());
     });
   }
 
   void _removeExperience(int index) {
+    if (_isParsingResume) {
+      _showParsingBlockedMessage();
+      return;
+    }
     if (_workExperiences.length > 1) {
       setState(() {
         _workExperiences.removeAt(index);
@@ -53,7 +72,129 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
     }
   }
 
+  void _showParsingBlockedMessage() {
+    showInfoSnackBar(
+      context: context,
+      message: 'Please wait while your resume is being processed...',
+    );
+  }
+
+  Future<void> _pickAndParseResume() async {
+    try {
+      // Pick file
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'docx'],
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+        
+        // Validate file first
+        try {
+          await ResumeService.validateFile(file);
+        } on ResumeServiceException catch (e) {
+          if (mounted) {
+            showErrorSnackBar(context: context, message: e.message);
+          }
+          return;
+        }
+
+        setState(() {
+          _selectedResumeFile = file;
+          _selectedFileName = result.files.single.name;
+          _isParsingResume = true;
+        });
+
+
+        try {
+          // Call actual resume parsing API
+          final resumeService = ref.read(resumeServiceProvider);
+          final parsedData = await resumeService.extractResumeData(file);
+          
+          // Store parsed data in onboarding provider
+          ref.read(onboardingProvider.notifier).storeParsedResumeData(parsedData);
+          
+          // Populate work experiences from parsed resume
+          _populateWorkExperiencesFromResume(parsedData);
+
+          setState(() {
+            _isParsingResume = false;
+          });
+
+          if (mounted) {
+            showSuccessSnackBar(
+              context: context,
+              message: 'Resume processed! Work experience and other details have been filled for upcoming steps.',
+            );
+          }
+        } on ResumeServiceException catch (e) {
+          setState(() {
+            _isParsingResume = false;
+          });
+          
+          if (mounted) {
+            showErrorSnackBar(context: context, message: e.message);
+          }
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isParsingResume = false;
+      });
+      
+      if (mounted) {
+        showErrorSnackBar(
+          context: context,
+          message: 'An unexpected error occurred. Please try again.',
+        );
+      }
+    }
+  }
+
+  void _populateWorkExperiencesFromResume(ResumeParse resumeData) {
+    if (resumeData.workExperience.isNotEmpty) {
+      setState(() {
+        // Clear existing experiences if they're empty
+        if (_workExperiences.length == 1 && _workExperiences[0].jobTitle.text.isEmpty) {
+          _workExperiences.clear();
+        }
+        
+        // Add work experiences from resume
+        for (var exp in resumeData.workExperience) {
+          final workExp = WorkExperienceEntry();
+          workExp.jobTitle.text = exp.role ?? '';
+          workExp.company.text = exp.company ?? '';
+          workExp.responsibilities.text = exp.description.join('\n• ');
+          
+          // Parse dates
+          if (exp.parsedFromDate != null) {
+            workExp.startDate = exp.parsedFromDate;
+          }
+          if (exp.parsedToDate != null) {
+            workExp.endDate = exp.parsedToDate;
+          } else if (exp.isCurrent) {
+            workExp.currentJob = true;
+          }
+          
+          _workExperiences.add(workExp);
+        }
+        
+        // Ensure we have at least one experience
+        if (_workExperiences.isEmpty) {
+          _workExperiences.add(WorkExperienceEntry());
+        }
+      });
+    }
+  }
+
   void _handleSubmit() {
+    if (_isParsingResume) {
+      _showParsingBlockedMessage();
+      return;
+    }
+    
     bool isValid = _formKey.currentState!.validate();
     bool hasDateErrors = false;
 
@@ -96,8 +237,8 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // File upload section
-          _buildFileUploadSection(),
+          // Resume upload section
+          _buildResumeUploadSection(),
           const SizedBox(height: 24),
 
           // Work experiences
@@ -143,72 +284,6 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
     );
   }
 
-  Widget _buildFileUploadSection() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5FF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE0E0FF), width: 1),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.grey.withValues(alpha: 0.3),
-                width: 1,
-              ),
-            ),
-            child: const Icon(
-              Icons.add,
-              color: AppColors.textSecondary,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Attached Resume Here',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          RichText(
-            text: const TextSpan(
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-              children: [
-                TextSpan(text: 'Supported files '),
-                TextSpan(
-                  text: 'pdf',
-                  style: TextStyle(
-                    decoration: TextDecoration.underline,
-                    color: AppColors.primary,
-                  ),
-                ),
-                TextSpan(text: ' or '),
-                TextSpan(
-                  text: 'docx',
-                  style: TextStyle(
-                    decoration: TextDecoration.underline,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildWorkExperienceForm(int index) {
     final experience = _workExperiences[index];
 
@@ -238,7 +313,7 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
         // Job title
         CustomTextField(
           controller: experience.jobTitle,
-          labelText: 'Job title *',
+          labelText: 'Job title',
           hintText: 'Type here',
           isRequired: true,
           validator: (value) {
@@ -253,7 +328,7 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
         // Company
         CustomTextField(
           controller: experience.company,
-          labelText: 'Company *',
+          labelText: 'Company',
           hintText: 'Type here',
           isRequired: true,
           validator: (value) {
@@ -316,8 +391,8 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
           controller: experience.responsibilities,
           labelText: 'Key Responsibilities (Optional)',
           hintText: 'Enter a description...',
-          maxLines: 5,
-          maxLength: 500,
+          maxLines: 7,
+          maxLength: 1000,
           showCharacterCount: true,
         ),
       ],
@@ -340,7 +415,7 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
             Text(
               label,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 17,
                 fontWeight: FontWeight.w500,
                 color: isDisabled
                     ? AppColors.textSecondary
@@ -349,9 +424,9 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
             ),
             if (isRequired && !isDisabled)
               const Text(
-                ' *',
+                '*',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 17,
                   fontWeight: FontWeight.w500,
                   color: AppColors.error,
                 ),
@@ -363,6 +438,10 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
           onTap: isDisabled
               ? null
               : () async {
+                  if (_isParsingResume) {
+                    _showParsingBlockedMessage();
+                    return;
+                  }
                   final DateTime? picked = await showDatePicker(
                     context: context,
                     initialDate: selectedDate ?? DateTime.now(),
@@ -464,13 +543,170 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
     );
   }
 
+  Widget _buildResumeUploadSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.inputBorder, width: 1),
+      ),
+      child: _isParsingResume
+          ? const Column(
+              children: [
+                CircularProgressIndicator(
+                  color: AppColors.primary,
+                  strokeWidth: 2,
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Processing your resume...',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            )
+          : _selectedResumeFile != null
+          ? Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.check_circle,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _selectedFileName ?? 'Resume uploaded',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Work experience extracted successfully',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton.icon(
+                      onPressed: _pickAndParseResume,
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text('Replace'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _selectedResumeFile = null;
+                          _selectedFileName = null;
+                        });
+                      },
+                      icon: const Icon(Icons.close, size: 16),
+                      label: const Text('Remove'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            )
+          : GestureDetector(
+              onTap: _pickAndParseResume,
+              child: Column(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: const Icon(
+                      Icons.upload_file,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Upload resume to prefill',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.grey.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Text(
+                      'PDF or DOCX • Max 5MB',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+
   Widget _buildAddMoreButton() {
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: OutlinedButton.icon(
         onPressed: _addMoreExperience,
-        icon: const Icon(Icons.add, color: AppColors.textPrimary),
+        icon: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.textPrimary)
+          ),
+          child: const Icon(Icons.add, color: AppColors.textPrimary),
+        ),
         label: const Text(
           'Add more work experience',
           style: TextStyle(

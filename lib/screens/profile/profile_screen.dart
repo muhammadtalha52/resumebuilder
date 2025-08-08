@@ -50,6 +50,8 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 _buildOthersCard(context, ref),
                 const SizedBox(height: 20),
+                _buildLogoutButton(context, ref),
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -64,7 +66,7 @@ class ProfileScreen extends ConsumerWidget {
 
     return ProfileCard(
       title: '👤 Personal Details',
-      onEdit: () => context.go('/onboarding/step/1'),
+      onEdit: () => context.push('/profile/edit-personal-details'),
       showDividers: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,7 +79,7 @@ class ProfileScreen extends ConsumerWidget {
           ),
           _buildDetailRowWithDivider(
             'assets/icons/whatsapp.png',
-            'Phone/whatsapp Number',
+            'Whatsapp Number',
             user?.phoneNumber ?? 'Not provided',
             showDivider: true,
           ),
@@ -539,6 +541,50 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildLogoutButton(BuildContext context, WidgetRef ref) {
+    return Container(
+      width: double.infinity,
+      height: 56,
+      margin: const EdgeInsets.symmetric(horizontal: 0),
+      child: ElevatedButton(
+        onPressed: () async {
+          final confirmed = await showConfirmationDialog(
+            context: context,
+            title: 'Want to Logout?',
+            icon: Icons.error_outline,
+            iconBackgroundColor: const Color(0xFF2C3E50),
+            confirmText: 'Yes',
+            cancelText: 'No',
+          );
+
+          if (confirmed == true) {
+            ref.read(authProvider.notifier).signOut();
+            context.go('/login');
+          }
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.logout, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Logout',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLogoutMenu(BuildContext context, WidgetRef ref) {
     return Container(
       margin: const EdgeInsets.only(right: 20),
@@ -577,10 +623,6 @@ class ProfileScreen extends ConsumerWidget {
 
             if (confirmed == true) {
               ref.read(authProvider.notifier).signOut();
-              showSuccessSnackBar(
-                context: context,
-                message: 'Logged out successfully!',
-              );
               context.go('/login');
             }
           }

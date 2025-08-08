@@ -60,8 +60,8 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
             Text(
               'Graduation Date',
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
                 color: _degreeNotCompleted
                     ? AppColors.textSecondary
                     : AppColors.textPrimary,
@@ -83,17 +83,30 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
           onTap: _degreeNotCompleted
               ? null
               : () async {
+                  // Ensure initialDate is not in the future
+                  final now = DateTime.now();
+                  final initialDate = _graduationDate != null && _graduationDate!.isAfter(now)
+                      ? now
+                      : _graduationDate ?? now;
+                      
                   final DateTime? picked = await showDatePicker(
                     context: context,
-                    initialDate: _graduationDate ?? DateTime.now(),
+                    initialDate: initialDate,
                     firstDate: DateTime(1950),
-                    lastDate: DateTime(2030),
+                    lastDate: now, // Prevent future date selection
                   );
                   if (picked != null) {
-                    setState(() {
-                      _graduationDate = picked;
-                      _graduationDateError = null;
-                    });
+                    // Additional validation to ensure no future dates
+                    if (picked.isAfter(DateTime.now())) {
+                      setState(() {
+                        _graduationDateError = 'Graduation date cannot be in the future';
+                      });
+                    } else {
+                      setState(() {
+                        _graduationDate = picked;
+                        _graduationDateError = null;
+                      });
+                    }
                   }
                 },
           child: Container(
@@ -222,6 +235,9 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
 
       if (!_degreeNotCompleted && _graduationDate == null) {
         _graduationDateError = 'Please select graduation date';
+        hasErrors = true;
+      } else if (!_degreeNotCompleted && _graduationDate != null && _graduationDate!.isAfter(DateTime.now())) {
+        _graduationDateError = 'Graduation date cannot be in the future';
         hasErrors = true;
       }
     });

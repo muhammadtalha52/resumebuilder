@@ -40,8 +40,8 @@ class CustomPickerField extends StatelessWidget {
             Text(
               labelText,
               style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
               ),
             ),
@@ -49,8 +49,8 @@ class CustomPickerField extends StatelessWidget {
               const Text(
                 ' *',
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w500,
                   color: AppColors.error,
                 ),
               ),

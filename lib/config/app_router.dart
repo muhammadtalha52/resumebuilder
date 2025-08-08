@@ -6,6 +6,7 @@ import '../screens/auth/onboarding/get_started_screen.dart';
 import '../screens/auth/onboarding/onboarding_step_screen.dart';
 import '../screens/main_screen.dart';
 import '../screens/welcome/welcome_screen.dart';
+import '../screens/profile/edit_personal_details_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -21,6 +22,10 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     GoRoute(path: '/home', builder: (context, state) => const MainScreen()),
+    GoRoute(
+      path: '/profile/edit-personal-details',
+      builder: (context, state) => const EditPersonalDetailsScreen(),
+    ),
     GoRoute(
       path: '/onboarding',
       builder: (context, state) => const GetStartedScreen(),

@@ -5,6 +5,7 @@ import '../../../../constants/app_colors.dart';
 import '../../../../constants/salary_ranges.dart';
 import '../../../../providers/onboarding_provider.dart';
 import '../../../../widgets/common/custom_dropdown.dart';
+import '../../../../widgets/common/tag_field.dart';
 
 class Step2CareerGoals extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -80,144 +81,13 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
     });
   }
 
-  Widget _buildTagField({
-    required String label,
-    required bool isRequired,
-    required List<String> tags,
-    required TextEditingController controller,
-    required Function(String) onAdd,
-    required Function(String) onRemove,
-    String? errorText,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Label
-        Row(
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            if (isRequired)
-              const Text(
-                '*',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.error,
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          textInputAction: TextInputAction.done,
-          onFieldSubmitted: (value) {
-            if (value.isNotEmpty) {
-              onAdd(value);
-            }
-          },
-          decoration: InputDecoration(
-            hintText: 'Add tags...',
-            hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 16),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.inputBorder),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: errorText != null
-                    ? AppColors.error
-                    : AppColors.inputBorder,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: errorText != null
-                    ? AppColors.error
-                    : AppColors.inputBorderFocused,
-              ),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.error),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.error),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-          ),
-        ),
-        // Error message
-        if (errorText != null) ...[
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.only(left: 12.0),
-            child: Text(
-              errorText,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ],
-        // Tags display (outside the input field)
-        if (tags.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: tags.map((tag) => _buildTag(tag, onRemove)).toList(),
-          ),
-        ],
-      ],
-    );
+  void _clearTagError(List<String> list) {
+    setState(() {
+      if (list == _jobTitles) _jobTitlesError = null;
+      if (list == _industries) _industriesError = null;
+    });
   }
 
-  Widget _buildTag(String tag, Function(String) onRemove) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEBEEFF), // Surface color
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: const Color(0xFF7777F8),
-          width: 1.5,
-        ), // Border color
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            tag,
-            style: const TextStyle(
-              color: Colors.black,
-              // White text for better contrast on the blue background
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: () => onRemove(tag),
-            child: const Icon(Icons.close, size: 16, color: Colors.black),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildTextField({
     required String label,
@@ -237,8 +107,8 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
             Text(
               label,
               style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
                 color: AppColors.textPrimary,
               ),
             ),
@@ -424,7 +294,7 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildTagField(
+          TagField(
             label: 'Desired Job Titles',
             isRequired: true,
             tags: _jobTitles,
@@ -432,9 +302,10 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
             onAdd: (tag) => _addTag(tag, _jobTitles, _jobTitlesController),
             onRemove: (tag) => _removeTag(tag, _jobTitles),
             errorText: _jobTitlesError,
+            onClearError: () => _clearTagError(_jobTitles),
           ),
           const SizedBox(height: 20),
-          _buildTagField(
+          TagField(
             label: 'Preferred Industries',
             isRequired: true,
             tags: _industries,
@@ -442,6 +313,7 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
             onAdd: (tag) => _addTag(tag, _industries, _industriesController),
             onRemove: (tag) => _removeTag(tag, _industries),
             errorText: _industriesError,
+            onClearError: () => _clearTagError(_industries),
           ),
           const SizedBox(height: 20),
           CustomStringDropdown(

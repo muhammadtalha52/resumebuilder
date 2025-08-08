@@ -41,12 +41,13 @@ class CustomDropdown<T> extends StatelessWidget {
                     : labelText,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   color: AppColors.textPrimary,
+                  fontSize: 17,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               if (isRequired && !labelText.endsWith(' *'))
                 TextSpan(
-                  text: ' *',
+                  text: '*',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     color: AppColors.error,
                     fontWeight: FontWeight.w500,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_app_bar.dart';
+import '../../providers/auth_provider.dart';
 
 final selectedTabProvider = StateProvider<int>((ref) => 1);
 
@@ -31,7 +32,7 @@ class DashboardScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 10),
-                _buildWelcomeSection(),
+                _buildWelcomeSection(ref),
                 const SizedBox(height: 10),
                 _buildProgressAndMetricsSection(ref),
                 const SizedBox(height: 24),
@@ -45,18 +46,28 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildWelcomeSection() {
+  Widget _buildWelcomeSection(WidgetRef ref) {
     final now = DateTime.now();
     final formattedDate = DateFormat('EEEE, MMMM d, yyyy').format(now);
+    final authState = ref.watch(authProvider);
+    
+    // Get user's first name or fallback
+    String firstName = 'User';
+    if (authState.user?.firstName != null && authState.user!.firstName!.isNotEmpty) {
+      firstName = authState.user!.firstName!;
+    } else if (authState.user?.fullName != null && authState.user!.fullName!.isNotEmpty) {
+      // Extract first name from full name if firstName is not available
+      firstName = authState.user!.fullName!.split(' ').first;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Text(
-              'Welcome Back, Alex',
-              style: TextStyle(
+            Text(
+              'Welcome Back, $firstName',
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF1A1A1A),
@@ -85,7 +96,7 @@ class DashboardScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -254,7 +265,7 @@ class DashboardScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),

@@ -21,6 +21,7 @@ class CustomTextField extends StatefulWidget {
     this.textInputAction,
     this.onFieldSubmitted,
     this.isRequired = false,
+    this.errorText,
   });
 
   final TextEditingController controller;
@@ -39,6 +40,7 @@ class CustomTextField extends StatefulWidget {
   final TextInputAction? textInputAction;
   final void Function(String)? onFieldSubmitted;
   final bool isRequired;
+  final String? errorText;
 
   @override
   State<CustomTextField> createState() => _CustomTextFieldState();
@@ -68,13 +70,15 @@ class _CustomTextFieldState extends State<CustomTextField> {
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w500,
+                  fontSize: 17
                 ),
               ),
-              if (widget.isRequired && widget.labelText.endsWith(' *'))
+              if (widget.isRequired)
                 TextSpan(
-                  text: ' *',
+                  text: '*',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     color: AppColors.error,
+                    fontSize: 17,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -103,6 +107,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
               hintText: widget.hintText,
               prefixIcon: widget.prefixIcon,
               counterText: widget.showCharacterCount ? null : '',
+              errorText: widget.errorText,
               errorMaxLines: 2,
               suffixIcon: widget.obscureText
                   ? IconButton(

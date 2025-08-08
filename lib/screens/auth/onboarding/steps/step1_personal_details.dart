@@ -29,8 +29,10 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
   final _confirmPasswordController = TextEditingController();
 
   String _completePhoneNumber = '';
+  String _selectedCountryCode = 'US'; // Default country code
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
 
   @override
   void initState() {
@@ -41,10 +43,46 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
   void _loadExistingData() {
     final state = ref.read(onboardingProvider);
     _fullNameController.text = state.fullName ?? '';
-    _emailController.text = 'john@gmail.com';
-    _phoneController.text = '4444777553';
+    _emailController.text = state.email ?? '';
+
+    // Handle phone number - extract number without country code
+    final savedPhone = state.phone ?? '';
+    if (savedPhone.isNotEmpty) {
+      // Store the complete phone number for later use
+      _completePhoneNumber = savedPhone;
+
+      // Extract just the phone number without country code
+      // Since we default to US (+1), we'll handle that case specially
+      // For other countries, we'll try to extract based on common patterns
+      String phoneNumber = savedPhone;
+
+      // Remove + sign if present
+      if (phoneNumber.startsWith('+')) {
+        phoneNumber = phoneNumber.substring(1);
+      }
+
+      // For US numbers (+1), remove the 1
+      if (phoneNumber.startsWith('1') && phoneNumber.length > 10) {
+        phoneNumber = phoneNumber.substring(1);
+        _selectedCountryCode = 'US';
+      }
+      // For other common country codes, you can add more cases here
+      // For now, we'll just remove the first 2-3 digits as country code
+      else if (phoneNumber.length > 10) {
+        // Try to detect country code length (usually 1-3 digits)
+        // This is a simple heuristic - for production, use a proper library
+        if (phoneNumber.length > 11) {
+          phoneNumber = phoneNumber.substring(2); // Assume 2-digit country code
+        }
+      }
+
+      _phoneController.text = phoneNumber;
+    }
+
     _linkedInController.text = state.linkedIn ?? '';
     _websiteController.text = state.website ?? '';
+    _passwordController.text = state.password ?? '';
+    _confirmPasswordController.text = state.password ?? '';
   }
 
   @override
@@ -60,6 +98,11 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
   }
 
   void _handleSubmit() {
+    // Enable autovalidation after first submission attempt
+    setState(() {
+      _autovalidateMode = AutovalidateMode.onUserInteraction;
+    });
+
     if (_formKey.currentState!.validate()) {
       // Ensure we use the complete phone number with country code
       final phoneNumber = _completePhoneNumber.isNotEmpty
@@ -93,12 +136,13 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
   Widget build(BuildContext context) {
     return Form(
       key: _formKey,
+      autovalidateMode: _autovalidateMode,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CustomTextField(
             controller: _fullNameController,
-            labelText: 'Full Name *',
+            labelText: 'Full Name',
             hintText: 'John Alex',
             keyboardType: TextInputType.name,
             textInputAction: TextInputAction.next,
@@ -114,7 +158,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
           const SizedBox(height: 20),
           CustomTextField(
             controller: _emailController,
-            labelText: 'Email *',
+            labelText: 'Email',
             hintText: 'john.alex@example.com',
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
@@ -132,16 +176,16 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
                     TextSpan(
                       text: 'Phone Number',
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w500,
                         color: AppColors.textPrimary,
                       ),
                     ),
                     TextSpan(
-                      text: ' *',
+                      text: '*',
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w500,
                         color: AppColors.error,
                       ),
                     ),
@@ -151,11 +195,12 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
               const SizedBox(height: 8),
               IntlPhoneField(
                 controller: _phoneController,
+                autovalidateMode: _autovalidateMode,
                 decoration: InputDecoration(
                   hintText: 'Phone Number',
                   hintStyle: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 16,
+                    color: AppColors.textLight,
+                    fontSize: 13,
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -185,7 +230,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
                   ),
                   counterText: '',
                 ),
-                initialCountryCode: 'US',
+                initialCountryCode: _selectedCountryCode,
                 onChanged: (phone) {
                   setState(() {
                     _completePhoneNumber = phone.completeNumber;
@@ -230,7 +275,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
           const SizedBox(height: 20),
           CustomTextField(
             controller: _passwordController,
-            labelText: 'Password *',
+            labelText: 'Password',
             hintText: 'Enter your password',
             textInputAction: TextInputAction.next,
             obscureText: _obscurePassword,

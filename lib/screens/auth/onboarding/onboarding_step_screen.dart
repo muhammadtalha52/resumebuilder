@@ -29,7 +29,7 @@ class _OnboardingStepScreenState extends ConsumerState<OnboardingStepScreen> {
   final Map<int, Map<String, dynamic>> stepConfig = {
     1: {
       'title': 'Step 1: Personal Details',
-      'icon': Icons.person,
+      'icon': '👤',
       'iconColor': AppColors.primary,
       'progress': 0.17,
       'foxTitle': 'Tell Us About You',
@@ -64,15 +64,15 @@ class _OnboardingStepScreenState extends ConsumerState<OnboardingStepScreen> {
       'icon': '🛠️',
       'iconColor': AppColors.warning,
       'progress': 0.83,
-      'foxTitle': 'Skills & Expertise',
-      'foxSubtitle': 'What makes you unique.',
+      'foxTitle': 'Your Skills',
+      'foxSubtitle': 'What are you great at?',
     },
     6: {
       'title': 'Step 6: Optional Info',
-      'icon': '✨',
+      'icon': '🌍',
       'iconColor': AppColors.accent,
       'progress': 1.0,
-      'foxTitle': 'Almost There!',
+      'foxTitle': 'Additional Info',
       'foxSubtitle': 'Add more if you\'d like.',
     },
   };
@@ -128,22 +128,23 @@ class _OnboardingStepScreenState extends ConsumerState<OnboardingStepScreen> {
       // Check if we're still mounted before showing UI
       if (!mounted) return;
 
-      // Show success message
-      showSuccessSnackBar(
-        context: context,
-        message: 'Account created successfully!',
-      );
-
       // Navigate to home
       context.go('/home');
     } catch (e) {
       // Check if we're still mounted before showing UI
       if (!mounted) return;
 
-      // Show error message
+      // Get the specific error message from auth state or use the exception message
+      final authState = ref.read(authProvider);
+      final errorMessage =
+          authState.error ?? e.toString().replaceAll('Exception: ', '');
+
+      // Show specific error message from API
       showErrorSnackBar(
         context: context,
-        message: 'Failed to create account. Please try again.',
+        message: errorMessage.isEmpty
+            ? 'Failed to create account. Please try again.'
+            : errorMessage,
       );
     }
   }
@@ -215,7 +216,10 @@ class _OnboardingStepScreenState extends ConsumerState<OnboardingStepScreen> {
                                   ),
                                   child: IconButton(
                                     onPressed: _handleBack,
-                                    icon: const Icon(Icons.arrow_back),
+                                    icon: const Icon(
+                                      Icons.arrow_back,
+                                      color: AppColors.black,
+                                    ),
                                     padding: EdgeInsets.zero,
                                   ),
                                 ),

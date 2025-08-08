@@ -8,6 +8,7 @@ import '../models/signup_request.dart';
 import '../utils/keys.dart';
 import 'app_logic_provider.dart';
 import 'auth_service_provider.dart';
+import 'onboarding_provider.dart';
 
 // Auth State
 class AuthState extends Equatable {
@@ -130,6 +131,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
           await appLogic.box.write(AppKeys.accessToken, token);
           await appLogic.box.write(AppKeys.user, jsonEncode(user.toJson()));
 
+          // Clear onboarding state after successful account creation
+          _ref.read(onboardingProvider.notifier).reset();
+
           state = state.copyWith(
             isLoading: false,
             isAuthenticated: true,
@@ -177,6 +181,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     appLogic.accessToken = '';
     appLogic.user = null;
     appLogic.box.erase();
+
+    // Clear onboarding state to ensure fresh forms for new accounts
+    _ref.read(onboardingProvider.notifier).reset();
 
     // Reset auth state
     state = const AuthState();

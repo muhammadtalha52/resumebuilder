@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/date_helpers.dart';
+import '../models/resume_parse_model.dart';
 
 class OnboardingState {
   final int currentStep;
@@ -16,6 +17,7 @@ class OnboardingState {
   final Map<String, dynamic>? workExperience;
   final Map<String, dynamic>? skills;
   final Map<String, dynamic>? optionalInfo;
+  final ResumeParse? parsedResume;
 
   OnboardingState({
     this.currentStep = 1,
@@ -32,6 +34,7 @@ class OnboardingState {
     this.workExperience,
     this.skills,
     this.optionalInfo,
+    this.parsedResume,
   });
 
   OnboardingState copyWith({
@@ -49,6 +52,7 @@ class OnboardingState {
     Map<String, dynamic>? workExperience,
     Map<String, dynamic>? skills,
     Map<String, dynamic>? optionalInfo,
+    ResumeParse? parsedResume,
   }) {
     return OnboardingState(
       currentStep: currentStep ?? this.currentStep,
@@ -65,6 +69,7 @@ class OnboardingState {
       workExperience: workExperience ?? this.workExperience,
       skills: skills ?? this.skills,
       optionalInfo: optionalInfo ?? this.optionalInfo,
+      parsedResume: parsedResume ?? this.parsedResume,
     );
   }
 }
@@ -160,6 +165,26 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   void updateOptionalInfo(Map<String, dynamic> optionalInfo) {
     state = state.copyWith(optionalInfo: optionalInfo);
   }
+
+  /// Store parsed resume data and auto-populate onboarding fields
+  void storeParsedResumeData(ResumeParse resumeData) {
+    // Store the raw parsed data for later use in Steps 4-6
+    // This method is called from Step 4, so we should NOT overwrite
+    // any user data from Steps 1-3 (personal details, education)
+    state = state.copyWith(parsedResume: resumeData);
+    
+    // Note: We intentionally do NOT auto-populate personal details (Step 1)
+    // or education (Step 3) here, as the user has already completed those steps
+    // and we don't want to overwrite their manually entered data.
+    
+    // The parsed resume data will be used by:
+    // - Step 4: Work experience (handled manually in the step)
+    // - Step 5: Skills (auto-populated from parsedResumeData)
+    // - Step 6: Optional info (reference only)
+  }
+
+  /// Get parsed resume data for use in other steps
+  ResumeParse? get parsedResumeData => state.parsedResume;
 
   void reset() {
     state = OnboardingState();

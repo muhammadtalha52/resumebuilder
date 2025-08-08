@@ -49,12 +49,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     // Listen for auth state changes
     ref.listen<AuthState>(authProvider, (previous, next) {
-      if (next.error != null && previous?.error != next.error) {
+      if (previous?.isLoading == true &&
+          !next.isLoading &&
+          next.error != null) {
         showErrorSnackBar(context: context, message: next.error!);
       }
 
       if (next.isAuthenticated && !previous!.isAuthenticated) {
-        showSuccessSnackBar(context: context, message: 'Login successful!');
         context.go('/home');
       }
     });

@@ -51,40 +51,45 @@ lib/
 
 ### Coding Standards
 
-1. **Separation of Concerns**
+1. **DRY Principle (Don't Repeat Yourself)**
+   - Create reusable widgets for repeated UI patterns
+   - Extract common functionality into shared utilities
+   - Use composition over duplication
+
+2. **Separation of Concerns**
    - Business logic in providers/controllers
    - UI logic in widgets
    - Data operations in repositories
    - API calls in datasources
 
-2. **Widget Best Practices**
+3. **Widget Best Practices**
    - Create reusable widget components
    - Keep widgets small and focused
    - Use `const` constructors where possible
    - Extract repeated UI patterns into custom widgets
 
-3. **State Management Rules**
+4. **State Management Rules**
    - Never use setState() - use Riverpod providers instead
    - Keep providers in separate files
    - Use proper provider naming: `featureNameProvider`
    - Dispose providers properly
 
-4. **Error Handling**
+5. **Error Handling**
    - Use Result/Either pattern for error handling
    - Handle all possible error states in UI
    - Show user-friendly error messages
 
-5. **Navigation**
+6. **Navigation**
    - Use go_router for navigation
    - Define routes in centralized location
    - Use type-safe route parameters
 
-6. **Responsive Design**
+7. **Responsive Design**
    - Support both mobile and tablet layouts
    - Use `LayoutBuilder` for responsive designs
    - Define breakpoints in constants
 
-7. **Testing**
+8. **Testing**
    - Write unit tests for business logic
    - Write widget tests for UI components
    - Maintain at least 80% code coverage

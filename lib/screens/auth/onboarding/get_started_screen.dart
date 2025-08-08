@@ -90,6 +90,37 @@ class _GetStartedScreenState extends ConsumerState<GetStartedScreen> {
                 ),
               ),
               const SizedBox(height: AppSizes.spaceL),
+              
+              // Login Link
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Already have an account? ",
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.white.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      context.go('/login');
+                    },
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      'Login',
+                      style: TextStyle(
+                        color: AppColors.accentDark,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
