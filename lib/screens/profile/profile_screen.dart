@@ -110,7 +110,7 @@ class ProfileScreen extends ConsumerWidget {
 
     return ProfileCard(
       title: '🎯 Career Goals & Preferences',
-      onEdit: () => context.go('/onboarding/step/2'),
+      onEdit: () => context.push('/profile/edit-career-goals'),
       showDividers: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,7 +160,7 @@ class ProfileScreen extends ConsumerWidget {
 
     return ProfileCard(
       title: '🎓 Education',
-      onEdit: () => context.go('/onboarding/step/3'),
+      onEdit: () => context.push('/profile/edit-education'),
       showDividers: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,7 +198,7 @@ class ProfileScreen extends ConsumerWidget {
 
     return ProfileCard(
       title: '🧑‍💼 Work Experience',
-      onEdit: () => context.go('/onboarding/step/4'),
+      onEdit: () => context.push('/profile/edit-work-experience'),
       showDividers: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,7 +225,7 @@ class ProfileScreen extends ConsumerWidget {
 
     return ProfileCard(
       title: '🛠️ Skills & Tools',
-      onEdit: () => context.go('/onboarding/step/5'),
+      onEdit: () => context.push('/profile/edit-skills-tools'),
       showDividers: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,7 +253,7 @@ class ProfileScreen extends ConsumerWidget {
 
     return ProfileCard(
       title: '🌍 Others',
-      onEdit: () => context.go('/onboarding/step/6'),
+      onEdit: () => context.push('/profile/edit-others'),
       showDividers: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

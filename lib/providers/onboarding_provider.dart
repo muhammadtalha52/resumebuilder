@@ -172,11 +172,11 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     // This method is called from Step 4, so we should NOT overwrite
     // any user data from Steps 1-3 (personal details, education)
     state = state.copyWith(parsedResume: resumeData);
-    
+
     // Note: We intentionally do NOT auto-populate personal details (Step 1)
     // or education (Step 3) here, as the user has already completed those steps
     // and we don't want to overwrite their manually entered data.
-    
+
     // The parsed resume data will be used by:
     // - Step 4: Work experience (handled manually in the step)
     // - Step 5: Skills (auto-populated from parsedResumeData)

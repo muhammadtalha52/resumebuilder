@@ -129,9 +129,7 @@ class AuthService {
         if (request.companyNames != null) 'company_names': request.companyNames,
         if (request.workDuration != null) 'work_duration': request.workDuration,
         if (request.keyResponsibilities != null)
-          // 'key_responsibilities': request.keyResponsibilities,
-          'key_responsibilities':
-              "I worked as mobile developer leading the teams from deisgn to development to deployment",
+          'key_responsibilities': request.keyResponsibilities,
         if (request.hardSkills != null) 'hard_skills': request.hardSkills,
         if (request.softSkills != null) 'soft_skills': request.softSkills,
         if (request.toolsTechnologies != null)

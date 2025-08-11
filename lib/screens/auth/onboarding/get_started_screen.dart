@@ -90,7 +90,7 @@ class _GetStartedScreenState extends ConsumerState<GetStartedScreen> {
                 ),
               ),
               const SizedBox(height: AppSizes.spaceL),
-              
+
               // Login Link
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,

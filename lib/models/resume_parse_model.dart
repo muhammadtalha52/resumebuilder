@@ -111,7 +111,7 @@ class ResumeParse {
   /// Helper method to calculate total years of experience
   int get totalYearsOfExperience {
     if (workExperience.isEmpty) return 0;
-    
+
     // Find the earliest start date
     DateTime? earliestDate;
     for (var exp in workExperience) {
@@ -122,7 +122,7 @@ class ResumeParse {
         }
       }
     }
-    
+
     if (earliestDate == null) return 0;
     return DateTime.now().difference(earliestDate).inDays ~/ 365;
   }
@@ -139,8 +139,12 @@ class ResumeParse {
       'linkedIn': media?.linkedin,
       'website': media?.personalWebsite,
       'summary': summary,
-      'workExperience': workExperience.map((e) => e.toOnboardingFormat()).toList(),
-      'education': education.isNotEmpty ? education.first.toOnboardingFormat() : null,
+      'workExperience': workExperience
+          .map((e) => e.toOnboardingFormat())
+          .toList(),
+      'education': education.isNotEmpty
+          ? education.first.toOnboardingFormat()
+          : null,
       'skills': skills?.toOnboardingFormat(),
       'projects': projects.map((e) => e.toOnboardingFormat()).toList(),
     };
@@ -152,10 +156,7 @@ class Media {
   final String? linkedin;
   final String? personalWebsite;
 
-  Media({
-    this.linkedin,
-    this.personalWebsite,
-  });
+  Media({this.linkedin, this.personalWebsite});
 
   factory Media.fromJson(Map<String, dynamic> json) {
     return Media(
@@ -165,14 +166,11 @@ class Media {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'linkedin': linkedin,
-      'personal_website': personalWebsite,
-    };
+    return {'linkedin': linkedin, 'personal_website': personalWebsite};
   }
 
-  bool get hasAnyLink => 
-      (linkedin != null && linkedin!.isNotEmpty) || 
+  bool get hasAnyLink =>
+      (linkedin != null && linkedin!.isNotEmpty) ||
       (personalWebsite != null && personalWebsite!.isNotEmpty);
 }
 
@@ -244,7 +242,9 @@ class WorkExperience {
 
   /// Parse to date to DateTime
   DateTime? get parsedToDate {
-    if (toDate == null || toDate!.toLowerCase() == 'current' || toDate!.toLowerCase() == 'present') {
+    if (toDate == null ||
+        toDate!.toLowerCase() == 'current' ||
+        toDate!.toLowerCase() == 'present') {
       return null; // Current job
     }
     try {
@@ -264,29 +264,43 @@ class WorkExperience {
 
   int? _parseMonth(String monthStr) {
     const months = {
-      'jan': 1, 'january': 1,
-      'feb': 2, 'february': 2,
-      'mar': 3, 'march': 3,
-      'apr': 4, 'april': 4,
+      'jan': 1,
+      'january': 1,
+      'feb': 2,
+      'february': 2,
+      'mar': 3,
+      'march': 3,
+      'apr': 4,
+      'april': 4,
       'may': 5,
-      'jun': 6, 'june': 6,
-      'jul': 7, 'july': 7,
-      'aug': 8, 'august': 8,
-      'sep': 9, 'september': 9,
-      'oct': 10, 'october': 10,
-      'nov': 11, 'november': 11,
-      'dec': 12, 'december': 12,
+      'jun': 6,
+      'june': 6,
+      'jul': 7,
+      'july': 7,
+      'aug': 8,
+      'august': 8,
+      'sep': 9,
+      'september': 9,
+      'oct': 10,
+      'october': 10,
+      'nov': 11,
+      'november': 11,
+      'dec': 12,
+      'december': 12,
     };
     return months[monthStr.toLowerCase()];
   }
 
-  bool get isCurrent => toDate == null || toDate!.toLowerCase() == 'current' || toDate!.toLowerCase() == 'present';
+  bool get isCurrent =>
+      toDate == null ||
+      toDate!.toLowerCase() == 'current' ||
+      toDate!.toLowerCase() == 'present';
 
   /// Calculate duration in years
   int get durationInYears {
     final start = parsedFromDate;
     if (start == null) return 0;
-    
+
     final end = parsedToDate ?? DateTime.now();
     return (end.difference(start).inDays / 365).round();
   }
@@ -352,7 +366,9 @@ class Education {
     if (degree == null) return null;
     if (degree!.toLowerCase().contains('bachelor')) return "Bachelor's";
     if (degree!.toLowerCase().contains('master')) return "Master's";
-    if (degree!.toLowerCase().contains('phd') || degree!.toLowerCase().contains('doctorate')) return "PhD";
+    if (degree!.toLowerCase().contains('phd') ||
+        degree!.toLowerCase().contains('doctorate'))
+      return "PhD";
     if (degree!.toLowerCase().contains('associate')) return "Associate's";
     return null;
   }
@@ -413,25 +429,29 @@ class Skills {
   }
 
   /// Get all skills combined
-  List<String> get allSkills => [...softSkills, ...hardSkills, ...toolsAndTechnologies];
+  List<String> get allSkills => [
+    ...softSkills,
+    ...hardSkills,
+    ...toolsAndTechnologies,
+  ];
 
   /// Get top skills (first N from each category)
   List<String> getTopSkills({int count = 5}) {
     final List<String> topSkills = [];
-    
+
     // Add top hard skills first (most important)
     topSkills.addAll(hardSkills.take(count));
-    
+
     // Add tools if we have room
     if (topSkills.length < count * 2) {
       topSkills.addAll(toolsAndTechnologies.take(count ~/ 2));
     }
-    
+
     // Add soft skills if we have room
     if (topSkills.length < count * 3) {
       topSkills.addAll(softSkills.take(count ~/ 3));
     }
-    
+
     return topSkills;
   }
 
@@ -539,10 +559,7 @@ class Resource {
   final String? name;
   final String? link;
 
-  Resource({
-    this.name,
-    this.link,
-  });
+  Resource({this.name, this.link});
 
   factory Resource.fromJson(Map<String, dynamic> json) {
     return Resource(
@@ -552,10 +569,7 @@ class Resource {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'link': link,
-    };
+    return {'name': name, 'link': link};
   }
 
   bool get hasValidLink => link != null && link!.isNotEmpty;

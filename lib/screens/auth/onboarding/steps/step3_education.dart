@@ -85,10 +85,11 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
               : () async {
                   // Ensure initialDate is not in the future
                   final now = DateTime.now();
-                  final initialDate = _graduationDate != null && _graduationDate!.isAfter(now)
+                  final initialDate =
+                      _graduationDate != null && _graduationDate!.isAfter(now)
                       ? now
                       : _graduationDate ?? now;
-                      
+
                   final DateTime? picked = await showDatePicker(
                     context: context,
                     initialDate: initialDate,
@@ -99,7 +100,8 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
                     // Additional validation to ensure no future dates
                     if (picked.isAfter(DateTime.now())) {
                       setState(() {
-                        _graduationDateError = 'Graduation date cannot be in the future';
+                        _graduationDateError =
+                            'Graduation date cannot be in the future';
                       });
                     } else {
                       setState(() {
@@ -236,7 +238,9 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
       if (!_degreeNotCompleted && _graduationDate == null) {
         _graduationDateError = 'Please select graduation date';
         hasErrors = true;
-      } else if (!_degreeNotCompleted && _graduationDate != null && _graduationDate!.isAfter(DateTime.now())) {
+      } else if (!_degreeNotCompleted &&
+          _graduationDate != null &&
+          _graduationDate!.isAfter(DateTime.now())) {
         _graduationDateError = 'Graduation date cannot be in the future';
         hasErrors = true;
       }

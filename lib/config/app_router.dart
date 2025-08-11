@@ -7,6 +7,12 @@ import '../screens/auth/onboarding/onboarding_step_screen.dart';
 import '../screens/main_screen.dart';
 import '../screens/welcome/welcome_screen.dart';
 import '../screens/profile/edit_personal_details_screen.dart';
+import '../screens/profile/edit_career_goals_screen.dart';
+import '../screens/profile/edit_skills_tools_screen.dart';
+import '../screens/profile/edit_others_screen.dart';
+import '../screens/profile/edit_education_screen.dart';
+import '../screens/profile/edit_work_experience_screen.dart';
+import '../screens/legal/legal_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -25,6 +31,34 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/profile/edit-personal-details',
       builder: (context, state) => const EditPersonalDetailsScreen(),
+    ),
+    GoRoute(
+      path: '/profile/edit-career-goals',
+      builder: (context, state) => const EditCareerGoalsScreen(),
+    ),
+    GoRoute(
+      path: '/profile/edit-skills-tools',
+      builder: (context, state) => const EditSkillsToolsScreen(),
+    ),
+    GoRoute(
+      path: '/profile/edit-others',
+      builder: (context, state) => const EditOthersScreen(),
+    ),
+    GoRoute(
+      path: '/profile/edit-education',
+      builder: (context, state) => const EditEducationScreen(),
+    ),
+    GoRoute(
+      path: '/profile/edit-work-experience',
+      builder: (context, state) => const EditWorkExperienceScreen(),
+    ),
+    GoRoute(
+      path: '/privacy-policy',
+      builder: (context, state) => const LegalScreen(title: 'Privacy Policy'),
+    ),
+    GoRoute(
+      path: '/terms-of-use',
+      builder: (context, state) => const LegalScreen(title: 'Terms of Use'),
     ),
     GoRoute(
       path: '/onboarding',

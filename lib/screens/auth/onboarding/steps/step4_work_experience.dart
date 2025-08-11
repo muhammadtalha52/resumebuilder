@@ -90,7 +90,7 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
 
       if (result != null && result.files.single.path != null) {
         final file = File(result.files.single.path!);
-        
+
         // Validate file first
         try {
           await ResumeService.validateFile(file);
@@ -107,15 +107,16 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
           _isParsingResume = true;
         });
 
-
         try {
           // Call actual resume parsing API
           final resumeService = ref.read(resumeServiceProvider);
           final parsedData = await resumeService.extractResumeData(file);
-          
+
           // Store parsed data in onboarding provider
-          ref.read(onboardingProvider.notifier).storeParsedResumeData(parsedData);
-          
+          ref
+              .read(onboardingProvider.notifier)
+              .storeParsedResumeData(parsedData);
+
           // Populate work experiences from parsed resume
           _populateWorkExperiencesFromResume(parsedData);
 
@@ -126,14 +127,15 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
           if (mounted) {
             showSuccessSnackBar(
               context: context,
-              message: 'Resume processed! Work experience and other details have been filled for upcoming steps.',
+              message:
+                  'Resume processed! Work experience and other details have been filled for upcoming steps.',
             );
           }
         } on ResumeServiceException catch (e) {
           setState(() {
             _isParsingResume = false;
           });
-          
+
           if (mounted) {
             showErrorSnackBar(context: context, message: e.message);
           }
@@ -143,7 +145,7 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
       setState(() {
         _isParsingResume = false;
       });
-      
+
       if (mounted) {
         showErrorSnackBar(
           context: context,
@@ -157,17 +159,18 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
     if (resumeData.workExperience.isNotEmpty) {
       setState(() {
         // Clear existing experiences if they're empty
-        if (_workExperiences.length == 1 && _workExperiences[0].jobTitle.text.isEmpty) {
+        if (_workExperiences.length == 1 &&
+            _workExperiences[0].jobTitle.text.isEmpty) {
           _workExperiences.clear();
         }
-        
+
         // Add work experiences from resume
         for (var exp in resumeData.workExperience) {
           final workExp = WorkExperienceEntry();
           workExp.jobTitle.text = exp.role ?? '';
           workExp.company.text = exp.company ?? '';
           workExp.responsibilities.text = exp.description.join('\n• ');
-          
+
           // Parse dates
           if (exp.parsedFromDate != null) {
             workExp.startDate = exp.parsedFromDate;
@@ -177,10 +180,10 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
           } else if (exp.isCurrent) {
             workExp.currentJob = true;
           }
-          
+
           _workExperiences.add(workExp);
         }
-        
+
         // Ensure we have at least one experience
         if (_workExperiences.isEmpty) {
           _workExperiences.add(WorkExperienceEntry());
@@ -194,7 +197,7 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
       _showParsingBlockedMessage();
       return;
     }
-    
+
     bool isValid = _formKey.currentState!.validate();
     bool hasDateErrors = false;
 
@@ -305,7 +308,22 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
               ),
               IconButton(
                 onPressed: () => _removeExperience(index),
-                icon: const Icon(Icons.close, color: AppColors.error),
+                icon: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.error.withValues(alpha: 0.1),
+                    border: Border.all(
+                      color: AppColors.error.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: AppColors.error,
+                    size: 16,
+                  ),
+                ),
               ),
             ],
           ),
@@ -703,7 +721,7 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
         icon: Container(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.textPrimary)
+            border: Border.all(color: AppColors.textPrimary),
           ),
           child: const Icon(Icons.add, color: AppColors.textPrimary),
         ),

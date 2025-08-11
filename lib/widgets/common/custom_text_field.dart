@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:skillresy/constants/app_colors.dart';
 import 'package:skillresy/constants/app_sizes.dart';
 
@@ -22,6 +23,7 @@ class CustomTextField extends StatefulWidget {
     this.onFieldSubmitted,
     this.isRequired = false,
     this.errorText,
+    this.inputFormatters,
   });
 
   final TextEditingController controller;
@@ -41,6 +43,7 @@ class CustomTextField extends StatefulWidget {
   final void Function(String)? onFieldSubmitted;
   final bool isRequired;
   final String? errorText;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   State<CustomTextField> createState() => _CustomTextFieldState();
@@ -70,7 +73,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w500,
-                  fontSize: 17
+                  fontSize: 17,
                 ),
               ),
               if (widget.isRequired)
@@ -103,6 +106,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
             maxLength: widget.maxLength,
             textInputAction: widget.textInputAction,
             onFieldSubmitted: widget.onFieldSubmitted,
+            inputFormatters: widget.inputFormatters,
             decoration: InputDecoration(
               hintText: widget.hintText,
               prefixIcon: widget.prefixIcon,

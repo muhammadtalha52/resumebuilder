@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../constants/app_colors.dart';
 import '../../../../constants/salary_ranges.dart';
 import '../../../../providers/onboarding_provider.dart';
-import '../../../../widgets/common/custom_dropdown.dart';
+import '../../../../widgets/common/custom_picker_field.dart';
 import '../../../../widgets/common/tag_field.dart';
 
 class Step2CareerGoals extends ConsumerStatefulWidget {
@@ -87,7 +87,6 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
       if (list == _industries) _industriesError = null;
     });
   }
-
 
   Widget _buildTextField({
     required String label,
@@ -316,13 +315,15 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
             onClearError: () => _clearTagError(_industries),
           ),
           const SizedBox(height: 20),
-          CustomStringDropdown(
+          CustomPickerField(
             labelText: 'Location Preference',
             isRequired: true,
             value: _locationPreference,
             items: const ['On-site', 'Remote', 'Hybrid'],
             hintText: 'Select Options',
             errorText: _locationError,
+            enableSearch: false,
+            pickerTitle: 'Select Location Preference',
             onChanged: (value) {
               setState(() {
                 _locationPreference = value;
@@ -331,13 +332,16 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
             },
           ),
           const SizedBox(height: 20),
-          CustomStringDropdown(
+          CustomPickerField(
             labelText: 'Desired Salary Range',
             isRequired: true,
             value: _desiredSalaryRange,
             items: SalaryRanges.ranges,
             hintText: 'Select salary range',
             errorText: _salaryError,
+            enableSearch: true,
+            searchHint: 'Search salary ranges...',
+            pickerTitle: 'Select Desired Salary Range',
             onChanged: (value) {
               setState(() {
                 _desiredSalaryRange = value;

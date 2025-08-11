@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/user_model.dart';
+import '../main.dart';
 import '../models/signup_request.dart';
+import '../models/user_model.dart';
 import '../utils/keys.dart';
-import 'app_logic_provider.dart';
 import 'auth_service_provider.dart';
 import 'onboarding_provider.dart';
 
@@ -53,8 +53,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Initialize auth state from stored user data on app startup
   Future<void> _initializeFromStorage() async {
     try {
-      final appLogic = _ref.read(appLogicProvider);
-
       // Check if user data exists in storage
       if (appLogic.user != null && appLogic.accessToken.isNotEmpty) {
         state = state.copyWith(isAuthenticated: true, user: appLogic.user);
@@ -82,7 +80,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
         if (user != null && token != null) {
           // Store token and user data in AppLogic
-          final appLogic = _ref.read(appLogicProvider);
           appLogic.accessToken = token;
           appLogic.user = user;
 
@@ -123,7 +120,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
         if (user != null && token != null) {
           // Store token and user data in AppLogic
-          final appLogic = _ref.read(appLogicProvider);
           appLogic.accessToken = token;
           appLogic.user = user;
 
@@ -175,9 +171,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(error: null);
   }
 
+  void updateUserData(User updatedUser) async {
+    // Update state with new user data
+    state = state.copyWith(user: updatedUser);
+
+    // Update AppLogic with new user data
+    appLogic.user = updatedUser;
+
+    // Save updated user data to local storage
+    await appLogic.box.write(AppKeys.user, jsonEncode(updatedUser.toJson()));
+  }
+
   void signOut() {
     // Clear app logic data
-    final appLogic = _ref.read(appLogicProvider);
     appLogic.accessToken = '';
     appLogic.user = null;
     appLogic.box.erase();

@@ -50,12 +50,14 @@ class DashboardScreen extends ConsumerWidget {
     final now = DateTime.now();
     final formattedDate = DateFormat('EEEE, MMMM d, yyyy').format(now);
     final authState = ref.watch(authProvider);
-    
+
     // Get user's first name or fallback
     String firstName = 'User';
-    if (authState.user?.firstName != null && authState.user!.firstName!.isNotEmpty) {
+    if (authState.user?.firstName != null &&
+        authState.user!.firstName!.isNotEmpty) {
       firstName = authState.user!.firstName!;
-    } else if (authState.user?.fullName != null && authState.user!.fullName!.isNotEmpty) {
+    } else if (authState.user?.fullName != null &&
+        authState.user!.fullName!.isNotEmpty) {
       // Extract first name from full name if firstName is not available
       firstName = authState.user!.fullName!.split(' ').first;
     }

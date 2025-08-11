@@ -135,14 +135,20 @@ class TagField extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: tags.map((tag) => _buildTag(context, tag, onRemove)).toList(),
+            children: tags
+                .map((tag) => _buildTag(context, tag, onRemove))
+                .toList(),
           ),
         ],
       ],
     );
   }
 
-  Widget _buildTag(BuildContext context, String tag, Function(String) onRemove) {
+  Widget _buildTag(
+    BuildContext context,
+    String tag,
+    Function(String) onRemove,
+  ) {
     return Tooltip(
       message: tag, // Show full text in tooltip
       waitDuration: const Duration(milliseconds: 500),
@@ -195,10 +201,7 @@ class TagField extends StatelessWidget {
         return AlertDialog(
           title: const Text('Full Tag Text'),
           content: SingleChildScrollView(
-            child: Text(
-              tag,
-              style: const TextStyle(fontSize: 16),
-            ),
+            child: Text(tag, style: const TextStyle(fontSize: 16)),
           ),
           actions: [
             TextButton(

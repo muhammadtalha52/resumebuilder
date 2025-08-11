@@ -1,6 +1,7 @@
 import 'dart:developer';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../main.dart';
 import '../utils/endpoint_headers.dart';
 import '../utils/keys.dart';
 import '../providers/app_logic_provider.dart';
@@ -33,10 +34,9 @@ class APIClient {
           if (options.headers.containsKey(WAInterceptorHeaders.requiresToken)) {
             options.headers.remove(WAInterceptorHeaders.requiresToken);
             try {
-              final appLogic = container?.read(appLogicProvider);
-              String accessToken = appLogic?.accessToken ?? "";
+              String accessToken = appLogic.accessToken ?? "";
               options.headers.addAll({
-                WAInterceptorHeaders.authorization: "Bearer $accessToken",
+                WAInterceptorHeaders.authorization: "Token $accessToken",
                 WAInterceptorHeaders.xRequestWith: "XMLHttpRequest",
                 WAInterceptorHeaders.contentType: "application/json",
               });
@@ -72,7 +72,6 @@ class APIClient {
   }
 
   void logoutAndRemoveData(ProviderContainer? container) {
-    final appLogic = container?.read(appLogicProvider);
-    appLogic?.clearDataAndRouteToHome(AppKeys.context!);
+    appLogic.clearDataAndRouteToHome(AppKeys.context!);
   }
 }

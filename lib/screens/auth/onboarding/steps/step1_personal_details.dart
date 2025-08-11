@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 
 import '../../../../constants/app_colors.dart';
@@ -148,9 +150,28 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
             textInputAction: TextInputAction.next,
             maxLength: 50,
             isRequired: true,
+            inputFormatters: [
+              // Allow letters, spaces, hyphens, apostrophes, and periods
+              FilteringTextInputFormatter.allow(RegExp(r"[a-zA-Z\s\-'.]")),
+            ],
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Please enter your full name';
+              }
+              // Check if name contains only valid characters
+              if (!RegExp(r"^[a-zA-Z\s\-'.]+$").hasMatch(value)) {
+                return 'Name can only contain letters, spaces, hyphens, apostrophes, and periods';
+              }
+              // Check if name has at least 2 characters (excluding spaces)
+              if (value.replaceAll(' ', '').length < 2) {
+                return 'Please enter a valid name';
+              }
+              // Check if name doesn't start or end with special characters
+              if (value.startsWith('-') ||
+                  value.startsWith('.') ||
+                  value.endsWith('-') ||
+                  value.endsWith('.')) {
+                return 'Name cannot start or end with special characters';
               }
               return null;
             },
@@ -347,6 +368,55 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
             },
           ),
           const SizedBox(height: 32),
+          // Terms and Privacy
+          Wrap(
+            alignment: WrapAlignment.center,
+            children: [
+              Text(
+                'By continuing you agree to our ',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  context.push('/privacy-policy');
+                },
+                child: Text(
+                  'Privacy policy',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+              Text(
+                ' and ',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  context.push('/terms-of-use');
+                },
+                child: Text(
+                  'terms of use',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           // Next button
           SizedBox(
             width: double.infinity,

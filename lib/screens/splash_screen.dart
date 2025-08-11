@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../main.dart';
 import '../services/app_preferences.dart';
-import '../providers/app_logic_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -37,7 +37,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   void _navigateToNextScreen() async {
     // Initialize app logic (loads token and user data)
-    final appLogic = ref.read(appLogicProvider);
     await appLogic.init();
 
     // Wait for animation to complete

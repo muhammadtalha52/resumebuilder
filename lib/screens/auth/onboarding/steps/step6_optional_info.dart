@@ -41,7 +41,7 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
         _referencesController.text = optionalInfo['references'] ?? '';
       });
     }
-    
+
     // Load from parsed resume data if available
     _loadFromResumeIfAvailable();
   }
@@ -79,7 +79,6 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
       list.remove(tag);
     });
   }
-
 
   Widget _buildTextField({
     required String label,
@@ -168,7 +167,6 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-
         TagField(
           label: 'Languages',
           isRequired: false,

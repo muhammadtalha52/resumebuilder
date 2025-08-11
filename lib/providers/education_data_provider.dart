@@ -301,3 +301,21 @@ final getInstitutionNameProvider = Provider.family<String?, int?>((ref, id) {
     error: (_, _) => null,
   );
 });
+
+final getCertificationNameProvider = Provider.family<String?, int?>((ref, id) {
+  if (id == null) return null;
+  final educationDataAsync = ref.watch(educationDataProvider);
+
+  return educationDataAsync.when(
+    data: (educationModel) {
+      final certificates = educationModel.data?.certificates ?? [];
+      final certificate = certificates.firstWhere(
+        (c) => c.id == id,
+        orElse: () => Certificates(),
+      );
+      return certificate.name;
+    },
+    loading: () => null,
+    error: (_, _) => null,
+  );
+});
