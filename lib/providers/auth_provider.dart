@@ -182,6 +182,63 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await appLogic.box.write(AppKeys.user, jsonEncode(updatedUser.toJson()));
   }
 
+  Future<void> updateProfileImage(String imageUrl) async {
+    final currentUser = state.user;
+    if (currentUser == null) return;
+
+    // Create updated user with new profile image
+    final updatedUser = User(
+      id: currentUser.id,
+      email: currentUser.email,
+      username: currentUser.username,
+      firstName: currentUser.firstName,
+      lastName: currentUser.lastName,
+      fullName: currentUser.fullName,
+      phoneNumber: currentUser.phoneNumber,
+      dateOfBirth: currentUser.dateOfBirth,
+      address: currentUser.address,
+      city: currentUser.city,
+      state: currentUser.state,
+      country: currentUser.country,
+      postalCode: currentUser.postalCode,
+      professionalSummary: currentUser.professionalSummary,
+      linkedinUrl: currentUser.linkedinUrl,
+      githubUrl: currentUser.githubUrl,
+      portfolioUrl: currentUser.portfolioUrl,
+      desiredJobTitles: currentUser.desiredJobTitles,
+      industryPreferences: currentUser.industryPreferences,
+      longTermCareerGoals: currentUser.longTermCareerGoals,
+      degreeType: currentUser.degreeType,
+      major: currentUser.major,
+      institution: currentUser.institution,
+      graduationDate: currentUser.graduationDate,
+      certificationsTraining: currentUser.certificationsTraining,
+      workExperience: currentUser.workExperience,
+      hardSkills: currentUser.hardSkills,
+      softSkills: currentUser.softSkills,
+      toolsTechnologies: currentUser.toolsTechnologies,
+      languages: currentUser.languages,
+      volunteerWork: currentUser.volunteerWork,
+      hobbiesInterests: currentUser.hobbiesInterests,
+      references: currentUser.references,
+      profileImage: imageUrl, // Updated profile image
+      isProfileComplete: currentUser.isProfileComplete,
+      role: currentUser.role,
+      signupProgress: currentUser.signupProgress,
+      resumeFileName: currentUser.resumeFileName,
+      desiredPayRange: currentUser.desiredPayRange,
+      locationPreferences: currentUser.locationPreferences,
+      createdAt: currentUser.createdAt,
+      updatedAt: currentUser.updatedAt,
+      profileCompletionPercentage: currentUser.profileCompletionPercentage,
+      workStartDate: currentUser.workStartDate,
+      workEndDate: currentUser.workEndDate,
+    );
+
+    // Update user data
+    updateUserData(updatedUser);
+  }
+
   void signOut() {
     // Clear app logic data
     appLogic.accessToken = '';

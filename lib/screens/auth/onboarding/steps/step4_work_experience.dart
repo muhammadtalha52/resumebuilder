@@ -24,6 +24,7 @@ class Step4WorkExperience extends ConsumerStatefulWidget {
 class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
   final _formKey = GlobalKey<FormState>();
   List<WorkExperienceEntry> _workExperiences = [WorkExperienceEntry()];
+  AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
 
   // Resume upload related
   File? _selectedResumeFile;
@@ -198,6 +199,11 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
       return;
     }
 
+    // Enable autovalidation after first submission attempt
+    setState(() {
+      _autovalidateMode = AutovalidateMode.onUserInteraction;
+    });
+
     bool isValid = _formKey.currentState!.validate();
     bool hasDateErrors = false;
 
@@ -237,6 +243,7 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
   Widget build(BuildContext context) {
     return Form(
       key: _formKey,
+      autovalidateMode: _autovalidateMode,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -340,6 +347,12 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
             }
             return null;
           },
+          onChanged: (value) {
+            // Clear error when user starts typing
+            if (_autovalidateMode == AutovalidateMode.onUserInteraction) {
+              _formKey.currentState?.validate();
+            }
+          },
         ),
         const SizedBox(height: 20),
 
@@ -354,6 +367,12 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
               return 'Please enter Company';
             }
             return null;
+          },
+          onChanged: (value) {
+            // Clear error when user starts typing
+            if (_autovalidateMode == AutovalidateMode.onUserInteraction) {
+              _formKey.currentState?.validate();
+            }
           },
         ),
         const SizedBox(height: 20),

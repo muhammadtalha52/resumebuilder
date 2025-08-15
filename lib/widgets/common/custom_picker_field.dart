@@ -92,7 +92,7 @@ class CustomPickerField extends StatelessWidget {
                     style: TextStyle(
                       color: value != null
                           ? AppColors.textPrimary
-                          : AppColors.textSecondary,
+                          : AppColors.textHint,
                       fontSize: 16,
                     ),
                     overflow: TextOverflow.ellipsis,

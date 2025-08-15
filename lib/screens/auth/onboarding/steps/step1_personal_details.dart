@@ -376,7 +376,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
                 'By continuing you agree to our ',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.textSecondary,
-                  fontSize: 12,
+                  fontSize: 13,
                 ),
               ),
               GestureDetector(
@@ -387,7 +387,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
                   'Privacy policy',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.primary,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                     decoration: TextDecoration.underline,
                   ),
@@ -397,7 +397,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
                 ' and ',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.textSecondary,
-                  fontSize: 12,
+                  fontSize: 13,
                 ),
               ),
               GestureDetector(
@@ -408,7 +408,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
                   'terms of use',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.primary,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                     decoration: TextDecoration.underline,
                   ),

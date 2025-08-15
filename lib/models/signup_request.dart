@@ -1,6 +1,35 @@
 import '../providers/onboarding_provider.dart';
 import '../utils/date_helpers.dart';
 
+class WorkExperience {
+  final String jobTitle;
+  final String companyName;
+  final String workStartDate;
+  final String? workEndDate;
+  final List<String> keyResponsibilities;
+  final bool isCurrentJob;
+
+  WorkExperience({
+    required this.jobTitle,
+    required this.companyName,
+    required this.workStartDate,
+    this.workEndDate,
+    required this.keyResponsibilities,
+    required this.isCurrentJob,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'job_title': jobTitle,
+      'company_name': companyName,
+      'work_start_date': workStartDate,
+      'work_end_date': workEndDate,
+      'key_responsibilities': keyResponsibilities,
+      'is_current_job': isCurrentJob,
+    };
+  }
+}
+
 class SignUpRequest {
   final String email;
   final String password;
@@ -19,29 +48,26 @@ class SignUpRequest {
   final String? linkedinUrl;
   final String? githubUrl;
   final String? portfolioUrl;
-  final String? desiredJobTitles;
-  final String? industryPreferences;
-  final String? longTermCareerGoals;
+  final List<String>? desiredJobTitles;
+  final List<String>? industryPreferences;
+  final List<String>? longTermCareerGoals;
   final int? degreeType;
   final int? major;
   final int? institution;
   final String? graduationDate;
   final int? certificationsTraining;
-  final String? jobTitles;
-  final String? companyNames;
-  final String? workDuration;
-  final String? keyResponsibilities;
-  final String? hardSkills;
-  final String? softSkills;
-  final String? toolsTechnologies;
-  final String? languages;
-  final String? volunteerWork;
-  final String? hobbiesInterests;
+  final List<WorkExperience>? workExperience;
+  final List<String>? hardSkills;
+  final List<String>? softSkills;
+  final List<String>? toolsTechnologies;
+  final List<String>? languages;
+  final List<String>? volunteerWork;
+  final List<String>? hobbiesInterests;
   final String? references;
   final int? role;
-  final String? resumeUrl;
-  final String? workStartDate;
-  final String? workEndDate;
+  final String? resumeFileName;
+  final int? desiredPayRange;
+  final List<String>? locationPreferences;
 
   SignUpRequest({
     required this.email,
@@ -69,10 +95,7 @@ class SignUpRequest {
     this.institution,
     this.graduationDate,
     this.certificationsTraining,
-    this.jobTitles,
-    this.companyNames,
-    this.workDuration,
-    this.keyResponsibilities,
+    this.workExperience,
     this.hardSkills,
     this.softSkills,
     this.toolsTechnologies,
@@ -81,9 +104,9 @@ class SignUpRequest {
     this.hobbiesInterests,
     this.references,
     this.role,
-    this.resumeUrl,
-    this.workStartDate,
-    this.workEndDate,
+    this.resumeFileName,
+    this.desiredPayRange,
+    this.locationPreferences,
   });
 
   factory SignUpRequest.fromOnboardingState(OnboardingState state) {
@@ -95,12 +118,16 @@ class SignUpRequest {
     // Extract career goals data
     final careerGoals = state.careerGoals;
     final desiredJobTitles = careerGoals?['jobTitles'] != null
-        ? (careerGoals!['jobTitles'] as List<dynamic>).join(', ')
+        ? (careerGoals!['jobTitles'] as List<dynamic>).cast<String>()
         : null;
     final industryPreferences = careerGoals?['industries'] != null
-        ? (careerGoals!['industries'] as List<dynamic>).join(', ')
+        ? (careerGoals!['industries'] as List<dynamic>).cast<String>()
         : null;
-    final longTermCareerGoals = careerGoals?['longTermGoals'] as String?;
+    final longTermGoalsValue = careerGoals?['longTermGoals'] as String?;
+    final longTermCareerGoals =
+        longTermGoalsValue != null && longTermGoalsValue.isNotEmpty
+        ? [longTermGoalsValue]
+        : null;
 
     // Extract education data with IDs
     final education = state.education;
@@ -116,70 +143,98 @@ class SignUpRequest {
     // Extract work experience data
     final workExp = state.workExperience;
     final experiences = workExp?['experiences'] as List<dynamic>?;
-
-    String? jobTitles;
-    String? companyNames;
-    String? keyResponsibilities;
-    String? workDuration;
-    String? workStartDate;
-    String? workEndDate;
+    List<WorkExperience>? workExperienceList;
 
     if (experiences != null && experiences.isNotEmpty) {
-      final jobTitlesList = <String>[];
-      final companyNamesList = <String>[];
-      final responsibilitiesList = <String>[];
+      workExperienceList = [];
 
       for (final exp in experiences) {
         final expMap = exp as Map<String, dynamic>;
-        if (expMap['jobTitle'] != null) jobTitlesList.add(expMap['jobTitle']);
-        if (expMap['company'] != null) companyNamesList.add(expMap['company']);
-        if (expMap['responsibilities'] != null) {
-          responsibilitiesList.add(expMap['responsibilities']);
+
+        // Extract data for each experience
+        final jobTitle = expMap['jobTitle'] as String? ?? '';
+        final companyName = expMap['company'] as String? ?? '';
+        final startDate =
+            DateHelpers.convertToApiDateFormat(
+              expMap['startDate'] as String?,
+            ) ??
+            '';
+        final endDate = expMap['currentJob'] == true
+            ? null
+            : DateHelpers.convertToApiDateFormat(expMap['endDate'] as String?);
+        final responsibilities = expMap['responsibilities'] as String? ?? '';
+        final isCurrentJob = expMap['currentJob'] as bool? ?? false;
+
+        // Split responsibilities by common delimiters if it's a single string
+        List<String> responsibilitiesList = [];
+        if (responsibilities.isNotEmpty) {
+          // Try to split by common delimiters
+          if (responsibilities.contains('\n')) {
+            responsibilitiesList = responsibilities
+                .split('\n')
+                .map((r) => r.trim())
+                .where((r) => r.isNotEmpty)
+                .toList();
+          } else if (responsibilities.contains(';')) {
+            responsibilitiesList = responsibilities
+                .split(';')
+                .map((r) => r.trim())
+                .where((r) => r.isNotEmpty)
+                .toList();
+          } else if (responsibilities.contains(',')) {
+            responsibilitiesList = responsibilities
+                .split(',')
+                .map((r) => r.trim())
+                .where((r) => r.isNotEmpty)
+                .toList();
+          } else {
+            responsibilitiesList = [responsibilities];
+          }
+        }
+
+        if (jobTitle.isNotEmpty &&
+            companyName.isNotEmpty &&
+            startDate.isNotEmpty) {
+          workExperienceList.add(
+            WorkExperience(
+              jobTitle: jobTitle,
+              companyName: companyName,
+              workStartDate: startDate,
+              workEndDate: endDate,
+              keyResponsibilities: responsibilitiesList,
+              isCurrentJob: isCurrentJob,
+            ),
+          );
         }
       }
 
-      jobTitles = jobTitlesList.isNotEmpty ? jobTitlesList.join(', ') : null;
-      companyNames = companyNamesList.isNotEmpty
-          ? companyNamesList.join(', ')
-          : null;
-      keyResponsibilities = responsibilitiesList.isNotEmpty
-          ? responsibilitiesList.join(', ')
-          : null;
-
-      // Get start and end dates from first experience and format them
-      if (experiences.isNotEmpty) {
-        final firstExp = experiences.first as Map<String, dynamic>;
-        workStartDate = DateHelpers.convertToApiDateFormat(
-          firstExp['startDate'] as String?,
-        );
-        workEndDate = DateHelpers.convertToApiDateFormat(
-          firstExp['endDate'] as String?,
-        );
+      if (workExperienceList.isEmpty) {
+        workExperienceList = null;
       }
     }
 
     // Extract skills data
     final skills = state.skills;
     final hardSkills = skills?['hardSkills'] != null
-        ? (skills!['hardSkills'] as List<dynamic>).join(', ')
+        ? (skills!['hardSkills'] as List<dynamic>).cast<String>()
         : null;
     final softSkills = skills?['softSkills'] != null
-        ? (skills!['softSkills'] as List<dynamic>).join(', ')
+        ? (skills!['softSkills'] as List<dynamic>).cast<String>()
         : null;
     final toolsTechnologies = skills?['tools'] != null
-        ? (skills!['tools'] as List<dynamic>).join(', ')
+        ? (skills!['tools'] as List<dynamic>).cast<String>()
         : null;
 
     // Extract optional info
     final optionalInfo = state.optionalInfo;
     final languages = optionalInfo?['languages'] != null
-        ? (optionalInfo!['languages'] as List<dynamic>).join(', ')
+        ? (optionalInfo!['languages'] as List<dynamic>).cast<String>()
         : null;
     final volunteerWork = optionalInfo?['volunteerWork'] != null
-        ? (optionalInfo!['volunteerWork'] as List<dynamic>).join(', ')
+        ? (optionalInfo!['volunteerWork'] as List<dynamic>).cast<String>()
         : null;
     final hobbiesInterests = optionalInfo?['hobbies'] != null
-        ? (optionalInfo!['hobbies'] as List<dynamic>).join(', ')
+        ? (optionalInfo!['hobbies'] as List<dynamic>).cast<String>()
         : null;
     final references = optionalInfo?['references'] as String?;
 
@@ -210,10 +265,7 @@ class SignUpRequest {
       institution: institutionId,
       graduationDate: graduationDate,
       certificationsTraining: certificationId,
-      jobTitles: jobTitles,
-      companyNames: companyNames,
-      workDuration: workDuration,
-      keyResponsibilities: keyResponsibilities,
+      workExperience: workExperienceList,
       hardSkills: hardSkills,
       softSkills: softSkills,
       toolsTechnologies: toolsTechnologies,
@@ -222,10 +274,11 @@ class SignUpRequest {
       hobbiesInterests: hobbiesInterests,
       references: references,
       role: _getRoleId(state.selectedRole),
-      resumeUrl: null,
+      resumeFileName: null,
       // Not collected in onboarding
-      workStartDate: workStartDate,
-      workEndDate: workEndDate,
+      desiredPayRange: null,
+      // Not collected in onboarding
+      locationPreferences: null, // Not collected in onboarding
     );
   }
 

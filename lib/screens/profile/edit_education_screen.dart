@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/education_data_provider.dart';
 import '../../utils/snackbar_utils.dart';
+import '../../utils/date_helpers.dart';
 import '../../widgets/common/custom_picker_field.dart';
 
 class EditEducationScreen extends ConsumerStatefulWidget {
@@ -357,7 +358,9 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
       }
 
       if (_graduationDate != _originalGraduationDate) {
-        updateData['graduation_date'] = _graduationDate?.toIso8601String();
+        updateData['graduation_date'] = DateHelpers.formatToApiDate(
+          _graduationDate,
+        );
       }
 
       if (_selectedCertification != _originalCertification) {

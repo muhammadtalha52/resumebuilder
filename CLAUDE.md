@@ -69,10 +69,11 @@ lib/
    - Extract repeated UI patterns into custom widgets
 
 4. **State Management Rules**
-   - Never use setState() - use Riverpod providers instead
+   - **NEVER use setState() - ALWAYS use Riverpod providers instead**
    - Keep providers in separate files
    - Use proper provider naming: `featureNameProvider`
    - Dispose providers properly
+   - All state changes must go through providers, even for loading states
 
 5. **Error Handling**
    - Use Result/Either pattern for error handling

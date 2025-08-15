@@ -70,8 +70,8 @@ class CustomDropdown<T> extends StatelessWidget {
           ),
           decoration: InputDecoration(
             hintText: hintText ?? 'Select an option',
-            hintStyle: const TextStyle(
-              color: AppColors.textHint,
+            hintStyle: TextStyle(
+              color: AppColors.textHint.withOpacity(0.6),
               fontSize: 16,
               fontWeight: FontWeight.normal,
             ),

@@ -48,6 +48,8 @@
 	<key>NSDocumentPickerUsageDescription</key>
 	<string>This app needs access to your documents to allow you to upload your resume for automatic parsing</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app needs access to your photo library to allow you to upload your resume</string>
+	<string>This app needs access to your photo library to allow you to select and upload profile images</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs access to your camera to allow you to take and upload profile images</string>
 </dict>
 </plist>

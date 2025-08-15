@@ -186,7 +186,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                             .bodySmall
                                             ?.copyWith(
                                               color: AppColors.textSecondary,
-                                              fontSize: 12,
+                                              fontSize: 13,
                                             ),
                                       ),
                                       GestureDetector(
@@ -200,7 +200,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                               .bodySmall
                                               ?.copyWith(
                                                 color: AppColors.primary,
-                                                fontSize: 12,
+                                                fontSize: 13,
                                                 fontWeight: FontWeight.bold,
                                                 decoration:
                                                     TextDecoration.underline,
@@ -214,7 +214,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                             .bodySmall
                                             ?.copyWith(
                                               color: AppColors.textSecondary,
-                                              fontSize: 12,
+                                              fontSize: 13,
                                             ),
                                       ),
                                       GestureDetector(
@@ -228,7 +228,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                               .bodySmall
                                               ?.copyWith(
                                                 color: AppColors.primary,
-                                                fontSize: 12,
+                                                fontSize: 13,
                                                 fontWeight: FontWeight.bold,
                                                 decoration:
                                                     TextDecoration.underline,

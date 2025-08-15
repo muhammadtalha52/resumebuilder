@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../../utils/date_helpers.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/common/custom_text_field.dart';
 
@@ -39,50 +40,59 @@ class _EditWorkExperienceScreenState
     final authState = ref.read(authProvider);
     final user = authState.user;
 
-    if (user != null) {
-      // Parse work experience data from comma-separated strings
-      final jobTitles = _parseCommaSeparatedStringToList(user.jobTitles);
-      final companyNames = _parseCommaSeparatedStringToList(user.companyNames);
-      final workDuration = _parseCommaSeparatedStringToList(user.workDuration);
-      final keyResponsibilities = _parseCommaSeparatedStringToList(
-        user.keyResponsibilities,
-      );
+    if (user != null && user.workExperience != null) {
+      // Load work experience from the new array structure
+      _workExperiences.clear();
 
-      // Create work experience entries
-      final maxLength = [
-        jobTitles.length,
-        companyNames.length,
-        workDuration.length,
-        keyResponsibilities.length,
-      ].reduce((a, b) => a > b ? a : b);
+      for (final userWorkExp in user.workExperience!) {
+        final workExp = WorkExperienceEntry();
 
-      if (maxLength > 0) {
-        _workExperiences.clear();
-        for (int i = 0; i < maxLength; i++) {
-          final workExp = WorkExperienceEntry();
-
-          // Set job title
-          if (i < jobTitles.length) {
-            workExp.jobTitle.text = jobTitles[i];
-          }
-
-          // Set company
-          if (i < companyNames.length) {
-            workExp.company.text = companyNames[i];
-          }
-
-          // Set responsibilities
-          if (i < keyResponsibilities.length) {
-            workExp.responsibilities.text = keyResponsibilities[i];
-          }
-
-          // Parse work duration to dates (assuming format like "Jan 2020 - Dec 2022" or "Jan 2020 - Present")
-          if (i < workDuration.length) {
-            _parseDurationString(workDuration[i], workExp);
-          }
-
-          _workExperiences.add(workExp);
+        // Set job title
+        if (userWorkExp.jobTitle != null) {
+          workExp.jobTitle.text = userWorkExp.jobTitle!;
         }
+
+        // Set company
+        if (userWorkExp.companyName != null) {
+          workExp.company.text = userWorkExp.companyName!;
+        }
+
+        // Set responsibilities
+        if (userWorkExp.keyResponsibilities != null &&
+            userWorkExp.keyResponsibilities!.isNotEmpty) {
+          // Join responsibilities with line breaks for display in text field
+          workExp.responsibilities.text = userWorkExp.keyResponsibilities!.join(
+            '\n',
+          );
+        }
+
+        // Set dates
+        if (userWorkExp.workStartDate != null) {
+          try {
+            workExp.startDate = DateTime.parse(userWorkExp.workStartDate!);
+          } catch (e) {
+            // Handle parse error
+          }
+        }
+
+        if (userWorkExp.workEndDate != null) {
+          try {
+            workExp.endDate = DateTime.parse(userWorkExp.workEndDate!);
+            workExp.currentJob = false;
+          } catch (e) {
+            // Handle parse error
+          }
+        } else if (userWorkExp.isCurrentJob == true) {
+          workExp.currentJob = true;
+          workExp.endDate = null;
+        }
+
+        _workExperiences.add(workExp);
+      }
+
+      // If no work experience exists, add an empty entry
+      if (_workExperiences.isEmpty) {
+        _workExperiences.add(WorkExperienceEntry());
       }
 
       // Create deep copy for original values comparison
@@ -91,40 +101,6 @@ class _EditWorkExperienceScreenState
           .toList();
 
       setState(() {});
-    }
-  }
-
-  List<String> _parseCommaSeparatedStringToList(String? input) {
-    if (input == null || input.trim().isEmpty) {
-      return [];
-    }
-
-    return input
-        .split(',')
-        .map((item) => item.trim())
-        .where((item) => item.isNotEmpty)
-        .toList();
-  }
-
-  void _parseDurationString(String duration, WorkExperienceEntry workExp) {
-    // This is a basic parser for duration strings like "Jan 2020 - Dec 2022" or "Jan 2020 - Present"
-    // You might need to adjust this based on how dates are stored in your system
-    try {
-      final parts = duration.split(' - ');
-      if (parts.length == 2) {
-        final startPart = parts[0].trim();
-        final endPart = parts[1].trim();
-
-        // For now, we'll just store the original string as we don't have a reliable date parser
-        // In a real app, you'd want to implement proper date parsing or store dates as ISO strings
-
-        if (endPart.toLowerCase().contains('present') ||
-            endPart.toLowerCase().contains('current')) {
-          workExp.currentJob = true;
-        }
-      }
-    } catch (e) {
-      // If parsing fails, just continue without dates
     }
   }
 
@@ -213,37 +189,34 @@ class _EditWorkExperienceScreenState
       // Prepare the update data
       final updateData = <String, dynamic>{};
 
-      // Convert work experiences to comma-separated strings
-      final jobTitles = _workExperiences
-          .map((exp) => exp.jobTitle.text.trim())
-          .toList();
-      final companyNames = _workExperiences
-          .map((exp) => exp.company.text.trim())
-          .toList();
-      final keyResponsibilities = _workExperiences
-          .map((exp) => exp.responsibilities.text.trim())
-          .toList();
+      // Convert work experiences to the new array format
+      final workExperienceArray = _workExperiences.map((exp) {
+        // Parse responsibilities from text field (split by newlines)
+        List<String> responsibilitiesList = [];
+        if (exp.responsibilities.text.trim().isNotEmpty) {
+          responsibilitiesList = exp.responsibilities.text
+              .split('\n')
+              .map((r) => r.trim())
+              .where((r) => r.isNotEmpty)
+              .toList();
+        }
 
-      // Create duration strings
-      final workDurations = _workExperiences.map((exp) {
-        if (exp.startDate == null) return '';
-
-        String startStr =
-            '${_monthName(exp.startDate!.month)} ${exp.startDate!.year}';
-        String endStr = exp.currentJob
-            ? 'Present'
-            : exp.endDate != null
-            ? '${_monthName(exp.endDate!.month)} ${exp.endDate!.year}'
-            : 'Present';
-
-        return '$startStr - $endStr';
+        return {
+          'job_title': exp.jobTitle.text.trim(),
+          'company_name': exp.company.text.trim(),
+          'work_start_date': exp.startDate != null
+              ? DateHelpers.formatToApiDate(exp.startDate)
+              : null,
+          'work_end_date': exp.currentJob || exp.endDate == null
+              ? null
+              : DateHelpers.formatToApiDate(exp.endDate),
+          'key_responsibilities': responsibilitiesList,
+          'is_current_job': exp.currentJob,
+        };
       }).toList();
 
-      // Only add fields that have changed
-      updateData['job_titles'] = jobTitles.join(', ');
-      updateData['company_names'] = companyNames.join(', ');
-      updateData['work_duration'] = workDurations.join(', ');
-      updateData['key_responsibilities'] = keyResponsibilities.join(', ');
+      // Send the work experience array
+      updateData['work_experience'] = workExperienceArray;
 
       // Use profile provider to update
       final profileNotifier = ref.read(profileProvider.notifier);

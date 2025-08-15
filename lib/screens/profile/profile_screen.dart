@@ -79,7 +79,7 @@ class ProfileScreen extends ConsumerWidget {
           ),
           _buildDetailRowWithDivider(
             'assets/icons/whatsapp.png',
-            'Whatsapp Number',
+            'WhatsApp Number',
             user?.phoneNumber ?? 'Not provided',
             showDivider: true,
           ),
@@ -118,19 +118,19 @@ class ProfileScreen extends ConsumerWidget {
           _buildCareerDetailRow(
             'assets/icons/goals.png',
             'Desired Job Titles',
-            _parseCommaSeparatedString(user?.desiredJobTitles),
+            user?.desiredJobTitles ?? ['Not provided'],
             showDivider: true,
           ),
           _buildCareerDetailRow(
             'assets/icons/industry.png',
             'Industry Preferences',
-            _parseCommaSeparatedString(user?.industryPreferences),
+            user?.industryPreferences ?? ['Not provided'],
             showDivider: true,
           ),
           _buildCareerDetailRow(
             'assets/icons/long-term.png',
             'Long-term Career Goals',
-            _parseCommaSeparatedString(user?.longTermCareerGoals),
+            user?.longTermCareerGoals ?? ['Not provided'],
             showDivider: false,
           ),
         ],
@@ -180,20 +180,9 @@ class ProfileScreen extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final user = authState.user;
 
-    // Parse work experience data
-    final jobTitles = _parseCommaSeparatedStringToList(user?.jobTitles);
-    final companyNames = _parseCommaSeparatedStringToList(user?.companyNames);
-    final workDuration = _parseCommaSeparatedStringToList(user?.workDuration);
-    final keyResponsibilities = _parseCommaSeparatedStringToList(
-      user?.keyResponsibilities,
-    );
-
-    // Create work experience entries (assume they correspond by index)
-    final workExperiences = _createWorkExperienceEntries(
-      jobTitles,
-      companyNames,
-      workDuration,
-      keyResponsibilities,
+    // Create work experience entries from the new structure
+    final workExperiences = _createWorkExperienceEntriesFromArray(
+      user?.workExperience,
     );
 
     return ProfileCard(
@@ -239,7 +228,7 @@ class ProfileScreen extends ConsumerWidget {
           _buildCareerDetailRow(
             'assets/icons/tools-tech.png',
             'Tools/Technologies',
-            _parseCommaSeparatedString(user?.toolsTechnologies),
+            user?.toolsTechnologies ?? ['Not provided'],
             showDivider: false,
           ),
         ],
@@ -261,21 +250,21 @@ class ProfileScreen extends ConsumerWidget {
           _buildCareerDetailRow(
             'assets/icons/language-line.png',
             'Languages',
-            _parseCommaSeparatedString(user?.languages),
+            user?.languages ?? ['Not provided'],
             showDivider: true,
           ),
           _buildDetailRowWithDivider(
             'assets/icons/goals.png',
             'Volunteer Work',
             (user?.volunteerWork != null && user!.volunteerWork!.isNotEmpty)
-                ? user.volunteerWork!
+                ? user.volunteerWork!.join(', ')
                 : 'Not provided',
             showDivider: true,
           ),
           _buildCareerDetailRow(
             'assets/icons/industry.png',
             'Hobbies & Interests',
-            _parseCommaSeparatedString(user?.hobbiesInterests),
+            user?.hobbiesInterests ?? ['Not provided'],
             showDivider: true,
           ),
           _buildDetailRowWithDivider(
@@ -690,17 +679,11 @@ class ProfileScreen extends ConsumerWidget {
         .toList();
   }
 
-  List<Map<String, String?>> _createWorkExperienceEntries(
-    List<String> jobTitles,
-    List<String> companyNames,
-    List<String> workDuration,
-    List<String> keyResponsibilities,
+  List<Map<String, String?>> _createWorkExperienceEntriesFromArray(
+    List<dynamic>? workExperienceArray,
   ) {
     // If no data exists, show a single "Not provided" entry
-    if (jobTitles.isEmpty &&
-        companyNames.isEmpty &&
-        workDuration.isEmpty &&
-        keyResponsibilities.isEmpty) {
+    if (workExperienceArray == null || workExperienceArray.isEmpty) {
       return [
         {
           'title': 'Not provided',
@@ -711,34 +694,73 @@ class ProfileScreen extends ConsumerWidget {
       ];
     }
 
-    // Find the maximum length among all lists
-    final maxLength = [
-      jobTitles.length,
-      companyNames.length,
-      workDuration.length,
-      keyResponsibilities.length,
-    ].reduce((a, b) => a > b ? a : b);
-
-    // Create work experience entries
     final List<Map<String, String?>> workExperiences = [];
 
-    for (int i = 0; i < maxLength; i++) {
+    // Create entries from the work experience array
+    for (final exp in workExperienceArray) {
+      // Format duration string
+      String duration = 'Not provided';
+      if (exp.workStartDate != null) {
+        try {
+          final startDate = DateTime.parse(exp.workStartDate!);
+          final startStr =
+              '${_getMonthName(startDate.month)} ${startDate.year}';
+
+          String endStr = 'Present';
+          if (exp.isCurrentJob != true && exp.workEndDate != null) {
+            final endDate = DateTime.parse(exp.workEndDate!);
+            endStr = '${_getMonthName(endDate.month)} ${endDate.year}';
+          }
+
+          duration = '$startStr - $endStr';
+        } catch (e) {
+          // If date parsing fails, use fallback
+          duration = 'Date not available';
+        }
+      }
+
+      // Format responsibilities
+      String responsibilities = 'Not provided';
+      if (exp.keyResponsibilities != null &&
+          exp.keyResponsibilities!.isNotEmpty) {
+        responsibilities = exp.keyResponsibilities!.join(', ');
+      }
+
       workExperiences.add({
-        'title': i < jobTitles.length ? jobTitles[i] : 'Not provided',
-        'company': i < companyNames.length ? companyNames[i] : 'Not provided',
-        'duration': i < workDuration.length ? workDuration[i] : 'Not provided',
-        'responsibilities': i < keyResponsibilities.length
-            ? keyResponsibilities[i]
-            : 'Not provided',
+        'title': exp.jobTitle ?? 'Not provided',
+        'company': exp.companyName ?? 'Not provided',
+        'duration': duration,
+        'responsibilities': responsibilities,
       });
     }
 
     return workExperiences;
   }
 
-  List<String> _combineSkills(String? hardSkills, String? softSkills) {
-    final hardSkillsList = _parseCommaSeparatedStringToList(hardSkills);
-    final softSkillsList = _parseCommaSeparatedStringToList(softSkills);
+  String _getMonthName(int month) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return months[month - 1];
+  }
+
+  List<String> _combineSkills(
+    List<String>? hardSkills,
+    List<String>? softSkills,
+  ) {
+    final hardSkillsList = hardSkills ?? [];
+    final softSkillsList = softSkills ?? [];
 
     final combinedSkills = [...hardSkillsList, ...softSkillsList];
 

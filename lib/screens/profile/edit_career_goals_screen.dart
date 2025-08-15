@@ -53,35 +53,23 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
     final user = authState.user;
 
     if (user != null) {
-      // Parse job titles from comma-separated string
+      // Load job titles from list
       if (user.desiredJobTitles != null && user.desiredJobTitles!.isNotEmpty) {
-        _jobTitles = user.desiredJobTitles!
-            .split(',')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList();
+        _jobTitles = List.from(user.desiredJobTitles!);
         _originalJobTitles = List.from(_jobTitles);
       }
 
-      // Parse industries from comma-separated string
+      // Load industries from list
       if (user.industryPreferences != null &&
           user.industryPreferences!.isNotEmpty) {
-        _industries = user.industryPreferences!
-            .split(',')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList();
+        _industries = List.from(user.industryPreferences!);
         _originalIndustries = List.from(_industries);
       }
 
-      // Parse long-term goals - assuming it's stored as comma-separated
+      // Load long-term goals from list
       if (user.longTermCareerGoals != null &&
           user.longTermCareerGoals!.isNotEmpty) {
-        _longTermGoals = user.longTermCareerGoals!
-            .split(',')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList();
+        _longTermGoals = List.from(user.longTermCareerGoals!);
         _originalLongTermGoals = List.from(_longTermGoals);
       }
 
@@ -190,22 +178,18 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
       // Prepare the update data
       final updateData = <String, dynamic>{};
 
-      // Convert lists to comma-separated strings for API
-      final newJobTitles = _jobTitles.join(', ');
-      final newIndustries = _industries.join(', ');
-      final newLongTermGoals = _longTermGoals.join(', ');
-
+      // Send lists directly as arrays for API
       // Only add fields that have changed
       if (!_listEquals(_jobTitles, _originalJobTitles)) {
-        updateData['desired_job_titles'] = newJobTitles;
+        updateData['desired_job_titles'] = _jobTitles;
       }
 
       if (!_listEquals(_industries, _originalIndustries)) {
-        updateData['industry_preferences'] = newIndustries;
+        updateData['industry_preferences'] = _industries;
       }
 
       if (!_listEquals(_longTermGoals, _originalLongTermGoals)) {
-        updateData['long_term_career_goals'] = newLongTermGoals;
+        updateData['long_term_career_goals'] = _longTermGoals;
       }
 
       // Add job type if changed (you might need to adjust the field name)

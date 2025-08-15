@@ -51,35 +51,21 @@ class _EditOthersScreenState extends ConsumerState<EditOthersScreen> {
     final user = authState.user;
 
     if (user != null) {
-      // Parse languages from comma-separated string
+      // Load languages from list
       if (user.languages != null && user.languages!.isNotEmpty) {
-        _languages = user.languages!
-            .split(',')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList();
+        _languages = List.from(user.languages!);
         _originalLanguages = List.from(_languages);
       }
 
-      // Parse volunteer work from comma-separated string (assuming it can be multiple)
+      // Load volunteer work from list
       if (user.volunteerWork != null && user.volunteerWork!.isNotEmpty) {
-        // For volunteer work, we'll treat it as a single text field instead of tags
-        // based on the design showing a text field
-        _volunteerWork = user.volunteerWork!
-            .split(',')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList();
+        _volunteerWork = List.from(user.volunteerWork!);
         _originalVolunteerWork = List.from(_volunteerWork);
       }
 
-      // Parse hobbies & interests from comma-separated string
+      // Load hobbies & interests from list
       if (user.hobbiesInterests != null && user.hobbiesInterests!.isNotEmpty) {
-        _hobbiesInterests = user.hobbiesInterests!
-            .split(',')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList();
+        _hobbiesInterests = List.from(user.hobbiesInterests!);
         _originalHobbiesInterests = List.from(_hobbiesInterests);
       }
 
@@ -162,22 +148,18 @@ class _EditOthersScreenState extends ConsumerState<EditOthersScreen> {
     // Prepare the update data
     final updateData = <String, dynamic>{};
 
-    // Convert lists to comma-separated strings for API
-    final newLanguages = _languages.join(', ');
-    final newVolunteerWork = _volunteerWork.join(', ');
-    final newHobbiesInterests = _hobbiesInterests.join(', ');
-
+    // Send lists directly as arrays for API
     // Only add fields that have changed
     if (!_listEquals(_languages, _originalLanguages)) {
-      updateData['languages'] = newLanguages;
+      updateData['languages'] = _languages;
     }
 
     if (!_listEquals(_volunteerWork, _originalVolunteerWork)) {
-      updateData['volunteer_work'] = newVolunteerWork;
+      updateData['volunteer_work'] = _volunteerWork;
     }
 
     if (!_listEquals(_hobbiesInterests, _originalHobbiesInterests)) {
-      updateData['hobbies_interests'] = newHobbiesInterests;
+      updateData['hobbies_interests'] = _hobbiesInterests;
     }
 
     if (_references != _originalReferences) {

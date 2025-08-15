@@ -50,34 +50,22 @@ class _EditSkillsToolsScreenState extends ConsumerState<EditSkillsToolsScreen> {
     final user = authState.user;
 
     if (user != null) {
-      // Parse hard skills from comma-separated string
+      // Load hard skills from list
       if (user.hardSkills != null && user.hardSkills!.isNotEmpty) {
-        _hardSkills = user.hardSkills!
-            .split(',')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList();
+        _hardSkills = List.from(user.hardSkills!);
         _originalHardSkills = List.from(_hardSkills);
       }
 
-      // Parse soft skills from comma-separated string
+      // Load soft skills from list
       if (user.softSkills != null && user.softSkills!.isNotEmpty) {
-        _softSkills = user.softSkills!
-            .split(',')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList();
+        _softSkills = List.from(user.softSkills!);
         _originalSoftSkills = List.from(_softSkills);
       }
 
-      // Parse tools/technologies from comma-separated string
+      // Load tools/technologies from list
       if (user.toolsTechnologies != null &&
           user.toolsTechnologies!.isNotEmpty) {
-        _toolsTechnologies = user.toolsTechnologies!
-            .split(',')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList();
+        _toolsTechnologies = List.from(user.toolsTechnologies!);
         _originalToolsTechnologies = List.from(_toolsTechnologies);
       }
 
@@ -179,22 +167,18 @@ class _EditSkillsToolsScreenState extends ConsumerState<EditSkillsToolsScreen> {
       // Prepare the update data
       final updateData = <String, dynamic>{};
 
-      // Convert lists to comma-separated strings for API
-      final newHardSkills = _hardSkills.join(', ');
-      final newSoftSkills = _softSkills.join(', ');
-      final newToolsTechnologies = _toolsTechnologies.join(', ');
-
+      // Send lists directly as arrays for API
       // Only add fields that have changed
       if (!_listEquals(_hardSkills, _originalHardSkills)) {
-        updateData['hard_skills'] = newHardSkills;
+        updateData['hard_skills'] = _hardSkills;
       }
 
       if (!_listEquals(_softSkills, _originalSoftSkills)) {
-        updateData['soft_skills'] = newSoftSkills;
+        updateData['soft_skills'] = _softSkills;
       }
 
       if (!_listEquals(_toolsTechnologies, _originalToolsTechnologies)) {
-        updateData['tools_technologies'] = newToolsTechnologies;
+        updateData['tools_technologies'] = _toolsTechnologies;
       }
 
       // Use profile provider to update

@@ -125,11 +125,10 @@ class AuthService {
           'graduation_date': request.graduationDate,
         if (request.certificationsTraining != null)
           'certifications_training': request.certificationsTraining,
-        if (request.jobTitles != null) 'job_titles': request.jobTitles,
-        if (request.companyNames != null) 'company_names': request.companyNames,
-        if (request.workDuration != null) 'work_duration': request.workDuration,
-        if (request.keyResponsibilities != null)
-          'key_responsibilities': request.keyResponsibilities,
+        if (request.workExperience != null)
+          'work_experience': request.workExperience!
+              .map((exp) => exp.toJson())
+              .toList(),
         if (request.hardSkills != null) 'hard_skills': request.hardSkills,
         if (request.softSkills != null) 'soft_skills': request.softSkills,
         if (request.toolsTechnologies != null)
@@ -141,10 +140,12 @@ class AuthService {
           'hobbies_interests': request.hobbiesInterests,
         if (request.references != null) 'references': request.references,
         if (request.role != null) 'role': request.role,
-        if (request.resumeUrl != null) 'resume_url': request.resumeUrl,
-        if (request.workStartDate != null)
-          'work_start_date': request.workStartDate,
-        if (request.workEndDate != null) 'work_end_date': request.workEndDate,
+        if (request.resumeFileName != null)
+          'resume_file_name': request.resumeFileName,
+        if (request.desiredPayRange != null)
+          'desired_pay_range': request.desiredPayRange,
+        if (request.locationPreferences != null)
+          'location_preferences': request.locationPreferences,
       };
 
       print(requestData);

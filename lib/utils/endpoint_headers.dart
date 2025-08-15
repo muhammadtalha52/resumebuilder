@@ -11,6 +11,7 @@ class ApiEndpoints {
   static const String register = '/auth/register/';
   static const String login = '/auth/login/';
   static const String profileUpdate = '/auth/profile/';
+  static const String uploadProfilePhoto = '/auth/upload-profile-image/';
   static const String educationData =
       '/resume/degree-types-subject-institutes/';
 }

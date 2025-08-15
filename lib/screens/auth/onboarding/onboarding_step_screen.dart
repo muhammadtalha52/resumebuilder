@@ -8,6 +8,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../models/signup_request.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/fox_message_card.dart';
+import '../account_creation_loading_screen.dart';
 import 'steps/step1_personal_details.dart';
 import 'steps/step2_career_goals.dart';
 import 'steps/step3_education.dart';
@@ -112,10 +113,32 @@ class _OnboardingStepScreenState extends ConsumerState<OnboardingStepScreen> {
     // Check if we're mounted before showing any UI
     if (!mounted) return;
 
-    try {
-      // Show loading state
-      showInfoSnackBar(context: context, message: 'Creating your account...');
+    // Keep a reference to the loading screen
+    GlobalKey<AccountCreationLoadingScreenState>? loadingScreenKey =
+        GlobalKey<AccountCreationLoadingScreenState>();
 
+    // Navigate to loading screen
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            AccountCreationLoadingScreen(
+              key: loadingScreenKey,
+              onAnimationComplete: () {
+                // Navigate to home after animation completes
+                if (mounted) {
+                  Navigator.of(context).pop();
+                  context.go('/home');
+                }
+              },
+            ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
+    );
+
+    try {
       // Create signup request from onboarding state
       final signupRequest = SignUpRequest.fromOnboardingState(onboardingState);
 
@@ -128,11 +151,14 @@ class _OnboardingStepScreenState extends ConsumerState<OnboardingStepScreen> {
       // Check if we're still mounted before showing UI
       if (!mounted) return;
 
-      // Navigate to home
-      context.go('/home');
+      // Trigger the completion animation
+      loadingScreenKey.currentState?.completeAnimation();
     } catch (e) {
       // Check if we're still mounted before showing UI
       if (!mounted) return;
+
+      // Pop the loading screen
+      Navigator.of(context).pop();
 
       // Get the specific error message from auth state or use the exception message
       final authState = ref.read(authProvider);

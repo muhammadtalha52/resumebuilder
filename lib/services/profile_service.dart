@@ -6,6 +6,11 @@ import 'api_client.dart';
 class ProfileService {
   final APIClient _apiClient = APIClient();
 
+  /// Updates profile image with S3 filename
+  Future<UpdateProfileModel> updateProfileImage(String s3FileName) async {
+    return updateProfile({'profile_image': s3FileName});
+  }
+
   Future<UpdateProfileModel> updateProfile(
     Map<String, dynamic> updateData,
   ) async {

@@ -1,3 +1,57 @@
+class UserWorkExperience {
+  final int? id;
+  final String? jobTitle;
+  final String? companyName;
+  final String? workStartDate;
+  final String? workEndDate;
+  final List<String>? keyResponsibilities;
+  final bool? isCurrentJob;
+  final String? createdAt;
+  final String? updatedAt;
+
+  UserWorkExperience({
+    this.id,
+    this.jobTitle,
+    this.companyName,
+    this.workStartDate,
+    this.workEndDate,
+    this.keyResponsibilities,
+    this.isCurrentJob,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory UserWorkExperience.fromJson(Map<String, dynamic> json) {
+    return UserWorkExperience(
+      id: json['id'],
+      jobTitle: json['job_title'],
+      companyName: json['company_name'],
+      workStartDate: json['work_start_date'],
+      workEndDate: json['work_end_date'],
+      keyResponsibilities: json['key_responsibilities'] != null
+          ? List<String>.from(json['key_responsibilities'])
+          : null,
+      isCurrentJob: json['is_current_job'],
+      createdAt: json['created_at'],
+      updatedAt: json['updated_at'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'job_title': jobTitle,
+      'company_name': companyName,
+      'work_start_date': workStartDate,
+      'work_end_date': workEndDate,
+      'key_responsibilities': keyResponsibilities,
+      'is_current_job': isCurrentJob,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+    };
+  }
+}
+
 class User {
   User({
     int? id,
@@ -17,24 +71,21 @@ class User {
     String? linkedinUrl,
     String? githubUrl,
     String? portfolioUrl,
-    String? desiredJobTitles,
-    String? industryPreferences,
-    String? longTermCareerGoals,
+    List<String>? desiredJobTitles,
+    List<String>? industryPreferences,
+    List<String>? longTermCareerGoals,
     int? degreeType,
     int? major,
     int? institution,
     String? graduationDate,
     int? certificationsTraining,
-    String? jobTitles,
-    String? companyNames,
-    String? workDuration,
-    String? keyResponsibilities,
-    String? hardSkills,
-    String? softSkills,
-    String? toolsTechnologies,
-    String? languages,
-    String? volunteerWork,
-    String? hobbiesInterests,
+    List<UserWorkExperience>? workExperience,
+    List<String>? hardSkills,
+    List<String>? softSkills,
+    List<String>? toolsTechnologies,
+    List<String>? languages,
+    List<String>? volunteerWork,
+    List<String>? hobbiesInterests,
     String? references,
     dynamic profileImage,
     bool? isProfileComplete,
@@ -46,6 +97,8 @@ class User {
     String? createdAt,
     String? updatedAt,
     int? profileCompletionPercentage,
+    String? workStartDate,
+    String? workEndDate,
   }) {
     _id = id;
     _email = email;
@@ -72,10 +125,7 @@ class User {
     _institution = institution;
     _graduationDate = graduationDate;
     _certificationsTraining = certificationsTraining;
-    _jobTitles = jobTitles;
-    _companyNames = companyNames;
-    _workDuration = workDuration;
-    _keyResponsibilities = keyResponsibilities;
+    _workExperience = workExperience;
     _hardSkills = hardSkills;
     _softSkills = softSkills;
     _toolsTechnologies = toolsTechnologies;
@@ -93,6 +143,8 @@ class User {
     _createdAt = createdAt;
     _updatedAt = updatedAt;
     _profileCompletionPercentage = profileCompletionPercentage;
+    _workStartDate = workStartDate;
+    _workEndDate = workEndDate;
   }
 
   User.fromJson(dynamic json) {
@@ -113,24 +165,43 @@ class User {
     _linkedinUrl = json['linkedin_url'];
     _githubUrl = json['github_url'];
     _portfolioUrl = json['portfolio_url'];
-    _desiredJobTitles = json['desired_job_titles'];
-    _industryPreferences = json['industry_preferences'];
-    _longTermCareerGoals = json['long_term_career_goals'];
+    _desiredJobTitles = json['desired_job_titles'] != null
+        ? List<String>.from(json['desired_job_titles'])
+        : null;
+    _industryPreferences = json['industry_preferences'] != null
+        ? List<String>.from(json['industry_preferences'])
+        : null;
+    _longTermCareerGoals = json['long_term_career_goals'] != null
+        ? List<String>.from(json['long_term_career_goals'])
+        : null;
     _degreeType = json['degree_type'];
     _major = json['major'];
     _institution = json['institution'];
     _graduationDate = json['graduation_date'];
     _certificationsTraining = json['certifications_training'];
-    _jobTitles = json['job_titles'];
-    _companyNames = json['company_names'];
-    _workDuration = json['work_duration'];
-    _keyResponsibilities = json['key_responsibilities'];
-    _hardSkills = json['hard_skills'];
-    _softSkills = json['soft_skills'];
-    _toolsTechnologies = json['tools_technologies'];
-    _languages = json['languages'];
-    _volunteerWork = json['volunteer_work'];
-    _hobbiesInterests = json['hobbies_interests'];
+    _workExperience = json['work_experience'] != null
+        ? (json['work_experience'] as List)
+              .map((e) => UserWorkExperience.fromJson(e))
+              .toList()
+        : null;
+    _hardSkills = json['hard_skills'] != null
+        ? List<String>.from(json['hard_skills'])
+        : null;
+    _softSkills = json['soft_skills'] != null
+        ? List<String>.from(json['soft_skills'])
+        : null;
+    _toolsTechnologies = json['tools_technologies'] != null
+        ? List<String>.from(json['tools_technologies'])
+        : null;
+    _languages = json['languages'] != null
+        ? List<String>.from(json['languages'])
+        : null;
+    _volunteerWork = json['volunteer_work'] != null
+        ? List<String>.from(json['volunteer_work'])
+        : null;
+    _hobbiesInterests = json['hobbies_interests'] != null
+        ? List<String>.from(json['hobbies_interests'])
+        : null;
     _references = json['references'];
     _profileImage = json['profile_image'];
     _isProfileComplete = json['is_profile_complete'];
@@ -142,6 +213,8 @@ class User {
     _createdAt = json['created_at'];
     _updatedAt = json['updated_at'];
     _profileCompletionPercentage = json['profile_completion_percentage'];
+    _workStartDate = json['work_start_date'];
+    _workEndDate = json['work_end_date'];
   }
 
   int? _id;
@@ -161,24 +234,21 @@ class User {
   String? _linkedinUrl;
   String? _githubUrl;
   String? _portfolioUrl;
-  String? _desiredJobTitles;
-  String? _industryPreferences;
-  String? _longTermCareerGoals;
+  List<String>? _desiredJobTitles;
+  List<String>? _industryPreferences;
+  List<String>? _longTermCareerGoals;
   int? _degreeType;
   int? _major;
   int? _institution;
   String? _graduationDate;
   int? _certificationsTraining;
-  String? _jobTitles;
-  String? _companyNames;
-  String? _workDuration;
-  String? _keyResponsibilities;
-  String? _hardSkills;
-  String? _softSkills;
-  String? _toolsTechnologies;
-  String? _languages;
-  String? _volunteerWork;
-  String? _hobbiesInterests;
+  List<UserWorkExperience>? _workExperience;
+  List<String>? _hardSkills;
+  List<String>? _softSkills;
+  List<String>? _toolsTechnologies;
+  List<String>? _languages;
+  List<String>? _volunteerWork;
+  List<String>? _hobbiesInterests;
   String? _references;
   dynamic _profileImage;
   bool? _isProfileComplete;
@@ -190,6 +260,8 @@ class User {
   String? _createdAt;
   String? _updatedAt;
   int? _profileCompletionPercentage;
+  String? _workStartDate;
+  String? _workEndDate;
 
   int? get id => _id;
 
@@ -225,11 +297,11 @@ class User {
 
   String? get portfolioUrl => _portfolioUrl;
 
-  String? get desiredJobTitles => _desiredJobTitles;
+  List<String>? get desiredJobTitles => _desiredJobTitles;
 
-  String? get industryPreferences => _industryPreferences;
+  List<String>? get industryPreferences => _industryPreferences;
 
-  String? get longTermCareerGoals => _longTermCareerGoals;
+  List<String>? get longTermCareerGoals => _longTermCareerGoals;
 
   int? get degreeType => _degreeType;
 
@@ -241,25 +313,19 @@ class User {
 
   int? get certificationsTraining => _certificationsTraining;
 
-  String? get jobTitles => _jobTitles;
+  List<UserWorkExperience>? get workExperience => _workExperience;
 
-  String? get companyNames => _companyNames;
+  List<String>? get hardSkills => _hardSkills;
 
-  String? get workDuration => _workDuration;
+  List<String>? get softSkills => _softSkills;
 
-  String? get keyResponsibilities => _keyResponsibilities;
+  List<String>? get toolsTechnologies => _toolsTechnologies;
 
-  String? get hardSkills => _hardSkills;
+  List<String>? get languages => _languages;
 
-  String? get softSkills => _softSkills;
+  List<String>? get volunteerWork => _volunteerWork;
 
-  String? get toolsTechnologies => _toolsTechnologies;
-
-  String? get languages => _languages;
-
-  String? get volunteerWork => _volunteerWork;
-
-  String? get hobbiesInterests => _hobbiesInterests;
+  List<String>? get hobbiesInterests => _hobbiesInterests;
 
   String? get references => _references;
 
@@ -282,6 +348,10 @@ class User {
   String? get updatedAt => _updatedAt;
 
   int? get profileCompletionPercentage => _profileCompletionPercentage;
+
+  String? get workStartDate => _workStartDate;
+
+  String? get workEndDate => _workEndDate;
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
@@ -310,10 +380,9 @@ class User {
     map['institution'] = _institution;
     map['graduation_date'] = _graduationDate;
     map['certifications_training'] = _certificationsTraining;
-    map['job_titles'] = _jobTitles;
-    map['company_names'] = _companyNames;
-    map['work_duration'] = _workDuration;
-    map['key_responsibilities'] = _keyResponsibilities;
+    if (_workExperience != null) {
+      map['work_experience'] = _workExperience!.map((e) => e.toJson()).toList();
+    }
     map['hard_skills'] = _hardSkills;
     map['soft_skills'] = _softSkills;
     map['tools_technologies'] = _toolsTechnologies;
@@ -331,6 +400,8 @@ class User {
     map['created_at'] = _createdAt;
     map['updated_at'] = _updatedAt;
     map['profile_completion_percentage'] = _profileCompletionPercentage;
+    map['work_start_date'] = _workStartDate;
+    map['work_end_date'] = _workEndDate;
     return map;
   }
 }
