@@ -24,7 +24,7 @@ class ProfileImageService {
         options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
       );
 
-      if (response.statusCode == 200 && response.data != null) {
+      if (response.statusCode == 201 && response.data != null) {
         // Parse the new S3 response format
         final s3FileName = response.data['data']?['s3_file_name'];
 

@@ -19,8 +19,7 @@ class ProfileScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       appBar: CustomAppBar(
-        type: AppBarType.dashboard,
-        showPremiumBadge: false,
+        title: AppBarWidgets.foxLogo(),
         actions: [_buildLogoutMenu(context, ref)],
       ),
       body: Stack(

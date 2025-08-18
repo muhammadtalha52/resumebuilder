@@ -9,6 +9,7 @@ class CustomButton extends StatelessWidget {
   final bool isOutlined;
   final double? width;
   final double? height;
+  final IconData? icon;
 
   const CustomButton({
     super.key,
@@ -18,6 +19,7 @@ class CustomButton extends StatelessWidget {
     this.isOutlined = false,
     this.width,
     this.height,
+    this.icon,
   });
 
   @override
@@ -49,9 +51,22 @@ class CustomButton extends StatelessWidget {
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             ),
           )
-        : Text(
-            text,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                text,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (icon != null) ...[
+                const SizedBox(width: 8),
+                Icon(icon, size: 18),
+              ],
+            ],
           );
 
     if (isOutlined) {

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_colors.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'profile/profile_screen.dart';
+import 'resume/resume_screen.dart';
 
 // Provider to track current navigation index
 final navigationIndexProvider = StateProvider<int>((ref) => 0);
@@ -19,7 +20,7 @@ class MainScreen extends ConsumerWidget {
         index: currentIndex,
         children: const [
           DashboardScreen(),
-          _PlaceholderScreen(title: 'Resume'),
+          ResumeScreen(),
           _PlaceholderScreen(title: 'Interview'),
           ProfileScreen(),
         ],

@@ -14,9 +14,9 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.scaffold,
-      appBar: const CustomAppBar(
-        type: AppBarType.dashboard,
-        showPremiumBadge: true,
+      appBar: CustomAppBar(
+        title: AppBarWidgets.foxLogo(),
+        actions: [AppBarWidgets.premiumBadge()],
       ),
       body: Stack(
         children: [
