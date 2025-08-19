@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../constants/app_colors.dart';
 import '../../providers/resume_provider.dart';
 import '../../widgets/common/custom_app_bar.dart';
-import '../../widgets/common/custom_button.dart';
 
 class ResumeScreen extends ConsumerWidget {
   const ResumeScreen({super.key});
@@ -63,29 +63,29 @@ class ResumeScreen extends ConsumerWidget {
             ),
           ),
           SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Text(
                   'Ready to Out Fox your Resume?',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 5),
                 Text(
                   '"Scout the Fox will use AI magic to help you stand out"',
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.textSecondary.withValues(alpha: 0.8),
+                    color: AppColors.textSecondary.withValues(alpha: 0.7),
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 10),
                 _buildUploadResumeCard(context, ref, resumeState),
                 const SizedBox(height: 20),
                 _buildCreateResumeCard(context),
@@ -104,98 +104,80 @@ class ResumeScreen extends ConsumerWidget {
   ) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.05),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              Container(
-                width: 70,
-                height: 85,
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.description,
-                  size: 36,
-                  color: AppColors.accent,
-                ),
-              ),
-              Positioned(
-                bottom: 15,
-                right: 25,
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.accent,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.accent.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.cloud_upload,
-                    color: AppColors.white,
-                    size: 18,
-                  ),
-                ),
-              ),
-            ],
+          Container(
+            width: 110,
+            padding: const EdgeInsets.all(16),
+            child: Image.asset(
+              'assets/icons/resume-upload.png',
+              fit: BoxFit.contain,
+            ),
           ),
           const SizedBox(height: 24),
           const Text(
             'Choose resume file to upload',
             style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w500,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             'Supported Files: pdf or docx (max. 10mb)',
             style: TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary.withValues(alpha: 0.7),
+              fontSize: 14,
+              color: AppColors.textSecondary.withValues(alpha: 0.6),
             ),
           ),
-          const SizedBox(height: 20),
-          CustomButton(
-            text: resumeState.isLoading ? 'Loading...' : 'Upload Resume',
-            onPressed: resumeState.isLoading
-                ? null
-                : () {
-                    _handleUploadResume(context, ref);
-                  },
-            isOutlined: true,
-            icon: Icons.arrow_forward_ios,
-            isLoading: resumeState.isLoading,
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 48,
+            child: OutlinedButton(
+              onPressed: resumeState.isLoading
+                  ? null
+                  : () {
+                      _handleUploadResume(context, ref);
+                    },
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.accent, width: 1.5),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    resumeState.isLoading ? 'Loading...' : 'Upload Resume',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: AppColors.accent,
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -205,88 +187,80 @@ class ResumeScreen extends ConsumerWidget {
   Widget _buildCreateResumeCard(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.05),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              Container(
-                width: 70,
-                height: 85,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.description,
-                  size: 36,
-                  color: AppColors.primary.withValues(alpha: 0.5),
-                ),
-              ),
-              Positioned(
-                bottom: 15,
-                right: 25,
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.add,
-                    color: AppColors.white,
-                    size: 20,
-                  ),
-                ),
-              ),
-            ],
+          Container(
+            width: 110,
+            height: 110,
+            padding: const EdgeInsets.all(16),
+            child: Image.asset(
+              'assets/icons/resume-add.png',
+              fit: BoxFit.contain,
+            ),
           ),
           const SizedBox(height: 24),
           const Text(
             'Build resume from scratch',
             style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             'Add your skills and Scout will guide you',
             style: TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary.withValues(alpha: 0.7),
+              fontSize: 14,
+              color: AppColors.textSecondary.withValues(alpha: 0.6),
             ),
           ),
-          const SizedBox(height: 20),
-          CustomButton(
-            text: 'Create Resume',
-            onPressed: () {
-              _handleCreateResume(context);
-            },
-            isOutlined: true,
-            icon: Icons.arrow_forward_ios,
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton(
+              onPressed: () {
+                _handleCreateResume(context);
+              },
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.accent, width: 1.5),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Create Resume',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: AppColors.accent,
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -295,12 +269,12 @@ class ResumeScreen extends ConsumerWidget {
 
   void _handleUploadResume(BuildContext context, WidgetRef ref) {
     ref.read(resumeProvider.notifier).pickResumeFile();
+    // After file is selected, navigate to review screen
+    context.push('/resume/review');
   }
 
   void _handleCreateResume(BuildContext context) {
-    // TODO: Navigate to create resume screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Create Resume functionality coming soon')),
-    );
+    // Navigate to review screen to use existing profile data
+    context.push('/resume/review');
   }
 }
