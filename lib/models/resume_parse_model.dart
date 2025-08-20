@@ -2,47 +2,54 @@ import 'package:flutter/foundation.dart';
 
 /// Main model class for resume parsing API response
 class ResumeParse {
-  final String? name;
+  final Personal? personal;
   final String? summary;
-  final String? phone;
-  final String? email;
-  final Media? media;
   final List<WorkExperience> workExperience;
   final List<Education> education;
   final Skills? skills;
   final List<Project> projects;
   final List<String> certifications;
   final List<String> achievements;
+  final OptionalInfo? optionalInfo;
 
   ResumeParse({
-    this.name,
+    this.personal,
     this.summary,
-    this.phone,
-    this.email,
-    this.media,
     this.workExperience = const [],
     this.education = const [],
     this.skills,
     this.projects = const [],
     this.certifications = const [],
     this.achievements = const [],
+    this.optionalInfo,
   });
 
   factory ResumeParse.fromJson(Map<String, dynamic> json) {
     return ResumeParse(
-      name: json['name']?.toString(),
+      personal: json['personal'] != null
+          ? Personal.fromJson(json['personal'])
+          : null,
       summary: json['summary']?.toString(),
-      phone: json['phone']?.toString(),
-      email: json['email']?.toString(),
-      media: json['media'] != null ? Media.fromJson(json['media']) : null,
       workExperience: _parseWorkExperience(json['work_experience']),
       education: _parseEducation(json['education']),
       skills: json['skills'] != null ? Skills.fromJson(json['skills']) : null,
       projects: _parseProjects(json['projects']),
       certifications: _parseStringList(json['certifications']),
       achievements: _parseStringList(json['achievements']),
+      optionalInfo: json['optional_info'] != null
+          ? OptionalInfo.fromJson(json['optional_info'])
+          : null,
     );
   }
+
+  // Convenience getters for backward compatibility
+  String? get name => personal?.name;
+
+  String? get phone => personal?.phone;
+
+  String? get email => personal?.email;
+
+  Media? get media => personal?.media;
 
   static List<WorkExperience> _parseWorkExperience(dynamic data) {
     if (data == null || data is! List) return [];
@@ -147,6 +154,87 @@ class ResumeParse {
           : null,
       'skills': skills?.toOnboardingFormat(),
       'projects': projects.map((e) => e.toOnboardingFormat()).toList(),
+    };
+  }
+}
+
+/// Personal information model
+class Personal {
+  final String? name;
+  final String? phone;
+  final String? email;
+  final String? linkedin;
+  final String? personalWebsite;
+
+  Personal({
+    this.name,
+    this.phone,
+    this.email,
+    this.linkedin,
+    this.personalWebsite,
+  });
+
+  factory Personal.fromJson(Map<String, dynamic> json) {
+    return Personal(
+      name: json['name']?.toString(),
+      phone: json['phone']?.toString(),
+      email: json['email']?.toString(),
+      linkedin: json['linkedin']?.toString(),
+      personalWebsite: json['personal_website']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'phone': phone,
+      'email': email,
+      'linkedin': linkedin,
+      'personal_website': personalWebsite,
+    };
+  }
+
+  /// Get Media object for backward compatibility
+  Media get media =>
+      Media(linkedin: linkedin, personalWebsite: personalWebsite);
+}
+
+/// Optional information model
+class OptionalInfo {
+  final List<String> languages;
+  final String? volunteerWork;
+  final String? hobbiesAndInterests;
+  final String? references;
+
+  OptionalInfo({
+    this.languages = const [],
+    this.volunteerWork,
+    this.hobbiesAndInterests,
+    this.references,
+  });
+
+  factory OptionalInfo.fromJson(Map<String, dynamic> json) {
+    return OptionalInfo(
+      languages: _parseLanguages(json['languages']),
+      volunteerWork: json['volunteer_work']?.toString(),
+      hobbiesAndInterests: json['hobbies_and_interests']?.toString(),
+      references: json['references']?.toString(),
+    );
+  }
+
+  static List<String> _parseLanguages(dynamic data) {
+    if (data == null) return [];
+    if (data is List) return data.map((e) => e.toString()).toList();
+    if (data is String) return [data];
+    return [];
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'languages': languages,
+      'volunteer_work': volunteerWork,
+      'hobbies_and_interests': hobbiesAndInterests,
+      'references': references,
     };
   }
 }
@@ -525,7 +613,9 @@ class Project {
   }
 
   bool get isProfessional => type?.toLowerCase() == 'professional';
+
   bool get isPersonal => type?.toLowerCase() == 'personal';
+
   bool get isAcademic => type?.toLowerCase() == 'academic';
 
   /// Get all available links

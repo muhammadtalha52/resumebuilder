@@ -186,8 +186,132 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   /// Get parsed resume data for use in other steps
   ResumeParse? get parsedResumeData => state.parsedResume;
 
+  /// Populate onboarding data from parsed resume (used by resume review screen)
+  void populateFromParsedResume(ResumeParse resumeData) {
+    // Store the parsed data first
+    state = state.copyWith(parsedResume: resumeData);
+
+    // Populate personal details if available (use Personal object from ResumeParse)
+    if (resumeData.personal != null) {
+      final personal = resumeData.personal!;
+      state = state.copyWith(
+        fullName: personal.name?.isNotEmpty == true
+            ? personal.name
+            : state.fullName,
+        email: personal.email?.isNotEmpty == true
+            ? personal.email
+            : state.email,
+        phone: personal.phone?.isNotEmpty == true
+            ? personal.phone
+            : state.phone,
+        linkedIn: personal.linkedin?.isNotEmpty == true
+            ? personal.linkedin
+            : state.linkedIn,
+        website: personal.personalWebsite?.isNotEmpty == true
+            ? personal.personalWebsite
+            : state.website,
+      );
+    }
+
+    // Populate career goals if available
+    if (resumeData.workExperience.isNotEmpty) {
+      // Extract job titles from work experience
+      final jobTitles = resumeData.workExperience
+          .map((exp) => exp.role)
+          .where((title) => title != null && title.isNotEmpty)
+          .cast<String>()
+          .toSet()
+          .toList();
+
+      // Extract industries from work experience companies
+      final industries = resumeData.workExperience
+          .map((exp) => exp.company)
+          .where((company) => company != null && company.isNotEmpty)
+          .cast<String>()
+          .toSet()
+          .toList();
+
+      state = state.copyWith(
+        careerGoals: {
+          ...?state.careerGoals,
+          'jobTitles': jobTitles,
+          'industries': industries,
+        },
+      );
+    }
+
+    // Populate work experience if available
+    if (resumeData.workExperience.isNotEmpty) {
+      final workExperiences = resumeData.workExperience.map((exp) {
+        return {
+          'jobTitle': exp.role ?? '',
+          'company': exp.company ?? '',
+          'startDate': exp.parsedFromDate?.toIso8601String(),
+          'endDate': exp.parsedToDate?.toIso8601String(),
+          'responsibilities': exp.description.join('\n'),
+          'currentJob': exp.isCurrent,
+        };
+      }).toList();
+
+      state = state.copyWith(workExperience: {'experiences': workExperiences});
+    }
+
+    // Populate skills if available (use Skills object structure)
+    if (resumeData.skills != null) {
+      final skills = resumeData.skills!;
+      state = state.copyWith(
+        skills: {
+          'hardSkills': List<String>.from(skills.hardSkills),
+          'softSkills': List<String>.from(skills.softSkills),
+          'tools': List<String>.from(skills.toolsAndTechnologies),
+        },
+      );
+    }
+
+    // Populate education if available (existing data takes precedence)
+    if (resumeData.education.isNotEmpty && state.education == null) {
+      final education = resumeData.education.first;
+      state = state.copyWith(
+        education: {
+          'degreeType': education.degreeType,
+          'major': education.major,
+          'institution': education.university,
+          'graduationDate': education.toDate,
+          'degreeNotCompleted': false,
+        },
+      );
+    }
+
+    // Populate optional info if available
+    if (resumeData.optionalInfo != null) {
+      final optionalInfo = resumeData.optionalInfo!;
+      final existingOptionalInfo = Map<String, dynamic>.from(
+        state.optionalInfo ?? {},
+      );
+
+      // Add languages if available
+      if (optionalInfo.languages.isNotEmpty) {
+        existingOptionalInfo['languages'] = List<String>.from(
+          optionalInfo.languages,
+        );
+      }
+
+      // Add hobbies if available
+      if (optionalInfo.hobbiesAndInterests?.isNotEmpty == true) {
+        existingOptionalInfo['hobbies'] = optionalInfo.hobbiesAndInterests;
+      }
+
+      state = state.copyWith(optionalInfo: existingOptionalInfo);
+    }
+  }
+
   void reset() {
     state = OnboardingState();
+  }
+
+  /// Clear only parsed resume data while preserving user-entered data
+  void clearParsedResumeData() {
+    state = state.copyWith(parsedResume: null);
   }
 
   Future<void> completeOnboarding() async {
