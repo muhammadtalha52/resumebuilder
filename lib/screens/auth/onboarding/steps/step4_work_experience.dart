@@ -38,7 +38,10 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
   }
 
   void _loadExistingData() {
-    final workExperience = ref.read(onboardingProvider).workExperience;
+    final onboardingState = ref.read(onboardingProvider);
+
+    // Load work experience data
+    final workExperience = onboardingState.workExperience;
     if (workExperience != null && workExperience['experiences'] != null) {
       final experiences = workExperience['experiences'] as List;
       if (experiences.isNotEmpty) {
@@ -48,6 +51,15 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
               .toList();
         });
       }
+    }
+
+    // Check if resume was previously parsed and uploaded
+    if (onboardingState.parsedResume != null) {
+      setState(() {
+        // Set a placeholder file to indicate resume was uploaded
+        _selectedResumeFile = File('resume_placeholder');
+        _selectedFileName = 'Resume uploaded';
+      });
     }
   }
 
@@ -665,6 +677,10 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
                           _selectedResumeFile = null;
                           _selectedFileName = null;
                         });
+                        // Clear parsed resume data from provider
+                        ref
+                            .read(onboardingProvider.notifier)
+                            .clearParsedResumeData();
                       },
                       icon: const Icon(Icons.close, size: 16),
                       label: const Text('Remove'),

@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import '../models/resume_model.dart';
 import '../models/resume_parse_model.dart';
 import '../models/education_model.dart';
+import '../models/generate_resume_response.dart';
 import '../services/resume_service.dart';
 import '../services/education_service.dart';
 
@@ -11,6 +12,7 @@ class ResumeState {
   final bool isLoading;
   final bool isParsing;
   final bool isLoadingEducationData;
+  final bool isGeneratingResume;
   final String? error;
   final List<Resume> resumes;
   final Resume? selectedResume;
@@ -18,11 +20,14 @@ class ResumeState {
   final ResumeParse? parsedResumeData;
   final bool isUsingProfileData; // New flag to indicate profile data mode
   final EducationModel? educationData; // Store education data for ID resolution
+  final GenerateResumeResponse?
+  generatedResumeData; // Store generated resume data
 
   ResumeState({
     this.isLoading = false,
     this.isParsing = false,
     this.isLoadingEducationData = false,
+    this.isGeneratingResume = false,
     this.error,
     this.resumes = const [],
     this.selectedResume,
@@ -30,12 +35,14 @@ class ResumeState {
     this.parsedResumeData,
     this.isUsingProfileData = false,
     this.educationData,
+    this.generatedResumeData,
   });
 
   ResumeState copyWith({
     bool? isLoading,
     bool? isParsing,
     bool? isLoadingEducationData,
+    bool? isGeneratingResume,
     String? error,
     List<Resume>? resumes,
     Resume? selectedResume,
@@ -43,12 +50,14 @@ class ResumeState {
     ResumeParse? parsedResumeData,
     bool? isUsingProfileData,
     EducationModel? educationData,
+    GenerateResumeResponse? generatedResumeData,
   }) {
     return ResumeState(
       isLoading: isLoading ?? this.isLoading,
       isParsing: isParsing ?? this.isParsing,
       isLoadingEducationData:
           isLoadingEducationData ?? this.isLoadingEducationData,
+      isGeneratingResume: isGeneratingResume ?? this.isGeneratingResume,
       error: error,
       resumes: resumes ?? this.resumes,
       selectedResume: selectedResume ?? this.selectedResume,
@@ -56,6 +65,7 @@ class ResumeState {
       parsedResumeData: parsedResumeData ?? this.parsedResumeData,
       isUsingProfileData: isUsingProfileData ?? this.isUsingProfileData,
       educationData: educationData ?? this.educationData,
+      generatedResumeData: generatedResumeData ?? this.generatedResumeData,
     );
   }
 }
@@ -160,9 +170,50 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
     }
   }
 
-  /// Legacy method for backwards compatibility
-  Future<void> pickResumeFile() async {
-    await pickAndParseResumeFile();
+  /// Pick resume file without parsing
+  Future<bool> pickResumeFile() async {
+    try {
+      state = state.copyWith(isLoading: true, error: null);
+
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx'],
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+
+        // Check file size (10MB limit)
+        final fileSize = await file.length();
+        if (fileSize > 10 * 1024 * 1024) {
+          state = state.copyWith(
+            isLoading: false,
+            error: 'File size must be less than 10MB',
+          );
+          return false;
+        }
+
+        // File selected successfully, store it
+        state = state.copyWith(
+          isLoading: false,
+          uploadedFile: file,
+          isUsingProfileData:
+              false, // Clear profile data mode when file is uploaded
+          parsedResumeData: null, // Clear any existing parsed data
+        );
+        return true;
+      } else {
+        state = state.copyWith(isLoading: false);
+        return false;
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Failed to pick file: ${e.toString()}',
+      );
+      return false;
+    }
   }
 
   Future<void> uploadResume() async {
@@ -222,6 +273,7 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
     state = state.copyWith(
       isUsingProfileData: true,
       parsedResumeData: null, // Clear any existing parsed data
+      uploadedFile: null, // Clear any existing uploaded file
       error: null,
     );
   }
@@ -229,6 +281,18 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
   /// Clear profile data mode
   void clearProfileDataMode() {
     state = state.copyWith(isUsingProfileData: false);
+  }
+
+  /// Reset all resume state for fresh start
+  void resetResumeState() {
+    print('🔄 Resetting all resume state');
+    state = state.copyWith(
+      uploadedFile: null,
+      parsedResumeData: null,
+      isUsingProfileData: false,
+      generatedResumeData: null,
+      error: null,
+    );
   }
 
   /// Get parsed resume data for use in other screens
@@ -339,6 +403,64 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
       print('❌ Could not resolve certification ID $certificationId to name');
       return 'Certification ID: $certificationId';
     }
+  }
+
+  /// Generate a resume based on user data and job requirements
+  Future<GenerateResumeResponse?> generateResume({
+    required File file,
+    String? jobUrl,
+    String? jobDescription,
+    required String template,
+  }) async {
+    try {
+      state = state.copyWith(
+        isGeneratingResume: true,
+        error: null,
+        generatedResumeData: null,
+      );
+
+      print('🚀 Starting resume generation...');
+      print('Template: $template');
+      print('Job URL: ${jobUrl ?? "None"}');
+      print(
+        'Job Description: ${jobDescription?.isNotEmpty == true ? "Provided" : "None"}',
+      );
+
+      final result = await _resumeService.generateResume(
+        file: file,
+        jobUrl: jobUrl,
+        jobDescription: jobDescription,
+        template: template,
+      );
+
+      state = state.copyWith(
+        isGeneratingResume: false,
+        generatedResumeData: result,
+      );
+
+      print('✅ Resume generated successfully');
+      print(
+        '📄 Generated resume data: ${result.resumeData?.personal?.name ?? "No name"}',
+      );
+      print(
+        '📑 PDF Base64 length: ${result.pdfBase64?.length ?? 0} characters',
+      );
+      return result;
+    } catch (e) {
+      print('❌ Failed to generate resume: $e');
+      state = state.copyWith(isGeneratingResume: false, error: e.toString());
+      return null;
+    }
+  }
+
+  /// Clear generated resume data
+  void clearGeneratedResumeData() {
+    state = state.copyWith(generatedResumeData: null);
+  }
+
+  /// Update the generated resume data with edited content
+  void updateGeneratedResume(GenerateResumeResponse updatedResumeData) {
+    state = state.copyWith(generatedResumeData: updatedResumeData);
   }
 }
 

@@ -14,17 +14,8 @@ class ResumeScreen extends ConsumerWidget {
     final resumeState = ref.watch(resumeProvider);
 
     ref.listen<ResumeState>(resumeProvider, (previous, next) {
-      print('🔄 Resume state changed:');
-      print('   - isLoading: ${next.isLoading}');
-      print('   - isParsing: ${next.isParsing}');
-      print(
-        '   - parsedResumeData: ${next.parsedResumeData != null ? "HAS DATA" : "NULL"}',
-      );
-      print('   - error: ${next.error}');
-
       // Handle errors
       if (next.error != null) {
-        print('❌ Showing error: ${next.error}');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -39,65 +30,6 @@ class ResumeScreen extends ConsumerWidget {
             duration: const Duration(seconds: 4),
           ),
         );
-      }
-
-      // Show parsing started message
-      if (next.isParsing && (previous == null || !previous.isParsing)) {
-        print('🔄 Starting to parse...');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-                SizedBox(width: 12),
-                Text('Parsing your resume... This may take a moment'),
-              ],
-            ),
-            backgroundColor: AppColors.primary,
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-
-      // Navigate when parsing just completed successfully
-      if (previous != null &&
-          previous.isParsing &&
-          !next.isParsing &&
-          !next.isLoading &&
-          next.parsedResumeData != null &&
-          next.error == null) {
-        print('✅ Parsing completed successfully! Navigating...');
-
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
-                SizedBox(width: 8),
-                Text('Resume parsed successfully! Redirecting...'),
-              ],
-            ),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 1),
-          ),
-        );
-
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (context.mounted) {
-            print('🚀 Navigating to /resume/review');
-            context.push('/resume/review');
-          }
-        });
       }
     });
 
@@ -206,7 +138,7 @@ class ResumeScreen extends ConsumerWidget {
           SizedBox(
             height: 48,
             child: OutlinedButton(
-              onPressed: (resumeState.isLoading || resumeState.isParsing)
+              onPressed: resumeState.isLoading
                   ? null
                   : () {
                       _handleUploadResume(context, ref);
@@ -220,7 +152,7 @@ class ResumeScreen extends ConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (resumeState.isLoading || resumeState.isParsing)
+                  if (resumeState.isLoading)
                     const SizedBox(
                       width: 20,
                       height: 20,
@@ -231,8 +163,7 @@ class ResumeScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                  if (resumeState.isLoading || resumeState.isParsing)
-                    const SizedBox(width: 8),
+                  if (resumeState.isLoading) const SizedBox(width: 8),
                   Text(
                     _getButtonText(resumeState),
                     style: const TextStyle(
@@ -241,7 +172,7 @@ class ResumeScreen extends ConsumerWidget {
                       color: AppColors.accent,
                     ),
                   ),
-                  if (!resumeState.isLoading && !resumeState.isParsing) ...[
+                  if (!resumeState.isLoading) ...[
                     const SizedBox(width: 8),
                     const Icon(
                       Icons.arrow_forward_ios,
@@ -344,23 +275,27 @@ class ResumeScreen extends ConsumerWidget {
   String _getButtonText(ResumeState resumeState) {
     if (resumeState.isLoading) {
       return 'Selecting File...';
-    } else if (resumeState.isParsing) {
-      return 'Parsing your resume...';
     } else {
       return 'Upload Resume';
     }
   }
 
-  void _handleUploadResume(BuildContext context, WidgetRef ref) {
-    // Use the new parsing method - navigation will happen automatically on success
-    ref.read(resumeProvider.notifier).pickAndParseResumeFile();
+  void _handleUploadResume(BuildContext context, WidgetRef ref) async {
+    // Reset any previous state before starting fresh session
+    ref.read(resumeProvider.notifier).resetResumeState();
+    // Pick file without parsing and navigate directly to review screen
+    final success = await ref.read(resumeProvider.notifier).pickResumeFile();
+    if (success && context.mounted) {
+      context.push('/resume/review?flow=upload');
+    }
   }
 
   void _handleCreateResume(BuildContext context, WidgetRef ref) {
-    print('📋 Create Resume button pressed - setting profile data mode');
+    // Reset any previous state before starting fresh session
+    ref.read(resumeProvider.notifier).resetResumeState();
     // Set profile data mode before navigation
     ref.read(resumeProvider.notifier).loadProfileDataMode();
     // Navigate to review screen to use existing profile data
-    context.push('/resume/review');
+    context.push('/resume/review?flow=create');
   }
 }

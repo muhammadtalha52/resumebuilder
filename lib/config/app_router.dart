@@ -77,7 +77,10 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/resume/review',
-      builder: (context, state) => const ResumeReviewScreen(),
+      builder: (context, state) {
+        final flowType = state.uri.queryParameters['flow'];
+        return ResumeReviewScreen(flowType: flowType);
+      },
     ),
   ],
 );

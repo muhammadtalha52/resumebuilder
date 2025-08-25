@@ -1,11 +1,15 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdfrx/pdfrx.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/salary_ranges.dart';
-import '../../providers/onboarding_provider.dart';
 import '../../providers/resume_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/common/custom_app_bar.dart';
@@ -13,6 +17,7 @@ import '../../widgets/common/custom_button.dart' as button;
 import '../../widgets/common/custom_text_field.dart';
 import '../../widgets/common/custom_picker_field.dart';
 import '../../widgets/common/tag_field.dart';
+import '../../widgets/resume_edit_modal.dart';
 
 class WorkExperienceEntry {
   final TextEditingController jobTitle = TextEditingController();
@@ -56,7 +61,9 @@ class WorkExperienceEntry {
 }
 
 class ResumeReviewScreen extends ConsumerStatefulWidget {
-  const ResumeReviewScreen({super.key});
+  final String? flowType;
+
+  const ResumeReviewScreen({super.key, this.flowType});
 
   @override
   ConsumerState<ResumeReviewScreen> createState() => _ResumeReviewScreenState();
@@ -65,12 +72,11 @@ class ResumeReviewScreen extends ConsumerStatefulWidget {
 class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
   // Step management
   int _currentStep = 1;
-  final int _totalSteps = 4;
+  int _totalSteps = 4;
+  bool _isUploadedResumeFlow = false;
 
   // Existing state
   final List<bool> _expandedSections = List.generate(6, (_) => false);
-  bool _isDataLoaded = false;
-  bool _hasDataFromParsing = false;
 
   // Controllers for form fields
   final _fullNameController = TextEditingController();
@@ -112,132 +118,73 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
   final _languagesController = TextEditingController();
   final _hobbiesController = TextEditingController();
 
+  // Step 2 - Job targeting
+  final _companyController = TextEditingController();
+  final _jobTitleController = TextEditingController();
+  final _linkedInJobLinkController = TextEditingController();
+  final _jobDescriptionController = TextEditingController();
+
+  // Validation errors for step 2
+  String? _jobTitleError;
+  String? _jobTargetingError;
+
+  // Step 3 - Template selection
+  int _selectedTemplateIndex = 0;
+
   @override
   void initState() {
     super.initState();
+    _determineFlowFromParameter();
     _loadUserData();
+  }
+
+  void _determineFlowFromParameter() {
+    debugPrint('🔍 Determining flow from parameter: ${widget.flowType}');
+
+    if (widget.flowType == 'upload') {
+      debugPrint('✅ Upload flow - using 3-step flow (skip profile review)');
+      _isUploadedResumeFlow = true;
+      _totalSteps = 3;
+      _currentStep = 1; // Job Targeting
+    } else {
+      debugPrint('✅ Create flow - using 4-step flow');
+      _isUploadedResumeFlow = false;
+      _totalSteps = 4;
+      _currentStep = 1; // Profile Review
+    }
+
+    debugPrint(
+      '🎯 Flow set: ${_isUploadedResumeFlow ? "3-step uploaded" : "4-step scratch"} (steps: $_totalSteps, current: $_currentStep)',
+    );
   }
 
   void _loadUserData() {
     final resumeState = ref.read(resumeProvider);
 
-    // Check for newly parsed resume data
-    if (resumeState.parsedResumeData != null) {
-      print('📄 Found parsed resume data - loading...');
-      _hasDataFromParsing = true;
-      _loadParsedResumeData(resumeState);
+    // Check for uploaded resume file (skip parsed data step)
+    if (resumeState.uploadedFile != null) {
+      debugPrint('📄 Resume file uploaded - loading profile data...');
+      _loadExistingProfileData();
       return;
     }
 
     // Check for profile data mode
     if (resumeState.isUsingProfileData) {
-      print('👤 Profile data mode detected - loading existing profile...');
+      debugPrint('👤 Profile data mode detected - loading existing profile...');
       _loadExistingProfileData();
       return;
     }
 
-    print('📝 Loading existing onboarding data...');
+    debugPrint('📝 Loading existing onboarding data...');
     // Load existing onboarding data
     _loadOnboardingData();
-    setState(() {
-      _isDataLoaded = true;
-    });
-  }
-
-  void _loadParsedResumeData(ResumeState resumeState) {
-    // Show loading message for parsing data
-    Future(() {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
-              SizedBox(width: 12),
-              Text('Loading parsed resume data...'),
-            ],
-          ),
-          backgroundColor: AppColors.primary,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(milliseconds: 1500),
-        ),
-      );
-
-      // Populate onboarding provider with parsed data
-      ref
-          .read(onboardingProvider.notifier)
-          .populateFromParsedResume(resumeState.parsedResumeData!);
-
-      // Clear the parsed data from resume provider to avoid re-processing
-      ref.read(resumeProvider.notifier).clearParsedData();
-
-      // Small delay for smooth loading experience
-      Future.delayed(const Duration(milliseconds: 400), () {
-        if (mounted) {
-          setState(() {
-            _loadOnboardingData();
-            _isDataLoaded = true;
-          });
-
-          // Clear loading message and show success
-          ScaffoldMessenger.of(context).clearSnackBars();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Row(
-                children: [
-                  Icon(
-                    Icons.check_circle_outline,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  SizedBox(width: 8),
-                  Text('Resume data loaded successfully!'),
-                ],
-              ),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      });
-    });
   }
 
   void _loadExistingProfileData() {
-    print('🔄 Starting profile data loading...');
+    debugPrint('🔄 Starting profile data loading...');
 
     // Show loading message for profile data
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      print('📱 Showing profile loading snackbar...');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
-              SizedBox(width: 12),
-              Text('Loading your profile data...'),
-            ],
-          ),
-          backgroundColor: AppColors.primary,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(milliseconds: 2500),
-        ),
-      );
-
       // Clear the profile data mode flag
       ref.read(resumeProvider.notifier).clearProfileDataMode();
 
@@ -248,36 +195,17 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
 
   Future<void> _fetchEducationDataAndLoadProfile() async {
     try {
-      print('🎓 Fetching education data for ID resolution...');
+      debugPrint('🎓 Fetching education data for ID resolution...');
       await ref.read(resumeProvider.notifier).fetchEducationData();
 
-      print('⏱️ Education data fetched, loading profile data...');
+      debugPrint('⏱️ Education data fetched, loading profile data...');
       if (mounted) {
         setState(() {
           _loadOnboardingData();
-          _isDataLoaded = true;
         });
-
-        print('✅ Profile data loaded, showing success message...');
-        // Clear loading message and show success
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
-                SizedBox(width: 8),
-                Text('Profile data loaded successfully!'),
-              ],
-            ),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-          ),
-        );
       }
     } catch (e) {
-      print('❌ Error loading profile data: $e');
+      debugPrint('❌ Error loading profile data: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -291,7 +219,6 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
         // Load profile data anyway, even if education data fetch failed
         setState(() {
           _loadOnboardingData();
-          _isDataLoaded = true;
         });
       }
     }
@@ -347,7 +274,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     }
 
     // Load education from user object using resume provider education resolution
-    print(
+    debugPrint(
       '🔍 User education IDs: institution=${user.institution}, degreeType=${user.degreeType}, major=${user.major}',
     );
     if (user.institution != null) {
@@ -357,7 +284,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           .resolveInstitutionName(user.institution);
       _universityController.text =
           institutionName ?? 'Institution ID: ${user.institution}';
-      print(
+      debugPrint(
         '🏫 Institution resolved: ID ${user.institution} → ${institutionName ?? "Not found"}',
       );
     }
@@ -374,10 +301,10 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           ? ref.read(resumeProvider.notifier).resolveMajorName(user.major)
           : null;
 
-      print(
+      debugPrint(
         '🎓 Degree resolved: Type ID ${user.degreeType} → ${degreeTypeName ?? "Not found"}',
       );
-      print(
+      debugPrint(
         '📖 Major resolved: ID ${user.major} → ${majorName ?? "Not found"}',
       );
 
@@ -402,7 +329,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
 
     _educationEndDateController.text = user.graduationDate ?? '';
 
-    print(
+    debugPrint(
       '✅ Education loaded: university="${_universityController.text}", degree="${_degreeController.text}", graduation="${user.graduationDate}"',
     );
 
@@ -421,7 +348,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           try {
             entry.startDate = DateTime.parse(exp.workStartDate!);
           } catch (e) {
-            print('⚠️ Error parsing start date: ${exp.workStartDate}');
+            debugPrint('⚠️ Error parsing start date: ${exp.workStartDate}');
           }
         }
 
@@ -429,7 +356,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           try {
             entry.endDate = DateTime.parse(exp.workEndDate!);
           } catch (e) {
-            print('⚠️ Error parsing end date: ${exp.workEndDate}');
+            debugPrint('⚠️ Error parsing end date: ${exp.workEndDate}');
           }
         }
 
@@ -449,11 +376,12 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
       _hobbiesController.text = user.hobbiesInterests!.join(', ');
     }
 
-    print('✅ User data loaded successfully');
+    debugPrint('✅ User data loaded successfully');
   }
 
   @override
   void dispose() {
+    // Clean up all text controllers
     _fullNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -471,6 +399,12 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     _toolsController.dispose();
     _languagesController.dispose();
     _hobbiesController.dispose();
+    // Dispose step 2 controllers
+    _companyController.dispose();
+    _jobTitleController.dispose();
+    _linkedInJobLinkController.dispose();
+    _jobDescriptionController.dispose();
+
     super.dispose();
   }
 
@@ -485,7 +419,17 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
         title: AppBarWidgets.foxLogo(),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (_currentStep > 1) {
+              // Go to previous step
+              setState(() {
+                _currentStep--;
+              });
+            } else {
+              // At step 1, go back to previous screen
+              context.pop();
+            }
+          },
         ),
       ),
       body: Stack(
@@ -527,7 +471,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     minHeight:
@@ -557,29 +501,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Row(
-                                      children: [
-                                        _buildStepIndicator(
-                                          1,
-                                          _currentStep == 1,
-                                        ),
-                                        _buildStepLine(_currentStep > 1),
-                                        _buildStepIndicator(
-                                          2,
-                                          _currentStep == 2,
-                                        ),
-                                        _buildStepLine(_currentStep > 2),
-                                        _buildStepIndicator(
-                                          3,
-                                          _currentStep == 3,
-                                        ),
-                                        _buildStepLine(_currentStep > 3),
-                                        _buildStepIndicator(
-                                          4,
-                                          _currentStep == 4,
-                                        ),
-                                      ],
-                                    ),
+                                    _buildStepIndicatorRow(),
                                     const SizedBox(height: 10),
                                     Text(
                                       _getStepTitle(),
@@ -608,14 +530,15 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                                 ),
                                 child: _buildStepContent(),
                               ),
-                              // Continue button
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                child: button.CustomButton(
-                                  text: _getContinueButtonText(),
-                                  onPressed: _handleContinue,
+                              // Navigation buttons - only show Continue button for steps before final
+                              if (_currentStep < _totalSteps)
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+                                  child: button.CustomButton(
+                                    text: "Continue",
+                                    onPressed: _handleContinue,
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                         ),
@@ -665,18 +588,61 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     );
   }
 
+  Widget _buildStepIndicatorRow() {
+    if (_isUploadedResumeFlow) {
+      // Uploaded resume flow: 3 steps
+      return Row(
+        children: [
+          _buildStepIndicator(1, _currentStep == 1),
+          _buildStepLine(_currentStep > 1),
+          _buildStepIndicator(2, _currentStep == 2),
+          _buildStepLine(_currentStep > 2),
+          _buildStepIndicator(3, _currentStep == 3),
+        ],
+      );
+    } else {
+      // From scratch flow: 4 steps
+      return Row(
+        children: [
+          _buildStepIndicator(1, _currentStep == 1),
+          _buildStepLine(_currentStep > 1),
+          _buildStepIndicator(2, _currentStep == 2),
+          _buildStepLine(_currentStep > 2),
+          _buildStepIndicator(3, _currentStep == 3),
+          _buildStepLine(_currentStep > 3),
+          _buildStepIndicator(4, _currentStep == 4),
+        ],
+      );
+    }
+  }
+
   Widget _buildStepContent() {
-    switch (_currentStep) {
-      case 1:
-        return _buildStep1ReviewContent();
-      case 2:
-        return _buildStep2JobTargetingContent();
-      case 3:
-        return _buildStep3TemplateSelectionContent();
-      case 4:
-        return _buildStep4ResumePreviewContent();
-      default:
-        return _buildStep1ReviewContent();
+    if (_isUploadedResumeFlow) {
+      // Uploaded resume flow: 3 steps
+      switch (_currentStep) {
+        case 1:
+          return _buildStep2JobTargetingContent(); // Job Targeting
+        case 2:
+          return _buildStep3TemplateSelectionContent(); // Template Selection
+        case 3:
+          return _buildStep4ResumePreviewContent(); // Resume Preview
+        default:
+          return _buildStep2JobTargetingContent();
+      }
+    } else {
+      // From scratch flow: 4 steps
+      switch (_currentStep) {
+        case 1:
+          return _buildStep1ReviewContent(); // Profile Review
+        case 2:
+          return _buildStep2JobTargetingContent(); // Job Targeting
+        case 3:
+          return _buildStep3TemplateSelectionContent(); // Template Selection
+        case 4:
+          return _buildStep4ResumePreviewContent(); // Resume Preview
+        default:
+          return _buildStep1ReviewContent();
+      }
     }
   }
 
@@ -730,99 +696,74 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 20),
-        // Job targeting form
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.work_outline, color: AppColors.primary, size: 24),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Job Target',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                controller: TextEditingController(),
-                labelText: 'Job Title',
-                hintText: 'e.g., Senior Software Engineer',
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                controller: TextEditingController(),
-                labelText: 'Company Name (Optional)',
-                hintText: 'e.g., Apple Inc.',
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                controller: TextEditingController(),
-                labelText: 'Job Description/Requirements',
-                hintText:
-                    'Paste the job description here to tailor your resume...',
-                maxLines: 6,
-              ),
-            ],
-          ),
+        CustomTextField(
+          controller: _companyController,
+          labelText: 'Company Name',
+          hintText: 'Apple',
         ),
         const SizedBox(height: 20),
-        // AI Enhancement toggle
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.success.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.auto_awesome, color: AppColors.success, size: 24),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'AI Enhancement',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Let AI optimize your resume for this specific job',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Switch(
-                value: true,
-                onChanged: (value) {},
-                activeColor: AppColors.success,
-              ),
-            ],
+        CustomTextField(
+          controller: _jobTitleController,
+          labelText: 'Job Title',
+          hintText: 'Senior Engineer',
+          isRequired: true,
+          errorText: _jobTitleError,
+          onChanged: (value) {
+            if (_jobTitleError != null) {
+              setState(() {
+                _jobTitleError = null;
+              });
+            }
+          },
+        ),
+        const SizedBox(height: 20),
+        CustomTextField(
+          controller: _linkedInJobLinkController,
+          labelText: 'Paste LinkedIn job link',
+          hintText: 'Paste here',
+          suffixIcon: const Icon(Icons.link, color: AppColors.textSecondary),
+          onChanged: (value) {
+            if (_jobTargetingError != null) {
+              setState(() {
+                _jobTargetingError = null;
+              });
+            }
+          },
+        ),
+        const SizedBox(height: 10),
+        Center(
+          child: Text(
+            'OR',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary.withValues(alpha: 0.7),
+            ),
           ),
         ),
+        const SizedBox(height: 10),
+        CustomTextField(
+          controller: _jobDescriptionController,
+          labelText: 'Paste Job Description',
+          hintText: 'Enter a description...',
+          maxLines: 7,
+          maxLength: 5000,
+          showCharacterCount: true,
+          onChanged: (value) {
+            if (_jobTargetingError != null) {
+              setState(() {
+                _jobTargetingError = null;
+              });
+            }
+          },
+        ),
+        if (_jobTargetingError != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            _jobTargetingError!,
+            style: const TextStyle(fontSize: 12, color: AppColors.error),
+          ),
+        ],
         const SizedBox(height: 20),
       ],
     );
@@ -830,25 +771,15 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
 
   Widget _buildStep3TemplateSelectionContent() {
     final templates = [
-      {'name': 'Modern', 'preview': 'assets/templates/modern.png'},
-      {'name': 'Classic', 'preview': 'assets/templates/classic.png'},
-      {'name': 'Creative', 'preview': 'assets/templates/creative.png'},
-      {'name': 'Professional', 'preview': 'assets/templates/professional.png'},
+      {'name': 'ATS Friendly', 'preview': 'assets/icons/ats.png'},
+      {'name': 'Modern', 'preview': 'assets/icons/modern.png'},
+      {'name': 'Professional', 'preview': 'assets/icons/resume-template.png'},
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 20),
-        const Text(
-          'Choose Your Template',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 16),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -856,16 +787,18 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
             crossAxisCount: 2,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 0.75,
+            childAspectRatio: 0.65,
           ),
           itemCount: templates.length,
           itemBuilder: (context, index) {
             final template = templates[index];
-            final isSelected = index == 0; // Default first template selected
+            final isSelected = index == _selectedTemplateIndex;
 
             return GestureDetector(
               onTap: () {
-                // Handle template selection
+                setState(() {
+                  _selectedTemplateIndex = index;
+                });
               },
               child: Container(
                 decoration: BoxDecoration(
@@ -892,14 +825,26 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                       child: Container(
                         margin: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.grey.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.description,
-                            size: 48,
-                            color: AppColors.textSecondary,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset(
+                            template['preview']!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: AppColors.grey.withValues(alpha: 0.1),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.description,
+                                    size: 48,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ),
@@ -942,6 +887,9 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
   }
 
   Widget _buildStep4ResumePreviewContent() {
+    final resumeState = ref.watch(resumeProvider);
+    final generatedResumeData = resumeState.generatedResumeData;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -949,7 +897,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
         // Preview container
         Container(
           width: double.infinity,
-          height: 400,
+          height: 500,
           decoration: BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.circular(12),
@@ -962,41 +910,48 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
               ),
             ],
           ),
-          child: const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.picture_as_pdf, size: 64, color: AppColors.primary),
-                SizedBox(height: 16),
-                Text(
-                  'Resume Preview',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+          child: generatedResumeData != null
+              ? _buildPdfPreview(generatedResumeData)
+              : const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.picture_as_pdf,
+                        size: 64,
+                        color: AppColors.primary,
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'Resume Preview',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Your resume will appear here',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(height: 8),
-                Text(
-                  'Your resume is being generated...',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
         const SizedBox(height: 24),
         // Action buttons
         Row(
           children: [
+            // Edit Resume button
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.download),
-                label: const Text('Download PDF'),
+                onPressed: generatedResumeData != null ? _editResume : null,
+                icon: const Icon(Icons.edit, size: 18),
+                label: const Text('Edit Resume'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   side: const BorderSide(color: AppColors.primary),
@@ -1007,11 +962,21 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
+            // Download button
             Expanded(
-              child: button.CustomButton(
-                text: 'Share Resume',
-                onPressed: () {},
+              child: ElevatedButton.icon(
+                onPressed: generatedResumeData != null ? _downloadResume : null,
+                icon: const Icon(Icons.download, size: 18),
+                label: const Text('Download PDF'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
               ),
             ),
           ],
@@ -1019,6 +984,98 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
         const SizedBox(height: 20),
       ],
     );
+  }
+
+  String _getTemplateName() {
+    switch (_selectedTemplateIndex) {
+      case 0:
+        return 'ATS Friendly';
+      case 1:
+        return 'Modern';
+      case 2:
+        return 'Professional';
+      default:
+        return 'Professional';
+    }
+  }
+
+  Future<void> _downloadResume() async {
+    final resumeState = ref.read(resumeProvider);
+    final generatedResumeData = resumeState.generatedResumeData;
+
+    if (generatedResumeData != null && generatedResumeData.pdfBase64 != null) {
+      try {
+        // Decode base64 PDF
+        final pdfBytes = base64Decode(generatedResumeData.pdfBase64!);
+
+        // Save to downloads or documents directory
+        final directory = await getApplicationDocumentsDirectory();
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName =
+            'resume_${DateTime.now().toString().split(' ')[0]}_$timestamp.pdf';
+        final file = File('${directory.path}/$fileName');
+        await file.writeAsBytes(pdfBytes);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  const Text('Resume downloaded successfully!'),
+                ],
+              ),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              action: SnackBarAction(
+                label: 'View',
+                textColor: Colors.white,
+                onPressed: () {
+                  _showFullScreenPdf(pdfBytes);
+                },
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('Failed to download resume'),
+                ],
+              ),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Text('No resume data available'),
+              ],
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildExpandableSection({
@@ -1656,22 +1713,6 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     );
   }
 
-  Future<void> _selectDate(
-    BuildContext context,
-    TextEditingController controller,
-  ) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1950),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null) {
-      controller.text =
-          "${picked.month.toString().padLeft(2, '0')}/${picked.year}";
-    }
-  }
-
   void _addTag(
     String tag,
     List<String> list,
@@ -1692,66 +1733,1103 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
   }
 
   String _getStepTitle() {
-    switch (_currentStep) {
-      case 1:
-        return 'Review & Edit Your Profile information';
-      case 2:
-        return 'Who\'s This Resume For?';
-      case 3:
-        return 'Choose Resume Style';
-      case 4:
-        return 'Final Resume Preview';
-      default:
-        return 'Step $_currentStep';
+    if (_isUploadedResumeFlow) {
+      // Uploaded resume flow: 3 steps
+      switch (_currentStep) {
+        case 1:
+          return 'Who\'s This Resume For?'; // Job Targeting
+        case 2:
+          return 'Choose Resume Style'; // Template Selection
+        case 3:
+          return 'Final Resume Preview'; // Resume Preview
+        default:
+          return 'Step $_currentStep';
+      }
+    } else {
+      // From scratch flow: 4 steps
+      switch (_currentStep) {
+        case 1:
+          return 'Review & Edit Your Profile information'; // Profile Review
+        case 2:
+          return 'Who\'s This Resume For?'; // Job Targeting
+        case 3:
+          return 'Choose Resume Style'; // Template Selection
+        case 4:
+          return 'Final Resume Preview'; // Resume Preview
+        default:
+          return 'Step $_currentStep';
+      }
     }
   }
 
   String _getStepDescription() {
-    switch (_currentStep) {
-      case 1:
-        return 'Here\'s an overview of your skills. Please feel free to edit or add at any time!';
-      case 2:
-        return 'Help us tailor your resume to land your dream job!';
-      case 3:
-        return 'Pick a design that fits your personality or profession.';
-      case 4:
-        return 'Your resume is ready! Download or make final adjustments.';
-      default:
-        return 'Complete this step to continue.';
+    if (_isUploadedResumeFlow) {
+      // Uploaded resume flow: 3 steps
+      switch (_currentStep) {
+        case 1:
+          return 'Help us tailor your resume to land your dream job!'; // Job Targeting
+        case 2:
+          return 'Pick a design that fits your personality or profession.'; // Template Selection
+        case 3:
+          return 'Your resume is ready! Download or make final adjustments.'; // Resume Preview
+        default:
+          return 'Complete this step to continue.';
+      }
+    } else {
+      // From scratch flow: 4 steps
+      switch (_currentStep) {
+        case 1:
+          return 'Here\'s an overview of your skills. Please feel free to edit or add at any time!'; // Profile Review
+        case 2:
+          return 'Help us tailor your resume to land your dream job!'; // Job Targeting
+        case 3:
+          return 'Pick a design that fits your personality or profession.'; // Template Selection
+        case 4:
+          return 'Your resume is ready! Download or make final adjustments.'; // Resume Preview
+        default:
+          return 'Complete this step to continue.';
+      }
     }
   }
 
-  String _getContinueButtonText() {
-    switch (_currentStep) {
-      case 1:
-        return 'Continue';
-      case 2:
-        return 'Continue to Templates';
-      case 3:
-        return 'Generate Resume';
-      case 4:
-        return 'Download Resume';
-      default:
-        return 'Continue';
+  bool _validateStep2() {
+    setState(() {
+      _jobTitleError = null;
+      _jobTargetingError = null;
+    });
+
+    bool isValid = true;
+
+    // Validate job title is mandatory
+    if (_jobTitleController.text.trim().isEmpty) {
+      setState(() {
+        _jobTitleError = 'Job title is required';
+      });
+      isValid = false;
     }
+
+    // Validate either LinkedIn link or job description is provided
+    final hasLinkedInLink = _linkedInJobLinkController.text.trim().isNotEmpty;
+    final hasJobDescription = _jobDescriptionController.text.trim().isNotEmpty;
+
+    if (!hasLinkedInLink && !hasJobDescription) {
+      setState(() {
+        _jobTargetingError =
+            'Please provide either a LinkedIn job link or job description';
+      });
+      isValid = false;
+    }
+
+    return isValid;
   }
 
-  void _handleContinue() {
+  void _handleContinue() async {
+    // Validate Job Targeting step before proceeding
+    bool needsJobTargetingValidation = false;
+    if (_isUploadedResumeFlow && _currentStep == 1) {
+      // In uploaded flow, step 1 is Job Targeting
+      needsJobTargetingValidation = true;
+    } else if (!_isUploadedResumeFlow && _currentStep == 2) {
+      // In scratch flow, step 2 is Job Targeting
+      needsJobTargetingValidation = true;
+    }
+
+    if (needsJobTargetingValidation) {
+      if (!_validateStep2()) {
+        return;
+      }
+    }
+
+    // When moving to resume preview step, generate the resume
+    bool needsResumeGeneration = false;
+    if (_isUploadedResumeFlow && _currentStep == 2) {
+      // In uploaded flow, moving from step 2 (Template Selection) to step 3 (Resume Preview)
+      needsResumeGeneration = true;
+    } else if (!_isUploadedResumeFlow && _currentStep == 3) {
+      // In scratch flow, moving from step 3 (Template Selection) to step 4 (Resume Preview)
+      needsResumeGeneration = true;
+    }
+
+    if (needsResumeGeneration) {
+      await _generateResume();
+    }
+
     if (_currentStep < _totalSteps) {
       setState(() {
         _currentStep++;
       });
     } else {
-      // Final step - generate resume
-      context.push('/resume/generate');
+      // Final step - navigate to generated resume
+      final resumeState = ref.read(resumeProvider);
+      if (resumeState.generatedResumeData != null) {
+        // Navigate to resume display/download screen with the generated data
+        if (mounted) {
+          context.push(
+            '/resume/preview',
+            extra: resumeState.generatedResumeData,
+          );
+        }
+      } else {
+        // Show error if resume generation failed
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to generate resume. Please try again.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
     }
   }
 
-  void _handleBack() {
-    if (_currentStep > 1) {
-      setState(() {
-        _currentStep--;
-      });
+  Future<File> _createUserDataJsonFile() async {
+    // Compile all user data into a map
+    final userData = <String, dynamic>{};
+
+    // Personal details
+    userData['personal'] = {
+      'name': _fullNameController.text.trim(),
+      'email': _emailController.text.trim(),
+      'phone': _completePhoneNumber,
+      'linkedin': _linkedInController.text.trim(),
+      'website': _websiteController.text.trim(),
+    };
+
+    // Career goals
+    userData['career_goals'] = {
+      'desired_job_titles': _jobTitles,
+      'preferred_industries': _industries,
+      'location_preference': _locationPreference,
+      'desired_salary_range': _desiredSalaryRange,
+      'long_term_goals': _longTermGoalsController.text.trim(),
+    };
+
+    // Education
+    userData['education'] = {
+      'university': _universityController.text.trim(),
+      'degree': _degreeController.text.trim(),
+      'start_date': _educationStartDateController.text.trim(),
+      'end_date': _educationEndDateController.text.trim(),
+    };
+
+    // Work experience
+    userData['work_experience'] = _workExperiences
+        .map(
+          (exp) => {
+            'job_title': exp.jobTitle.text.trim(),
+            'company': exp.company.text.trim(),
+            'start_date': exp.startDate?.toIso8601String(),
+            'end_date': exp.endDate?.toIso8601String(),
+            'current_job': exp.currentJob,
+            'responsibilities': exp.responsibilities.text.trim(),
+          },
+        )
+        .toList();
+
+    // Skills
+    userData['skills'] = {
+      'hard_skills': _hardSkills,
+      'soft_skills': _softSkills,
+      'tools': _tools,
+    };
+
+    // Optional info
+    userData['optional_info'] = {
+      'languages': _languages,
+      'hobbies': _hobbiesController.text.trim(),
+    };
+
+    // Job targeting info from step 2
+    userData['job_targeting'] = {
+      'company': _companyController.text.trim(),
+      'job_title': _jobTitleController.text.trim(),
+      'linkedin_job_link': _linkedInJobLinkController.text.trim(),
+      'job_description': _jobDescriptionController.text.trim(),
+    };
+
+    // Convert to JSON string
+    final jsonString = jsonEncode(userData);
+
+    // Create a temporary file
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/user_resume_data.json');
+    await file.writeAsString(jsonString);
+
+    return file;
+  }
+
+  Future<void> _generateResume() async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Generating your resume...',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'This may take a few moments',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Get the file to use for resume generation
+      File resumeFile;
+      final resumeState = ref.read(resumeProvider);
+
+      if (_isUploadedResumeFlow && resumeState.uploadedFile != null) {
+        // Use the uploaded PDF/DOCX file directly
+        resumeFile = resumeState.uploadedFile!;
+      } else {
+        // Create JSON file from user data for scratch flow
+        resumeFile = await _createUserDataJsonFile();
+      }
+
+      // Map template index to API template value
+      String templateValue = 'resume'; // default
+      switch (_selectedTemplateIndex) {
+        case 0:
+          templateValue = 'ats';
+          break;
+        case 1:
+          templateValue = 'modern';
+          break;
+        case 2:
+          templateValue = 'resume';
+          break;
+      }
+
+      // Get job URL or description
+      final jobUrl = _linkedInJobLinkController.text.trim();
+      final jobDescription = _jobDescriptionController.text.trim();
+
+      // Call the API to generate resume
+      final result = await ref
+          .read(resumeProvider.notifier)
+          .generateResume(
+            file: resumeFile,
+            jobUrl: jobUrl.isNotEmpty ? jobUrl : null,
+            jobDescription: jobDescription.isNotEmpty ? jobDescription : null,
+            template: templateValue,
+          );
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (result != null) {
+        // Success - the resume data is stored in the provider
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text('${_getTemplateName()} resume generated successfully!'),
+                ],
+              ),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } else {
+        // Error occurred
+        final error = ref.read(resumeProvider).error;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error ?? 'Failed to generate resume'),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+
+      // Clean up temp file (only for scratch flow - uploaded files should not be deleted)
+      if (!_isUploadedResumeFlow) {
+        try {
+          await resumeFile.delete();
+        } catch (_) {}
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
+  }
+
+  Widget _buildPdfPreview(dynamic generatedResumeData) {
+    try {
+      if (generatedResumeData != null &&
+          generatedResumeData.pdfBase64 != null) {
+        // Decode the base64 PDF
+        final pdfBytes = base64Decode(generatedResumeData.pdfBase64!);
+
+        return Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: Colors.grey[100],
+          ),
+          child: Column(
+            children: [
+              // Header with template info
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withValues(alpha: 0.1),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.check_circle,
+                      color: AppColors.success,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${_getTemplateName()} Resume Generated!',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // PDF preview area with gesture detector for full screen
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _showFullScreenPdf(pdfBytes),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Stack(
+                        children: [
+                          // PDF viewer using pdfrx
+                          PdfViewer.data(
+                            pdfBytes,
+                            sourceName: 'resume.pdf',
+                            controller: PdfViewerController(),
+                            params: PdfViewerParams(
+                              enableTextSelection: false,
+                              maxScale: 3.0,
+                              minScale: 0.5,
+                              backgroundColor: Colors.grey[100]!,
+                              errorBannerBuilder:
+                                  (context, error, stackTrace, documentRef) {
+                                    return Container(
+                                      color: Colors.white,
+                                      child: Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            const Icon(
+                                              Icons.error_outline,
+                                              size: 48,
+                                              color: AppColors.error,
+                                            ),
+                                            const SizedBox(height: 16),
+                                            const Text(
+                                              'Error loading PDF',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.textPrimary,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              error.toString(),
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                              loadingBannerBuilder:
+                                  (context, bytesDownloaded, totalBytes) {
+                                    return Container(
+                                      color: Colors.white,
+                                      child: const Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            CircularProgressIndicator(
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    AppColors.primary,
+                                                  ),
+                                            ),
+                                            SizedBox(height: 16),
+                                            Text(
+                                              'Loading PDF...',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                                color: AppColors.textPrimary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                            ),
+                          ),
+                          // Overlay with PDF info and tap hint
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.9),
+                                borderRadius: const BorderRadius.only(
+                                  bottomLeft: Radius.circular(8),
+                                  bottomRight: Radius.circular(8),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Size: ${_formatFileSize(pdfBytes.length)}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  Row(
+                                    children: const [
+                                      Icon(
+                                        Icons.fullscreen,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Tap to view',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error displaying PDF preview: $e');
+    }
+
+    // Fallback if PDF preview fails
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 48, color: AppColors.error),
+          SizedBox(height: 12),
+          Text(
+            'PDF Preview Error',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Unable to preview PDF. Download to view.',
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFullScreenPdf(Uint8List pdfBytes) {
+    // Create a controller outside the dialog for proper control
+    final pdfController = PdfViewerController();
+    double currentZoom = 1.0;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black87,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Scaffold(
+              backgroundColor: Colors.black,
+              body: SafeArea(
+                child: Stack(
+                  children: [
+                    // Full screen PDF viewer
+                    PdfViewer.data(
+                      pdfBytes,
+                      sourceName: 'resume.pdf',
+                      controller: pdfController,
+                      params: PdfViewerParams(
+                        enableTextSelection: true,
+                        maxScale: 5.0,
+                        minScale: 0.5,
+                        panEnabled: true,
+                        scaleEnabled: true,
+                        backgroundColor: Colors.black,
+                        panAxis: PanAxis.free,
+                        errorBannerBuilder:
+                            (context, error, stackTrace, documentRef) {
+                              return Container(
+                                color: Colors.black,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.error_outline,
+                                        size: 48,
+                                        color: Colors.white,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      const Text(
+                                        'Error loading PDF',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        error.toString(),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.white70,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                        loadingBannerBuilder:
+                            (context, bytesDownloaded, totalBytes) {
+                              return Container(
+                                color: Colors.black,
+                                child: const Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      CircularProgressIndicator(
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'Loading PDF...',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                      ),
+                    ),
+                    // Top bar with close and download buttons
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.7),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Close button
+                            IconButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                            ),
+                            // Title
+                            Text(
+                              '${_getTemplateName()} Resume',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            // Download button
+                            IconButton(
+                              onPressed: _downloadResume,
+                              icon: const Icon(
+                                Icons.download,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Zoom controls - bottom right
+                    Positioned(
+                      bottom: 20,
+                      right: 20,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.7),
+                          borderRadius: BorderRadius.circular(25),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Zoom in button
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(25),
+                                  topRight: Radius.circular(25),
+                                ),
+                                onTap: () {
+                                  // Zoom in
+                                  setState(() {
+                                    currentZoom = (currentZoom * 1.2).clamp(
+                                      0.5,
+                                      5.0,
+                                    );
+                                  });
+                                  pdfController.value = Matrix4.identity()
+                                    ..scale(currentZoom, currentZoom, 1.0);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  child: const Icon(
+                                    Icons.add,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Container(
+                              height: 1,
+                              width: 48,
+                              color: Colors.white.withValues(alpha: 0.3),
+                            ),
+                            // Reset zoom button
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () {
+                                  // Reset to 100% zoom
+                                  setState(() {
+                                    currentZoom = 1.0;
+                                  });
+                                  pdfController.value = Matrix4.identity();
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  child: const Icon(
+                                    Icons.fit_screen,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Container(
+                              height: 1,
+                              width: 48,
+                              color: Colors.white.withValues(alpha: 0.3),
+                            ),
+                            // Zoom out button
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: const BorderRadius.only(
+                                  bottomLeft: Radius.circular(25),
+                                  bottomRight: Radius.circular(25),
+                                ),
+                                onTap: () {
+                                  // Zoom out
+                                  setState(() {
+                                    currentZoom = (currentZoom / 1.2).clamp(
+                                      0.5,
+                                      5.0,
+                                    );
+                                  });
+                                  pdfController.value = Matrix4.identity()
+                                    ..scale(currentZoom, currentZoom, 1.0);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  child: const Icon(
+                                    Icons.remove,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Zoom indicator - bottom left
+                    Positioned(
+                      bottom: 20,
+                      left: 20,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.7),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          '${(currentZoom * 100).toInt()}%',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '${bytes}B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
+  }
+
+  void _editResume() {
+    final resumeState = ref.read(resumeProvider);
+    final generatedResumeData = resumeState.generatedResumeData;
+
+    if (generatedResumeData != null) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => ResumeEditModal(
+          resumeData: generatedResumeData,
+          onResumeUpdated: (updatedResume) {
+            // Update the resume data and regenerate PDF
+            _handleResumeUpdate(updatedResume);
+          },
+        ),
+      );
+    }
+  }
+
+  void _handleResumeUpdate(dynamic updatedResumeData) async {
+    // Update the provider with new data
+    ref.read(resumeProvider.notifier).updateGeneratedResume(updatedResumeData);
+
+    // Regenerate the resume with updated data
+    await _regenerateResumeFromUpdatedData(updatedResumeData);
+
+    // Refresh the UI
+    setState(() {});
+  }
+
+  Future<void> _regenerateResumeFromUpdatedData(
+    dynamic updatedResumeData,
+  ) async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Regenerating resume...',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Applying your changes',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Create updated JSON file from resume data
+      final jsonFile = await _createJsonFromResumeData(updatedResumeData);
+
+      // Get template value
+      String templateValue = 'resume'; // default
+      switch (_selectedTemplateIndex) {
+        case 0:
+          templateValue = 'ats';
+          break;
+        case 1:
+          templateValue = 'modern';
+          break;
+        case 2:
+          templateValue = 'resume';
+          break;
+      }
+
+      // Get job context
+      final jobUrl = _linkedInJobLinkController.text.trim();
+      final jobDescription = _jobDescriptionController.text.trim();
+
+      // Call the API to regenerate resume
+      final result = await ref
+          .read(resumeProvider.notifier)
+          .generateResume(
+            file: jsonFile,
+            jobUrl: jobUrl.isNotEmpty ? jobUrl : null,
+            jobDescription: jobDescription.isNotEmpty ? jobDescription : null,
+            template: templateValue,
+          );
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (result != null) {
+        // Success
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text('Resume updated successfully!'),
+                ],
+              ),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } else {
+        // Error occurred
+        final error = ref.read(resumeProvider).error;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error ?? 'Failed to update resume'),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+
+      // Clean up temp file
+      try {
+        await jsonFile.delete();
+      } catch (_) {}
+    } catch (e) {
+      // Close loading dialog if still open
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<File> _createJsonFromResumeData(dynamic resumeData) async {
+    // Convert resume data back to the format expected by the API
+    final userData = <String, dynamic>{};
+
+    if (resumeData.resumeData != null) {
+      final data = resumeData.resumeData!;
+
+      // Map the resume data back to user data format
+      userData['personal'] = data.personal?.toJson() ?? {};
+      userData['summary'] = data.summary ?? '';
+      userData['work_experience'] =
+          data.workExperience?.map((e) => e.toJson()).toList() ?? [];
+      userData['projects'] =
+          data.projects?.map((e) => e.toJson()).toList() ?? [];
+      userData['skills'] = data.skills?.toJson() ?? {};
+      userData['education'] =
+          data.education?.map((e) => e.toJson()).toList() ?? [];
+      userData['achievements'] = data.achievements ?? [];
+      userData['optional_info'] = data.optionalInfo?.toJson() ?? {};
+    }
+
+    // Add job targeting info
+    userData['job_targeting'] = {
+      'company': _companyController.text.trim(),
+      'job_title': _jobTitleController.text.trim(),
+      'linkedin_job_link': _linkedInJobLinkController.text.trim(),
+      'job_description': _jobDescriptionController.text.trim(),
+    };
+
+    // Convert to JSON string
+    final jsonString = jsonEncode(userData);
+
+    // Create a temporary file
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/updated_resume_data.json');
+    await file.writeAsString(jsonString);
+
+    return file;
   }
 }

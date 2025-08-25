@@ -265,7 +265,6 @@ class ImagePickerService {
         ratioX: 1,
         ratioY: 1,
       ), // Square aspect ratio for profile image
-      aspectRatioPresets: [CropAspectRatioPreset.square],
       uiSettings: [
         AndroidUiSettings(
           toolbarTitle: 'Crop Profile Image',
