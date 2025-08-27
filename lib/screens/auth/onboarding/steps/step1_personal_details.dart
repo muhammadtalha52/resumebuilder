@@ -283,6 +283,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
             keyboardType: TextInputType.url,
             textInputAction: TextInputAction.next,
             maxLength: 200,
+            validator: Validators.validateLinkedInUrl,
           ),
           const SizedBox(height: 20),
           CustomTextField(
@@ -292,6 +293,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
             keyboardType: TextInputType.url,
             textInputAction: TextInputAction.next,
             maxLength: 200,
+            validator: Validators.validateWebsiteUrl,
           ),
           const SizedBox(height: 20),
           CustomTextField(

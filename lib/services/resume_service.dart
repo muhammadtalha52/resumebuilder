@@ -196,6 +196,83 @@ class ResumeService {
     return '${(bytes / (1 << (i * 10))).toStringAsFixed(1)} ${suffixes[i]}';
   }
 
+  /// Regenerate specific sections of a resume
+  ///
+  /// [resumeData] - JSON string containing existing resume data
+  /// [sectionsToRegenerate] - Comma-separated list of sections to regenerate
+  /// [jobUrl] - URL of the job posting (optional if jobDescription provided)
+  /// [jobDescription] - Text description of the job (optional if jobUrl provided)
+  /// [template] - Template to use ("resume" for standard, "ats" for ATS-friendly, "modern" for modern)
+  ///
+  /// Returns a GenerateResumeResponse containing updated resume data and base64 encoded PDF
+  Future<GenerateResumeResponse> regenerateSections({
+    required String resumeData,
+    required String sectionsToRegenerate,
+    String? jobUrl,
+    String? jobDescription,
+    required String template,
+  }) async {
+    try {
+      // Validate that either jobUrl or jobDescription is provided
+      if ((jobUrl == null || jobUrl.isEmpty) &&
+          (jobDescription == null || jobDescription.isEmpty)) {
+        throw GenerateResumeException(
+          'Either job URL or job description must be provided',
+        );
+      }
+
+      // Prepare form data
+      final formData = FormData();
+
+      // Add resume data as JSON string
+      formData.fields.add(MapEntry('resume_data', resumeData));
+
+      // Add sections to regenerate
+      formData.fields.add(
+        MapEntry('sections_to_regenerate', sectionsToRegenerate),
+      );
+
+      // Add optional parameters if provided
+      if (jobUrl != null && jobUrl.isNotEmpty) {
+        formData.fields.add(MapEntry('job_url', jobUrl));
+      }
+
+      if (jobDescription != null && jobDescription.isNotEmpty) {
+        formData.fields.add(MapEntry('job_description', jobDescription));
+      }
+
+      // Add template
+      formData.fields.add(MapEntry('template', template));
+
+      // Make API call to regenerate sections endpoint
+      final response = await _dio.post(
+        '/regenerate-sections/',
+        data: formData,
+        options: Options(contentType: 'multipart/form-data'),
+      );
+
+      // Parse response
+      if (response.data != null) {
+        return GenerateResumeResponse.fromJson(response.data);
+      } else {
+        throw GenerateResumeException('Empty response from server');
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final message = e.response!.data is Map
+            ? e.response!.data['detail'] ?? 'Failed to regenerate sections'
+            : 'Failed to regenerate sections';
+        throw GenerateResumeException(message);
+      } else {
+        throw GenerateResumeException(
+          'Network error: ${e.message ?? 'Failed to regenerate sections'}',
+        );
+      }
+    } catch (e) {
+      throw GenerateResumeException('Unexpected error: ${e.toString()}');
+    }
+  }
+
   /// Generate a tailored resume based on user data and job requirements
   ///
   /// [file] - Resume file (PDF, JSON, or DOCX)
@@ -333,6 +410,86 @@ class ResumeService {
       );
     }
   }
+
+  /// Convert existing resume JSON data to PDF using specified template
+  ///
+  /// [resumeData] - JSON string containing complete resume data
+  /// [template] - Template to use ("resume" for standard, "ats" for ATS-friendly, "modern" for modern)
+  ///
+  /// Returns a GenerateResumeResponse containing the base64 encoded PDF
+  Future<GenerateResumeResponse> convertResumeToPdf({
+    required String resumeData,
+    required String template,
+  }) async {
+    try {
+      // Make API call to convert-resume-to-pdf endpoint
+      final response = await _dio.post(
+        '/convert-resume-to-pdf/',
+        data: {'resume_data': resumeData, 'template': template},
+        options: Options(
+          contentType: 'application/x-www-form-urlencoded',
+          headers: {'accept': 'application/json'},
+        ),
+      );
+
+      // Parse response
+      if (response.statusCode == 200 && response.data != null) {
+        // Handle different response formats
+        if (response.data is Map<String, dynamic>) {
+          return GenerateResumeResponse.fromJson(response.data);
+        } else if (response.data is Map && response.data.containsKey('data')) {
+          return GenerateResumeResponse.fromJson(response.data['data']);
+        } else {
+          throw ConvertToPdfException('Invalid response format from server');
+        }
+      } else {
+        throw ConvertToPdfException(
+          'Failed to convert resume to PDF: ${response.statusMessage}',
+        );
+      }
+    } on DioException catch (e) {
+      // Handle Dio specific errors
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        throw ConvertToPdfException(
+          'Request timeout. Please check your internet connection and try again.',
+        );
+      } else if (e.type == DioExceptionType.connectionError) {
+        throw ConvertToPdfException(
+          'Unable to connect to server. Please check your internet connection.',
+        );
+      } else if (e.response?.statusCode == 400) {
+        throw ConvertToPdfException('Invalid resume data. Please try again.');
+      } else if (e.response?.statusCode == 422) {
+        throw ConvertToPdfException(
+          'Unable to process resume data. Please verify your information and try again.',
+        );
+      } else if (e.response?.statusCode == 500) {
+        throw ConvertToPdfException(
+          'Server error occurred while generating PDF. Please try again later.',
+        );
+      } else {
+        // Try to extract error message from response
+        String errorMessage =
+            'An error occurred while converting resume to PDF. Please try again.';
+        if (e.response?.data is Map) {
+          final data = e.response!.data as Map;
+          if (data.containsKey('message')) {
+            errorMessage = data['message'].toString();
+          } else if (data.containsKey('error')) {
+            errorMessage = data['error'].toString();
+          }
+        }
+        throw ConvertToPdfException(errorMessage);
+      }
+    } catch (e) {
+      if (e is ResumeServiceException) {
+        rethrow;
+      }
+      throw ConvertToPdfException('Unexpected error occurred: ${e.toString()}');
+    }
+  }
 }
 
 // Custom exceptions for better error handling
@@ -363,4 +520,8 @@ class FileNotFoundException extends ResumeServiceException {
 
 class GenerateResumeException extends ResumeServiceException {
   GenerateResumeException(super.message);
+}
+
+class ConvertToPdfException extends ResumeServiceException {
+  ConvertToPdfException(super.message);
 }

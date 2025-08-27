@@ -146,3 +146,4 @@ When creating new screens or features:
 6. Use constants for repeated values
 7. Extract reusable widgets
 8. Follow separation of concerns principle
+9. Always use common UI components (textfields, dialogs, snackbars, dropdowns) from widgets and utilities folders to maintain consistency across the app

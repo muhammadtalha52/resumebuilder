@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/resume_model.dart';
@@ -405,6 +406,46 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
     }
   }
 
+  /// Regenerate specific sections of a resume
+  Future<GenerateResumeResponse?> regenerateSections({
+    required GenerateResumeResponse currentResumeData,
+    required List<String> sectionsToRegenerate,
+    String? jobUrl,
+    String? jobDescription,
+    required String template,
+  }) async {
+    try {
+      state = state.copyWith(isGeneratingResume: true, error: null);
+
+      print('🔄 Regenerating sections: ${sectionsToRegenerate.join(", ")}');
+      print('Template: $template');
+      print('Job URL: ${jobUrl ?? "None"}');
+
+      // Convert current resume data to JSON string
+      final resumeDataJson = jsonEncode(currentResumeData.toJson());
+
+      final result = await _resumeService.regenerateSections(
+        resumeData: resumeDataJson,
+        sectionsToRegenerate: sectionsToRegenerate.join(','),
+        jobUrl: jobUrl,
+        jobDescription: jobDescription,
+        template: template,
+      );
+
+      state = state.copyWith(
+        isGeneratingResume: false,
+        generatedResumeData: result,
+      );
+
+      print('✅ Sections regenerated successfully');
+      return result;
+    } catch (e) {
+      print('❌ Error regenerating sections: $e');
+      state = state.copyWith(isGeneratingResume: false, error: e.toString());
+      return null;
+    }
+  }
+
   /// Generate a resume based on user data and job requirements
   Future<GenerateResumeResponse?> generateResume({
     required File file,
@@ -461,6 +502,34 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
   /// Update the generated resume data with edited content
   void updateGeneratedResume(GenerateResumeResponse updatedResumeData) {
     state = state.copyWith(generatedResumeData: updatedResumeData);
+  }
+
+  /// Convert current resume data to PDF using specified template
+  Future<GenerateResumeResponse?> convertResumeToPdf({
+    required GenerateResumeResponse currentResumeData,
+    required String template,
+  }) async {
+    try {
+      print('🔄 Converting resume to PDF...');
+      print('Template: $template');
+
+      // Convert current resume data to JSON string
+      final resumeDataJson = jsonEncode(currentResumeData.toJson());
+
+      final result = await _resumeService.convertResumeToPdf(
+        resumeData: resumeDataJson,
+        template: template,
+      );
+
+      print('✅ PDF conversion successful');
+      print(
+        '📑 New PDF Base64 length: ${result.pdfBase64?.length ?? 0} characters',
+      );
+      return result;
+    } catch (e) {
+      print('❌ Error converting resume to PDF: $e');
+      return null;
+    }
   }
 }
 

@@ -18,6 +18,8 @@ import '../../widgets/common/custom_text_field.dart';
 import '../../widgets/common/custom_picker_field.dart';
 import '../../widgets/common/tag_field.dart';
 import '../../widgets/resume_edit_modal.dart';
+import 'resume_generation_loading_screen.dart';
+import '../../utils/snackbar_utils.dart';
 
 class WorkExperienceEntry {
   final TextEditingController jobTitle = TextEditingController();
@@ -207,13 +209,9 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     } catch (e) {
       debugPrint('❌ Error loading profile data: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading profile data: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
+        showErrorSnackBar(
+          context: context,
+          message: 'Error loading profile data: ${e.toString()}',
         );
 
         // Load profile data anyway, even if education data fetch failed
@@ -1017,62 +1015,24 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
         await file.writeAsBytes(pdfBytes);
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.white, size: 20),
-                  const SizedBox(width: 8),
-                  const Text('Resume downloaded successfully!'),
-                ],
-              ),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-              action: SnackBarAction(
-                label: 'View',
-                textColor: Colors.white,
-                onPressed: () {
-                  _showFullScreenPdf(pdfBytes);
-                },
-              ),
-            ),
+          showSuccessSnackBar(
+            context: context,
+            message: 'Resume downloaded successfully!',
           );
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text('Failed to download resume'),
-                ],
-              ),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-            ),
+          showErrorSnackBar(
+            context: context,
+            message: 'Failed to download resume',
           );
         }
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.white, size: 20),
-                SizedBox(width: 8),
-                Text('No resume data available'),
-              ],
-            ),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
+        showErrorSnackBar(
+          context: context,
+          message: 'No resume data available',
         );
       }
     }
@@ -1872,11 +1832,9 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
       } else {
         // Show error if resume generation failed
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to generate resume. Please try again.'),
-              backgroundColor: AppColors.error,
-            ),
+          showErrorSnackBar(
+            context: context,
+            message: 'Failed to generate resume. Please try again.',
           );
         }
       }
@@ -1961,41 +1919,25 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
 
   Future<void> _generateResume() async {
     try {
-      // Show loading dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: Card(
-            child: Padding(
-              padding: EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.primary,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Generating your resume...',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'This may take a few moments',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
+      // Show loading screen with animation
+      final loadingKey = GlobalKey<ResumeGenerationLoadingScreenState>();
+      final loadingRoute = PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            ResumeGenerationLoadingScreen(
+              key: loadingKey,
+              onAnimationComplete: () {
+                // Animation complete callback - do nothing here as we handle it manually
+              },
             ),
-          ),
-        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        barrierDismissible: false,
+        opaque: false,
+        barrierColor: Colors.black54,
       );
+
+      Navigator.of(context).push(loadingRoute);
 
       // Get the file to use for resume generation
       File resumeFile;
@@ -2037,6 +1979,13 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
             template: templateValue,
           );
 
+      // Complete the loading animation before closing
+      if (mounted && loadingKey.currentState != null) {
+        loadingKey.currentState!.completeAnimation();
+        // Wait for animation to complete
+        await Future.delayed(const Duration(milliseconds: 400));
+      }
+
       // Close loading dialog
       if (mounted) {
         Navigator.of(context).pop();
@@ -2045,30 +1994,18 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
       if (result != null) {
         // Success - the resume data is stored in the provider
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Text('${_getTemplateName()} resume generated successfully!'),
-                ],
-              ),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-            ),
+          showSuccessSnackBar(
+            context: context,
+            message: '${_getTemplateName()} resume generated successfully!',
           );
         }
       } else {
         // Error occurred
         final error = ref.read(resumeProvider).error;
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(error ?? 'Failed to generate resume'),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-            ),
+          showErrorSnackBar(
+            context: context,
+            message: error ?? 'Failed to generate resume',
           );
         }
       }
@@ -2086,13 +2023,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        showErrorSnackBar(context: context, message: 'Error: ${e.toString()}');
       }
     }
   }
@@ -2637,77 +2568,11 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     final generatedResumeData = resumeState.generatedResumeData;
 
     if (generatedResumeData != null) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        useSafeArea: true,
-        backgroundColor: Colors.transparent,
-        builder: (context) => ResumeEditModal(
-          resumeData: generatedResumeData,
-          onResumeUpdated: (updatedResume) {
-            // Update the resume data and regenerate PDF
-            _handleResumeUpdate(updatedResume);
-          },
-        ),
-      );
-    }
-  }
+      // Get job context from the form fields
+      final jobUrl = _linkedInJobLinkController.text.trim();
+      final jobDescription = _jobDescriptionController.text.trim();
 
-  void _handleResumeUpdate(dynamic updatedResumeData) async {
-    // Update the provider with new data
-    ref.read(resumeProvider.notifier).updateGeneratedResume(updatedResumeData);
-
-    // Regenerate the resume with updated data
-    await _regenerateResumeFromUpdatedData(updatedResumeData);
-
-    // Refresh the UI
-    setState(() {});
-  }
-
-  Future<void> _regenerateResumeFromUpdatedData(
-    dynamic updatedResumeData,
-  ) async {
-    try {
-      // Show loading dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: Card(
-            child: Padding(
-              padding: EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.primary,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Regenerating resume...',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Applying your changes',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-
-      // Create updated JSON file from resume data
-      final jsonFile = await _createJsonFromResumeData(updatedResumeData);
-
-      // Get template value
+      // Map template index to API template value
       String templateValue = 'resume'; // default
       switch (_selectedTemplateIndex) {
         case 0:
@@ -2721,76 +2586,37 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           break;
       }
 
-      // Get job context
-      final jobUrl = _linkedInJobLinkController.text.trim();
-      final jobDescription = _jobDescriptionController.text.trim();
-
-      // Call the API to regenerate resume
-      final result = await ref
-          .read(resumeProvider.notifier)
-          .generateResume(
-            file: jsonFile,
-            jobUrl: jobUrl.isNotEmpty ? jobUrl : null,
-            jobDescription: jobDescription.isNotEmpty ? jobDescription : null,
-            template: templateValue,
-          );
-
-      // Close loading dialog
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
-
-      if (result != null) {
-        // Success
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.white),
-                  SizedBox(width: 8),
-                  Text('Resume updated successfully!'),
-                ],
-              ),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } else {
-        // Error occurred
-        final error = ref.read(resumeProvider).error;
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(error ?? 'Failed to update resume'),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      }
-
-      // Clean up temp file
-      try {
-        await jsonFile.delete();
-      } catch (_) {}
-    } catch (e) {
-      // Close loading dialog if still open
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => ResumeEditModal(
+          resumeData: generatedResumeData,
+          jobUrl: jobUrl.isNotEmpty ? jobUrl : null,
+          jobDescription: jobDescription.isNotEmpty ? jobDescription : null,
+          template: templateValue,
+          onResumeUpdated: (updatedResume) {
+            // Update the resume data and regenerate PDF
+            _handleResumeUpdate(updatedResume);
+          },
+        ),
+      );
     }
+  }
+
+  void _handleResumeUpdate(dynamic updatedResumeData) {
+    // Update the provider with new data (already contains updated PDF)
+    ref.read(resumeProvider.notifier).updateGeneratedResume(updatedResumeData);
+
+    // Refresh the UI to show updated data
+    setState(() {});
+
+    // Show success message
+    showSuccessSnackBar(
+      context: context,
+      message: 'Resume updated successfully',
+    );
   }
 
   Future<File> _createJsonFromResumeData(dynamic resumeData) async {

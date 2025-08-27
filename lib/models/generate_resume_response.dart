@@ -1,7 +1,12 @@
 class GenerateResumeResponse {
-  GenerateResumeResponse({ResumeData? resumeData, String? pdfe64}) {
+  GenerateResumeResponse({
+    ResumeData? resumeData,
+    String? pdfBase64,
+    List<String>? regeneratedSections,
+  }) {
     _resumeData = resumeData;
     _pdfBase64 = pdfBase64;
+    _regeneratedSections = regeneratedSections;
   }
 
   GenerateResumeResponse.fromJson(dynamic json) {
@@ -9,18 +14,26 @@ class GenerateResumeResponse {
         ? ResumeData.fromJson(json['resume_data'])
         : null;
     _pdfBase64 = json['pdf_base64'];
+    _regeneratedSections = json['regenerated_sections'] != null
+        ? json['regenerated_sections'].cast<String>()
+        : [];
   }
 
   ResumeData? _resumeData;
   String? _pdfBase64;
+  List<String>? _regeneratedSections;
 
   ResumeData? get resumeData => _resumeData;
 
   String? get pdfBase64 => _pdfBase64;
 
+  List<String>? get regeneratedSections => _regeneratedSections;
+
   set resumeData(ResumeData? value) => _resumeData = value;
 
   set pdfBase64(String? value) => _pdfBase64 = value;
+
+  set regeneratedSections(List<String>? value) => _regeneratedSections = value;
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
@@ -28,6 +41,7 @@ class GenerateResumeResponse {
       map['resume_data'] = _resumeData?.toJson();
     }
     map['pdf_base64'] = _pdfBase64;
+    map['regenerated_sections'] = _regeneratedSections;
     return map;
   }
 }
