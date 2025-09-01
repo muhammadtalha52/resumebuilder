@@ -73,13 +73,13 @@ class ProfileScreen extends ConsumerWidget {
           _buildDetailRowWithDivider(
             'assets/icons/mail.png',
             'Email Address',
-            user?.email ?? 'Not provided',
+            user?.email ?? '',
             showDivider: true,
           ),
           _buildDetailRowWithDivider(
             'assets/icons/whatsapp.png',
             'WhatsApp Number',
-            user?.phoneNumber ?? 'Not provided',
+            user?.phoneNumber ?? '',
             showDivider: true,
           ),
           _buildDetailRowWithDivider(
@@ -95,7 +95,7 @@ class ProfileScreen extends ConsumerWidget {
             'Personal Website/Portfolio',
             (user?.portfolioUrl != null && user!.portfolioUrl!.isNotEmpty)
                 ? user.portfolioUrl!
-                : 'Not provided',
+                : '',
             showDivider: false,
           ),
         ],
@@ -166,8 +166,8 @@ class ProfileScreen extends ConsumerWidget {
         children: [
           _buildEducationDetailRow(
             degreeText,
-            institutionName ?? 'Not provided',
-            user?.graduationDate ?? 'Not provided',
+            institutionName ?? '',
+            user?.graduationDate ?? '',
             showDivider: false,
           ),
         ],

@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/resume_model.dart';
 import '../models/resume_parse_model.dart';
 import '../models/education_model.dart';
@@ -460,13 +462,6 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
         generatedResumeData: null,
       );
 
-      print('🚀 Starting resume generation...');
-      print('Template: $template');
-      print('Job URL: ${jobUrl ?? "None"}');
-      print(
-        'Job Description: ${jobDescription?.isNotEmpty == true ? "Provided" : "None"}',
-      );
-
       final result = await _resumeService.generateResume(
         file: file,
         jobUrl: jobUrl,
@@ -479,16 +474,8 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
         generatedResumeData: result,
       );
 
-      print('✅ Resume generated successfully');
-      print(
-        '📄 Generated resume data: ${result.resumeData?.personal?.name ?? "No name"}',
-      );
-      print(
-        '📑 PDF Base64 length: ${result.pdfBase64?.length ?? 0} characters',
-      );
       return result;
     } catch (e) {
-      print('❌ Failed to generate resume: $e');
       state = state.copyWith(isGeneratingResume: false, error: e.toString());
       return null;
     }
@@ -505,30 +492,88 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
   }
 
   /// Convert current resume data to PDF using specified template
-  Future<GenerateResumeResponse?> convertResumeToPdf({
+  Future<String?> convertResumeToPdf({
     required GenerateResumeResponse currentResumeData,
     required String template,
   }) async {
     try {
-      print('🔄 Converting resume to PDF...');
-      print('Template: $template');
-
       // Convert current resume data to JSON string
-      final resumeDataJson = jsonEncode(currentResumeData.toJson());
-
-      final result = await _resumeService.convertResumeToPdf(
+      final resumeDataJson = jsonEncode(currentResumeData.resumeData?.toJson());
+      final pdfBase64 = await _resumeService.convertResumeToPdf(
         resumeData: resumeDataJson,
         template: template,
       );
+      return pdfBase64;
+    } catch (e) {
+      return null;
+    }
+  }
 
-      print('✅ PDF conversion successful');
-      print(
-        '📑 New PDF Base64 length: ${result.pdfBase64?.length ?? 0} characters',
+  /// Save generated resume to backend with PDF upload to S3
+  Future<Map<String, dynamic>?> saveGeneratedResume({
+    String? companyName,
+    String? jobTitle,
+    String? linkedinJobUrl,
+    String? jobDescription,
+  }) async {
+    File? tempPdfFile;
+    try {
+      // Check if we have generated resume data
+      if (state.generatedResumeData == null) {
+        state = state.copyWith(error: 'No resume data to save');
+        return null;
+      }
+
+      final resumeData = state.generatedResumeData!.resumeData;
+      final pdfBase64 = state.generatedResumeData!.pdfBase64;
+
+      if (resumeData == null || pdfBase64 == null || pdfBase64.isEmpty) {
+        state = state.copyWith(error: 'Invalid resume data or PDF');
+        return null;
+      }
+
+      // Generate title based on user name and job title
+      final userName = resumeData.personal?.name ?? 'Resume';
+      final title = jobTitle != null && jobTitle.isNotEmpty
+          ? '$userName - $jobTitle Resume'
+          : '$userName Resume';
+
+      state = state.copyWith(isLoading: true, error: null);
+
+      final tempDir = await getTemporaryDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      tempPdfFile = File('${tempDir.path}/resume_${timestamp}.pdf');
+
+      // Decode base64 to bytes and write to file
+      final pdfBytes = base64Decode(pdfBase64);
+      await tempPdfFile.writeAsBytes(pdfBytes);
+      final s3Url = await _resumeService.uploadPdfToS3(tempPdfFile);
+      final result = await _resumeService.saveResume(
+        title: title,
+        companyName: companyName,
+        jobTitle: jobTitle,
+        linkedinJobUrl: linkedinJobUrl,
+        jobDescription: jobDescription,
+        resumeData: resumeData.toJson(),
+        resumeUrl: s3Url,
       );
+
+      state = state.copyWith(isLoading: false);
+
       return result;
     } catch (e) {
-      print('❌ Error converting resume to PDF: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Failed to save resume: ${e.toString()}',
+      );
       return null;
+    } finally {
+      // Clean up temporary file
+      if (tempPdfFile != null && await tempPdfFile.exists()) {
+        try {
+          await tempPdfFile.delete();
+        } catch (e) {}
+      }
     }
   }
 }

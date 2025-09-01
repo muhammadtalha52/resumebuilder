@@ -417,17 +417,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
         title: AppBarWidgets.foxLogo(),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
-          onPressed: () {
-            if (_currentStep > 1) {
-              // Go to previous step
-              setState(() {
-                _currentStep--;
-              });
-            } else {
-              // At step 1, go back to previous screen
-              context.pop();
-            }
-          },
+          onPressed: () => _handleBackNavigation(),
         ),
       ),
       body: Stack(
@@ -2031,8 +2021,8 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
   Widget _buildPdfPreview(dynamic generatedResumeData) {
     try {
       if (generatedResumeData != null &&
-          generatedResumeData.pdfBase64 != null) {
-        // Decode the base64 PDF
+          generatedResumeData.pdfBase64 != null &&
+          generatedResumeData.pdfBase64!.isNotEmpty) {
         final pdfBytes = base64Decode(generatedResumeData.pdfBase64!);
 
         return Container(
@@ -2093,83 +2083,10 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                       borderRadius: BorderRadius.circular(8),
                       child: Stack(
                         children: [
-                          // PDF viewer using pdfrx
-                          PdfViewer.data(
-                            pdfBytes,
-                            sourceName: 'resume.pdf',
-                            controller: PdfViewerController(),
-                            params: PdfViewerParams(
-                              enableTextSelection: false,
-                              maxScale: 3.0,
-                              minScale: 0.5,
-                              backgroundColor: Colors.grey[100]!,
-                              errorBannerBuilder:
-                                  (context, error, stackTrace, documentRef) {
-                                    return Container(
-                                      color: Colors.white,
-                                      child: Center(
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            const Icon(
-                                              Icons.error_outline,
-                                              size: 48,
-                                              color: AppColors.error,
-                                            ),
-                                            const SizedBox(height: 16),
-                                            const Text(
-                                              'Error loading PDF',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w600,
-                                                color: AppColors.textPrimary,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              error.toString(),
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                color: AppColors.textSecondary,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
-                              loadingBannerBuilder:
-                                  (context, bytesDownloaded, totalBytes) {
-                                    return Container(
-                                      color: Colors.white,
-                                      child: const Center(
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            CircularProgressIndicator(
-                                              valueColor:
-                                                  AlwaysStoppedAnimation<Color>(
-                                                    AppColors.primary,
-                                                  ),
-                                            ),
-                                            SizedBox(height: 16),
-                                            Text(
-                                              'Loading PDF...',
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w500,
-                                                color: AppColors.textPrimary,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
-                            ),
+                          // PDF viewer widget that handles dynamic updates
+                          _DynamicPdfViewer(
+                            key: ValueKey('pdf_${pdfBytes.hashCode}'),
+                            pdfBytes: pdfBytes,
                           ),
                           // Overlay with PDF info and tap hint
                           Positioned(
@@ -2281,6 +2198,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                     // Full screen PDF viewer
                     PdfViewer.data(
                       pdfBytes,
+                      key: ValueKey(pdfBytes.hashCode),
                       sourceName: 'resume.pdf',
                       controller: pdfController,
                       params: PdfViewerParams(
@@ -2619,43 +2537,278 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     );
   }
 
-  Future<File> _createJsonFromResumeData(dynamic resumeData) async {
-    // Convert resume data back to the format expected by the API
-    final userData = <String, dynamic>{};
+  void _handleBackNavigation() {
+    // Check if we're on the final step with a generated resume
+    final isOnFinalStep = _currentStep == _totalSteps;
+    final resumeState = ref.read(resumeProvider);
+    final hasGeneratedResume = resumeState.generatedResumeData != null;
 
-    if (resumeData.resumeData != null) {
-      final data = resumeData.resumeData!;
-
-      // Map the resume data back to user data format
-      userData['personal'] = data.personal?.toJson() ?? {};
-      userData['summary'] = data.summary ?? '';
-      userData['work_experience'] =
-          data.workExperience?.map((e) => e.toJson()).toList() ?? [];
-      userData['projects'] =
-          data.projects?.map((e) => e.toJson()).toList() ?? [];
-      userData['skills'] = data.skills?.toJson() ?? {};
-      userData['education'] =
-          data.education?.map((e) => e.toJson()).toList() ?? [];
-      userData['achievements'] = data.achievements ?? [];
-      userData['optional_info'] = data.optionalInfo?.toJson() ?? {};
+    if (isOnFinalStep && hasGeneratedResume) {
+      // Show save dialog before leaving
+      _showSaveDialog(context);
+    } else if (_currentStep > 1) {
+      // Go to previous step
+      setState(() {
+        _currentStep--;
+      });
+    } else {
+      // At step 1, go back to previous screen
+      context.pop();
     }
+  }
 
-    // Add job targeting info
-    userData['job_targeting'] = {
-      'company': _companyController.text.trim(),
-      'job_title': _jobTitleController.text.trim(),
-      'linkedin_job_link': _linkedInJobLinkController.text.trim(),
-      'job_description': _jobDescriptionController.text.trim(),
-    };
+  void _showSaveDialog(BuildContext parentContext) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Prevent dismissal during loading
+      builder: (BuildContext context) {
+        return _SaveDialog(
+          onSave: () async {
+            final success = await _saveResumeAndNavigateBack();
+            if (mounted && success && parentContext.mounted) {
+              Navigator.of(context).pop(); // Close dialog
+              parentContext.pop(); // Navigate back
+            }
+          },
+          onSkip: () {
+            Navigator.of(context).pop(); // Close dialog
+            parentContext.pop(); // Navigate back without saving
+          },
+        );
+      },
+    );
+  }
 
-    // Convert to JSON string
-    final jsonString = jsonEncode(userData);
+  Future<bool> _saveResumeAndNavigateBack() async {
+    // Call save API
+    final result = await ref
+        .read(resumeProvider.notifier)
+        .saveGeneratedResume(
+          companyName: _companyController.text.trim(),
+          jobTitle: _jobTitleController.text.trim(),
+          linkedinJobUrl: _linkedInJobLinkController.text.trim(),
+          jobDescription: _jobDescriptionController.text.trim(),
+        );
 
-    // Create a temporary file
-    final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/updated_resume_data.json');
-    await file.writeAsString(jsonString);
+    if (result != null && mounted) {
+      // Success
+      showSuccessSnackBar(
+        context: context,
+        message: 'Resume saved successfully!',
+      );
+      return true;
+    } else if (mounted) {
+      // Error
+      final error = ref.read(resumeProvider).error;
+      showErrorSnackBar(
+        context: context,
+        message: error ?? 'Failed to save resume',
+      );
+      return false;
+    }
+    return false;
+  }
+}
 
-    return file;
+class _SaveDialog extends StatefulWidget {
+  final Future<void> Function() onSave;
+  final VoidCallback onSkip;
+
+  const _SaveDialog({super.key, required this.onSave, required this.onSkip});
+
+  @override
+  State<_SaveDialog> createState() => _SaveDialogState();
+}
+
+class _SaveDialogState extends State<_SaveDialog> {
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Row(
+        children: [
+          Icon(Icons.save_outlined, color: AppColors.primary, size: 24),
+          SizedBox(width: 12),
+          Text(
+            'Save Your Resume?',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Would you like to save your resume for future use?',
+            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'You can access it later from your saved resumes.',
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary.withValues(alpha: 0.8),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        ElevatedButton(
+          onPressed: _isLoading ? null : _handleSave,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _isLoading
+                ? AppColors.primary.withValues(alpha: 0.6)
+                : AppColors.primary,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: _isLoading
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    strokeWidth: 2,
+                  ),
+                )
+              : Text(
+                  'Save & Exit',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _handleSave() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await widget.onSave();
+    } catch (e) {
+      // If error occurs, stop loading but keep dialog open
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+}
+
+class _DynamicPdfViewer extends StatefulWidget {
+  final Uint8List pdfBytes;
+
+  const _DynamicPdfViewer({super.key, required this.pdfBytes});
+
+  @override
+  State<_DynamicPdfViewer> createState() => _DynamicPdfViewerState();
+}
+
+class _DynamicPdfViewerState extends State<_DynamicPdfViewer> {
+  late Uint8List _currentPdfBytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentPdfBytes = widget.pdfBytes;
+  }
+
+  @override
+  void didUpdateWidget(_DynamicPdfViewer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Check if PDF content has changed and update if needed
+    if (widget.pdfBytes.hashCode != _currentPdfBytes.hashCode) {
+      setState(() {
+        _currentPdfBytes = widget.pdfBytes;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PdfViewer.data(
+      _currentPdfBytes,
+      key: ValueKey(_currentPdfBytes.hashCode),
+      sourceName: 'resume.pdf',
+      params: PdfViewerParams(
+        enableTextSelection: false,
+        maxScale: 3.0,
+        minScale: 0.5,
+        backgroundColor: Colors.grey[100]!,
+        errorBannerBuilder: (context, error, stackTrace, documentRef) {
+          return Container(
+            color: Colors.white,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: AppColors.error,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Error loading PDF',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    error.toString(),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+        loadingBannerBuilder: (context, bytesDownloaded, totalBytes) {
+          return Container(
+            color: Colors.white,
+            child: const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Loading PDF...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }

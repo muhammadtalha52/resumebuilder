@@ -3,6 +3,8 @@ import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import '../models/resume_parse_model.dart';
 import '../models/generate_resume_response.dart';
+import '../utils/endpoint_headers.dart';
+import '../main.dart';
 
 class ResumeService {
   late final Dio _dio;
@@ -416,8 +418,8 @@ class ResumeService {
   /// [resumeData] - JSON string containing complete resume data
   /// [template] - Template to use ("resume" for standard, "ats" for ATS-friendly, "modern" for modern)
   ///
-  /// Returns a GenerateResumeResponse containing the base64 encoded PDF
-  Future<GenerateResumeResponse> convertResumeToPdf({
+  /// Returns the base64 encoded PDF string
+  Future<String> convertResumeToPdf({
     required String resumeData,
     required String template,
   }) async {
@@ -432,13 +434,37 @@ class ResumeService {
         ),
       );
 
-      // Parse response
+      // Parse response and extract PDF base64 string
       if (response.statusCode == 200 && response.data != null) {
-        // Handle different response formats
-        if (response.data is Map<String, dynamic>) {
-          return GenerateResumeResponse.fromJson(response.data);
-        } else if (response.data is Map && response.data.containsKey('data')) {
-          return GenerateResumeResponse.fromJson(response.data['data']);
+        final responseData = response.data;
+        if (responseData is Map<String, dynamic>) {
+          // Check for pdf_base64 key or other PDF-related keys
+          if (responseData.containsKey('pdf_base64')) {
+            final pdfData = responseData['pdf_base64'] as String;
+            return pdfData;
+          } else {
+            // Look for other possible PDF keys
+            for (String key in responseData.keys) {
+              if (key.toLowerCase().contains('pdf')) {
+                final pdfData = responseData[key] as String;
+                return pdfData;
+              }
+            }
+            throw ConvertToPdfException(
+              'PDF data not found in server response. Available keys: ${responseData.keys.join(", ")}',
+            );
+          }
+        } else if (responseData is Map && responseData.containsKey('data')) {
+          final data = responseData['data'] as Map<String, dynamic>;
+          if (data.containsKey('pdf_base64')) {
+            final pdfData = data['pdf_base64'] as String;
+
+            return pdfData;
+          } else {
+            throw ConvertToPdfException(
+              'PDF data not found in server response data. Available keys: ${data.keys.join(", ")}',
+            );
+          }
         } else {
           throw ConvertToPdfException('Invalid response format from server');
         }
@@ -490,6 +516,177 @@ class ResumeService {
       throw ConvertToPdfException('Unexpected error occurred: ${e.toString()}');
     }
   }
+
+  /// Upload PDF file to S3 storage
+  ///
+  /// [pdfFile] - PDF file to upload
+  ///
+  /// Returns the S3 file name/URL from the API response
+  Future<String> uploadPdfToS3(File pdfFile) async {
+    try {
+      // Validate file before upload
+      if (!await pdfFile.exists()) {
+        throw SaveResumeException('PDF file no longer exists');
+      }
+
+      // Check file size (same validation as other uploads)
+      final fileSizeInBytes = await pdfFile.length();
+      const maxSizeInBytes = 10 * 1024 * 1024; // 10MB for PDFs
+
+      if (fileSizeInBytes > maxSizeInBytes) {
+        throw SaveResumeException(
+          'PDF file size (${getFileSize(fileSizeInBytes)}) exceeds 10MB limit',
+        );
+      }
+
+      // Prepare multipart form data
+      final filename = pdfFile.path.split('/').last;
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          pdfFile.path,
+          filename: filename,
+          contentType: DioMediaType.parse('application/pdf'),
+        ),
+      });
+
+      // Use singleton APIClient for authenticated requests
+      final response = await apiClient.dio.post(
+        '/auth/upload-pdf-to-s3/',
+        data: formData,
+        options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
+      );
+
+      // Parse response
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = response.data;
+
+        if (responseData != null &&
+            responseData is Map<String, dynamic> &&
+            responseData.containsKey('s3_file_name')) {
+          final s3FileName = responseData['s3_file_name'] as String;
+          return s3FileName;
+        } else {
+          throw SaveResumeException(
+            'Invalid response format from S3 upload API',
+          );
+        }
+      } else {
+        throw SaveResumeException(
+          'Failed to upload PDF to S3: ${response.statusMessage}',
+        );
+      }
+    } on DioException catch (e) {
+      // Handle Dio specific errors
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        throw SaveResumeException(
+          'Upload timeout. Please check your internet connection and try again.',
+        );
+      } else if (e.type == DioExceptionType.connectionError) {
+        throw SaveResumeException(
+          'Unable to connect to server. Please check your internet connection.',
+        );
+      } else if (e.response?.statusCode == 413) {
+        throw SaveResumeException(
+          'PDF file is too large. Please try again with a smaller file.',
+        );
+      } else if (e.response?.statusCode == 400) {
+        throw SaveResumeException('Invalid PDF file. Please try again.');
+      } else if (e.response?.statusCode == 500) {
+        throw SaveResumeException(
+          'Server error occurred while uploading PDF. Please try again later.',
+        );
+      } else {
+        // Try to extract error message from response
+        String errorMessage = 'Failed to upload PDF to S3. Please try again.';
+        if (e.response?.data is Map) {
+          final data = e.response!.data as Map;
+          if (data.containsKey('message')) {
+            errorMessage = data['message'].toString();
+          } else if (data.containsKey('error')) {
+            errorMessage = data['error'].toString();
+          }
+        }
+        throw SaveResumeException(errorMessage);
+      }
+    } catch (e) {
+      if (e is ResumeServiceException) {
+        rethrow;
+      }
+      throw SaveResumeException(
+        'Unexpected error during PDF upload: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Save generated resume to backend
+  ///
+  /// [title] - Title of the resume (e.g., "John Doe - Senior Engineer Resume")
+  /// [template] - Template used ("resume", "ats", or "modern")
+  /// [companyName] - Company name from job targeting
+  /// [jobTitle] - Job title from job targeting
+  /// [linkedinJobUrl] - LinkedIn job URL (optional)
+  /// [jobDescription] - Job description text (optional)
+  /// [resumeData] - Complete resume data JSON object
+  /// [resumeUrl] - S3 URL of the uploaded PDF file (optional)
+  ///
+  /// Returns the saved resume ID from the backend
+  Future<Map<String, dynamic>> saveResume({
+    required String title,
+    String? companyName,
+    String? jobTitle,
+    String? linkedinJobUrl,
+    String? jobDescription,
+    required Map<String, dynamic> resumeData,
+    String? resumeUrl,
+  }) async {
+    try {
+      // Prepare request body
+      final requestBody = {
+        'title': title,
+        'template': "classic",
+        'resume_type': 'self',
+        'is_active': true,
+        'is_public': false,
+        'company_name': companyName ?? '',
+        'job_title': jobTitle ?? '',
+        'linkedin_job_url': linkedinJobUrl ?? '',
+        'job_description': jobDescription ?? '',
+        'resume_url': resumeUrl ?? '',
+        //'content': resumeData.toString(),
+      };
+
+      print('💾 Saving resume with data: ${requestBody.keys.toList()}');
+
+      // Make API call to save resume using authenticated APIClient
+      final response = await apiClient.dio.post(
+        '/resume/resumes/',
+        data: requestBody,
+        options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
+      );
+
+      // Parse response
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (response.data != null) {
+          return response.data as Map<String, dynamic>;
+        } else {
+          throw SaveResumeException('Empty response from server');
+        }
+      } else {
+        throw SaveResumeException(
+          'Failed to save resume: ${response.statusMessage}',
+        );
+      }
+    } on DioException catch (e) {
+      throw SaveResumeException('Unexpected error occurred: ${e.toString()}');
+    } catch (e) {
+      if (e is ResumeServiceException) {
+        rethrow;
+      }
+      throw SaveResumeException('Unexpected error occurred: ${e.toString()}');
+    }
+  }
 }
 
 // Custom exceptions for better error handling
@@ -524,4 +721,8 @@ class GenerateResumeException extends ResumeServiceException {
 
 class ConvertToPdfException extends ResumeServiceException {
   ConvertToPdfException(super.message);
+}
+
+class SaveResumeException extends ResumeServiceException {
+  SaveResumeException(super.message);
 }

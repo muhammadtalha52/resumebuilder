@@ -1392,19 +1392,28 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       }
 
       print('📄 Changes detected, regenerating PDF...');
+      print(
+        '📋 Current editable data PDF length: ${_editableResumeData.pdfBase64?.length ?? 0}',
+      );
+
       // Regenerate PDF with current complete resume data
-      final result = await ref
+      final pdfBase64 = await ref
           .read(resumeProvider.notifier)
           .convertResumeToPdf(
             currentResumeData: _editableResumeData,
             template: widget.template,
           );
 
-      if (result != null && result.pdfBase64 != null) {
+      if (pdfBase64 != null) {
+        print('📑 Setting new PDF Base64 length: ${pdfBase64.length}');
         // Update only the PDF base64, keep all current resume data intact
-        _editableResumeData.pdfBase64 = result.pdfBase64;
+        _editableResumeData.pdfBase64 = pdfBase64;
+        print(
+          '📋 Updated editable data PDF length: ${_editableResumeData.pdfBase64?.length ?? 0}',
+        );
 
         // Pass the updated data back to parent
+        print('🔄 Calling onResumeUpdated with updated data');
         widget.onResumeUpdated(_editableResumeData);
 
         // Close the modal
