@@ -83,19 +83,9 @@ class AppBarWidgets {
   }
 
   static Widget premiumBadge() {
-    return Container(
-      margin: const EdgeInsets.only(right: 20),
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF3E0),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: const Icon(
-        Icons.workspace_premium,
-        color: Color(0xFFFFB74D),
-        size: 24,
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(right: 20.0),
+      child: Image.asset('assets/icons/crown.png', width: 40, height: 40),
     );
   }
 

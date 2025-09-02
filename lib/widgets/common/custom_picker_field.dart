@@ -6,28 +6,53 @@ import 'bottom_sheet_picker.dart';
 class CustomPickerField extends StatelessWidget {
   final String labelText;
   final String? value;
+  final List<String>? selectedValues;
   final List<String> items;
-  final Function(String?) onChanged;
+  final Function(String?)? onChanged;
+  final Function(List<String>)? onMultiChanged;
   final String hintText;
   final bool isRequired;
   final String? errorText;
   final bool enableSearch;
   final String searchHint;
   final String pickerTitle;
+  final bool isMultiSelect;
 
   const CustomPickerField({
     super.key,
     required this.labelText,
     this.value,
+    this.selectedValues,
     required this.items,
-    required this.onChanged,
+    this.onChanged,
+    this.onMultiChanged,
     this.hintText = 'Select an option',
     this.isRequired = false,
     this.errorText,
     this.enableSearch = true,
     this.searchHint = 'Search...',
     String? pickerTitle,
+    this.isMultiSelect = false,
   }) : pickerTitle = pickerTitle ?? labelText;
+
+  String _getDisplayText() {
+    if (isMultiSelect) {
+      if (selectedValues?.isEmpty ?? true) {
+        return hintText;
+      }
+      return selectedValues!.join(', ');
+    } else {
+      return value ?? hintText;
+    }
+  }
+
+  bool _hasSelection() {
+    if (isMultiSelect) {
+      return selectedValues?.isNotEmpty ?? false;
+    } else {
+      return value != null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +72,7 @@ class CustomPickerField extends StatelessWidget {
             ),
             if (isRequired)
               const Text(
-                ' *',
+                '*',
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w500,
@@ -62,15 +87,27 @@ class CustomPickerField extends StatelessWidget {
         GestureDetector(
           onTap: () {
             HapticFeedback.lightImpact();
-            showBottomSheetPicker(
-              context: context,
-              title: pickerTitle,
-              items: items,
-              selectedItem: value,
-              onItemSelected: onChanged,
-              enableSearch: enableSearch,
-              searchHint: searchHint,
-            );
+            if (isMultiSelect) {
+              showBottomSheetMultiPicker(
+                context: context,
+                title: pickerTitle,
+                items: items,
+                selectedItems: selectedValues ?? [],
+                onItemsSelected: onMultiChanged!,
+                enableSearch: enableSearch,
+                searchHint: searchHint,
+              );
+            } else {
+              showBottomSheetPicker(
+                context: context,
+                title: pickerTitle,
+                items: items,
+                selectedItem: value,
+                onItemSelected: onChanged!,
+                enableSearch: enableSearch,
+                searchHint: searchHint,
+              );
+            }
           },
           child: Container(
             width: double.infinity,
@@ -88,9 +125,9 @@ class CustomPickerField extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    value ?? hintText,
+                    _getDisplayText(),
                     style: TextStyle(
-                      color: value != null
+                      color: _hasSelection()
                           ? AppColors.textPrimary
                           : AppColors.textHint,
                       fontSize: 16,

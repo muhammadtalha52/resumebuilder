@@ -263,3 +263,305 @@ Future<void> showBottomSheetPicker({
     ),
   );
 }
+
+// Multi-select bottom sheet picker widget
+class BottomSheetMultiPicker extends StatefulWidget {
+  final String title;
+  final List<String> items;
+  final List<String> selectedItems;
+  final Function(List<String>) onItemsSelected;
+  final bool enableSearch;
+  final String searchHint;
+  final double maxHeight;
+
+  const BottomSheetMultiPicker({
+    super.key,
+    required this.title,
+    required this.items,
+    required this.selectedItems,
+    required this.onItemsSelected,
+    this.enableSearch = true,
+    this.searchHint = 'Search...',
+    this.maxHeight = 0.7,
+  });
+
+  @override
+  State<BottomSheetMultiPicker> createState() => _BottomSheetMultiPickerState();
+}
+
+class _BottomSheetMultiPickerState extends State<BottomSheetMultiPicker> {
+  late List<String> filteredItems;
+  late List<String> tempSelectedItems;
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    filteredItems = widget.items;
+    tempSelectedItems = List.from(widget.selectedItems);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _filterItems(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        filteredItems = widget.items;
+      } else {
+        filteredItems = widget.items
+            .where((item) => item.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+      }
+    });
+  }
+
+  void _toggleItem(String item) {
+    setState(() {
+      if (tempSelectedItems.contains(item)) {
+        tempSelectedItems.remove(item);
+      } else {
+        tempSelectedItems.add(item);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    return Container(
+      height: screenHeight * widget.maxHeight,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Handle bar
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.grey.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          // Title and Done button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  widget.title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    widget.onItemsSelected(tempSelectedItems);
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                    'Done',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Search bar
+          if (widget.enableSearch) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.grey.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  onChanged: _filterItems,
+                  decoration: InputDecoration(
+                    hintText: widget.searchHint,
+                    hintStyle: TextStyle(
+                      color: AppColors.textSecondary.withValues(alpha: 0.6),
+                      fontSize: 16,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      color: AppColors.textSecondary,
+                    ),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(
+                              Icons.clear,
+                              color: AppColors.textSecondary,
+                            ),
+                            onPressed: () {
+                              _searchController.clear();
+                              _filterItems('');
+                            },
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          const Divider(height: 1),
+
+          // Items list
+          Expanded(
+            child: filteredItems.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 48,
+                          color: AppColors.textSecondary.withValues(alpha: 0.4),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No items found',
+                          style: TextStyle(
+                            color: AppColors.textSecondary.withValues(
+                              alpha: 0.6,
+                            ),
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: filteredItems.length,
+                    itemBuilder: (context, index) {
+                      final item = filteredItems[index];
+                      final isSelected = tempSelectedItems.contains(item);
+
+                      return InkWell(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          _toggleItem(item);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary.withValues(alpha: 0.1)
+                                : Colors.transparent,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : AppColors.textPrimary,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.rectangle,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : AppColors.textSecondary.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                    width: 2,
+                                  ),
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : Colors.transparent,
+                                ),
+                                child: isSelected
+                                    ? const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 16,
+                                      )
+                                    : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Helper function to show the multi-select bottom sheet picker
+Future<void> showBottomSheetMultiPicker({
+  required BuildContext context,
+  required String title,
+  required List<String> items,
+  required List<String> selectedItems,
+  required Function(List<String>) onItemsSelected,
+  bool enableSearch = true,
+  String searchHint = 'Search...',
+  double maxHeight = 0.7,
+}) {
+  return showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => BottomSheetMultiPicker(
+      title: title,
+      items: items,
+      selectedItems: selectedItems,
+      onItemsSelected: onItemsSelected,
+      enableSearch: enableSearch,
+      searchHint: searchHint,
+      maxHeight: maxHeight,
+    ),
+  );
+}

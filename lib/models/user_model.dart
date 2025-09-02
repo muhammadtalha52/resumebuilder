@@ -93,7 +93,7 @@ class User {
     int? signupProgress,
     dynamic resumeFileName,
     int? desiredPayRange,
-    dynamic locationPreferences,
+    List<String>? locationPreferences,
     String? createdAt,
     String? updatedAt,
     int? profileCompletionPercentage,
@@ -209,7 +209,9 @@ class User {
     _signupProgress = json['signup_progress'];
     _resumeFileName = json['resume_file_name'];
     _desiredPayRange = json['desired_pay_range'];
-    _locationPreferences = json['location_preferences'];
+    _locationPreferences = json['location_preferences'] != null
+        ? List<String>.from(json['location_preferences'])
+        : null;
     _createdAt = json['created_at'];
     _updatedAt = json['updated_at'];
     _profileCompletionPercentage = json['profile_completion_percentage'];
@@ -256,7 +258,7 @@ class User {
   int? _signupProgress;
   dynamic _resumeFileName;
   int? _desiredPayRange;
-  dynamic _locationPreferences;
+  List<String>? _locationPreferences;
   String? _createdAt;
   String? _updatedAt;
   int? _profileCompletionPercentage;
@@ -341,7 +343,7 @@ class User {
 
   int? get desiredPayRange => _desiredPayRange;
 
-  dynamic get locationPreferences => _locationPreferences;
+  List<String>? get locationPreferences => _locationPreferences;
 
   String? get createdAt => _createdAt;
 

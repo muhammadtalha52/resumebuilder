@@ -25,7 +25,7 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
 
   List<String> _jobTitles = [];
   List<String> _industries = [];
-  String? _locationPreference;
+  List<String> _locationPreferences = [];
   String? _desiredSalaryRange;
   String? _jobTitlesError;
   String? _industriesError;
@@ -46,7 +46,12 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
         _industries = List.from(careerGoals['industries'] ?? []);
         _longTermGoalsController.text = careerGoals['longTermGoals'] ?? '';
         _desiredSalaryRange = careerGoals['desiredPayRange'];
-        _locationPreference = careerGoals['locationPreference'];
+        _locationPreferences = List.from(
+          careerGoals['locationPreferences'] ??
+                  careerGoals['locationPreference'] != null
+              ? [careerGoals['locationPreference']]
+              : [],
+        );
       });
     }
   }
@@ -262,8 +267,8 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
         hasCustomErrors = true;
       }
 
-      if (_locationPreference == null) {
-        _locationError = 'Please select a location preference';
+      if (_locationPreferences.isEmpty) {
+        _locationError = 'Please select at least one location preference';
         hasCustomErrors = true;
       }
 
@@ -278,7 +283,7 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
         'jobTitles': _jobTitles,
         'industries': _industries,
         'desiredPayRange': _desiredSalaryRange,
-        'locationPreference': _locationPreference,
+        'locationPreferences': _locationPreferences,
         'longTermGoals': _longTermGoalsController.text.trim(),
       });
 
@@ -318,15 +323,16 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
           CustomPickerField(
             labelText: 'Location Preference',
             isRequired: true,
-            value: _locationPreference,
+            selectedValues: _locationPreferences,
             items: const ['On-site', 'Remote', 'Hybrid'],
             hintText: 'Select Options',
             errorText: _locationError,
             enableSearch: false,
             pickerTitle: 'Select Location Preference',
-            onChanged: (value) {
+            isMultiSelect: true,
+            onMultiChanged: (values) {
               setState(() {
-                _locationPreference = value;
+                _locationPreferences = values;
                 _locationError = null;
               });
             },

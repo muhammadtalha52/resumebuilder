@@ -127,6 +127,12 @@ class ProfileScreen extends ConsumerWidget {
             showDivider: true,
           ),
           _buildCareerDetailRow(
+            'assets/icons/work.png',
+            'Location Preferences',
+            _getLocationPreferences(user?.locationPreferences),
+            showDivider: true,
+          ),
+          _buildCareerDetailRow(
             'assets/icons/long-term.png',
             'Long-term Career Goals',
             user?.longTermCareerGoals ?? ['Not provided'],
@@ -768,5 +774,13 @@ class ProfileScreen extends ConsumerWidget {
     }
 
     return combinedSkills;
+  }
+
+  List<String> _getLocationPreferences(List<String>? locationPreferences) {
+    if (locationPreferences == null || locationPreferences.isEmpty) {
+      return ['Not provided'];
+    }
+
+    return locationPreferences;
   }
 }

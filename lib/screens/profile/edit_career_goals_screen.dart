@@ -6,7 +6,8 @@ import '../../constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../utils/snackbar_utils.dart';
-import '../../widgets/common/custom_dropdown.dart';
+import '../../widgets/common/bottom_sheet_picker.dart';
+import '../../widgets/common/custom_picker_field.dart';
 import '../../widgets/common/tag_field.dart';
 
 class EditCareerGoalsScreen extends ConsumerStatefulWidget {
@@ -27,17 +28,17 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
   List<String> _jobTitles = [];
   List<String> _industries = [];
   List<String> _longTermGoals = [];
-  String? _desiredJobType;
+  List<String> _locationPreferences = [];
   String? _jobTitlesError;
   String? _industriesError;
-  String? _jobTypeError;
+  String? _locationError;
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
 
   // Store original values for comparison
   List<String> _originalJobTitles = [];
   List<String> _originalIndustries = [];
   List<String> _originalLongTermGoals = [];
-  String? _originalJobType;
+  List<String> _originalLocationPreferences = [];
 
   @override
   void initState() {
@@ -73,10 +74,12 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
         _originalLongTermGoals = List.from(_longTermGoals);
       }
 
-      // Set job type - defaulting to "Full Time" if not set
-      // You might need to adjust this based on how job type is stored
-      _desiredJobType = 'Full Time'; // Default value as shown in design
-      _originalJobType = _desiredJobType;
+      // Load location preferences
+      if (user.locationPreferences != null &&
+          user.locationPreferences!.isNotEmpty) {
+        _locationPreferences = List.from(user.locationPreferences!);
+        _originalLocationPreferences = List.from(_locationPreferences);
+      }
 
       setState(() {});
     }
@@ -127,12 +130,15 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
       _longTermGoals,
       _originalLongTermGoals,
     );
-    final jobTypeChanged = _desiredJobType != _originalJobType;
+    final locationChanged = !_listEquals(
+      _locationPreferences,
+      _originalLocationPreferences,
+    );
 
     return jobTitlesChanged ||
         industriesChanged ||
         longTermGoalsChanged ||
-        jobTypeChanged;
+        locationChanged;
   }
 
   bool _listEquals(List<String> list1, List<String> list2) {
@@ -149,7 +155,7 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
     setState(() {
       _jobTitlesError = null;
       _industriesError = null;
-      _jobTypeError = null;
+      _locationError = null;
       _autovalidateMode = AutovalidateMode.onUserInteraction;
 
       if (_jobTitles.isEmpty) {
@@ -162,8 +168,8 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
         hasCustomErrors = true;
       }
 
-      if (_desiredJobType == null) {
-        _jobTypeError = 'Please select a job type';
+      if (_locationPreferences.isEmpty) {
+        _locationError = 'Please select at least one location preference';
         hasCustomErrors = true;
       }
     });
@@ -192,10 +198,9 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
         updateData['long_term_career_goals'] = _longTermGoals;
       }
 
-      // Add job type if changed (you might need to adjust the field name)
-      if (_desiredJobType != _originalJobType) {
-        // This field might need to be mapped to the correct API field
-        // updateData['job_type'] = _desiredJobType;
+      // Add location preferences if changed
+      if (!_listEquals(_locationPreferences, _originalLocationPreferences)) {
+        updateData['location_preferences'] = _locationPreferences;
       }
 
       // Use profile provider to update
@@ -323,24 +328,21 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
                               ),
                               const SizedBox(height: 24),
 
-                              // Desired Job Type
-                              CustomStringDropdown(
-                                labelText: 'Desired Job Type',
+                              // Location Preferences
+                              CustomPickerField(
+                                labelText: 'Location Preferences',
                                 isRequired: false,
-                                value: _desiredJobType,
-                                items: const [
-                                  'Full Time',
-                                  'Part Time',
-                                  'Contract',
-                                  'Freelance',
-                                  'Internship',
-                                ],
-                                hintText: 'Select job type',
-                                errorText: _jobTypeError,
-                                onChanged: (value) {
+                                selectedValues: _locationPreferences,
+                                items: const ['On-site', 'Remote', 'Hybrid'],
+                                hintText: 'Select Options',
+                                errorText: _locationError,
+                                enableSearch: false,
+                                pickerTitle: 'Select Location Preferences',
+                                isMultiSelect: true,
+                                onMultiChanged: (values) {
                                   setState(() {
-                                    _desiredJobType = value;
-                                    _jobTypeError = null;
+                                    _locationPreferences = values;
+                                    _locationError = null;
                                   });
                                 },
                               ),

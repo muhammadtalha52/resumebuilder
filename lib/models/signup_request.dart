@@ -277,8 +277,11 @@ class SignUpRequest {
       resumeFileName: null,
       // Not collected in onboarding
       desiredPayRange: null,
-      // Not collected in onboarding
-      locationPreferences: null, // Not collected in onboarding
+      // Extract location preferences from career goals
+      locationPreferences: careerGoals?['locationPreferences'] != null
+          ? (careerGoals!['locationPreferences'] as List<dynamic>)
+                .cast<String>()
+          : null,
     );
   }
 
