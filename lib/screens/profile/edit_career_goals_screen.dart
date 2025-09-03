@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/common/bottom_sheet_picker.dart';
+import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/common/custom_picker_field.dart';
 import '../../widgets/common/tag_field.dart';
 
@@ -227,34 +228,7 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.scaffold,
-      appBar: AppBar(
-        backgroundColor: AppColors.scaffold,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset('assets/icons/fox-mascot.png', height: 35),
-            const SizedBox(width: 8),
-            const Text(
-              'Career Goal & Preference',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-        centerTitle: true,
-      ),
+      appBar: const BackNavigationAppBar(title: 'Career Goal & Preference'),
       body: Stack(
         children: [
           Positioned.fill(

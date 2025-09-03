@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../constants/app_colors.dart';
 
@@ -54,6 +55,20 @@ class AppBarWidgets {
     );
   }
 
+  static Widget foxWithTitle({required String title}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Image.asset('assets/icons/fox-mascot.png', height: 32),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 26),
+        ),
+      ],
+    );
+  }
+
   static Widget backButton({VoidCallback? onPressed}) {
     return Builder(
       builder: (context) => GestureDetector(
@@ -95,4 +110,59 @@ class AppBarWidgets {
       icon: const Icon(Icons.history, color: AppColors.textSecondary, size: 30),
     );
   }
+}
+
+// Custom app bar with back navigation
+class BackNavigationAppBar extends StatelessWidget
+    implements PreferredSizeWidget {
+  final String title;
+  final VoidCallback? onBackPressed;
+  final List<Widget>? actions;
+  final bool showFoxIcon;
+
+  const BackNavigationAppBar({
+    super.key,
+    required this.title,
+    this.onBackPressed,
+    this.actions,
+    this.showFoxIcon = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+      backgroundColor: AppColors.scaffold,
+      elevation: 0,
+      leading: IconButton(
+        onPressed: onBackPressed ?? () => context.pop(),
+        icon: const Icon(
+          Icons.arrow_back_ios_new,
+          color: AppColors.textPrimary,
+        ),
+      ),
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showFoxIcon) ...[
+            Image.asset('assets/icons/fox-mascot.png', height: 35),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+      centerTitle: true,
+      actions: actions,
+    );
+  }
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
