@@ -37,7 +37,13 @@ class ResumeScreen extends ConsumerWidget {
       backgroundColor: AppColors.scaffold,
       appBar: CustomAppBar(
         title: AppBarWidgets.foxWithTitle(title: "Resume"),
-        actions: [AppBarWidgets.historyButton(onPressed: () {})],
+        actions: [
+          AppBarWidgets.historyButton(
+            onPressed: () {
+              context.push('/resume/history');
+            },
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -48,14 +54,14 @@ class ResumeScreen extends ConsumerWidget {
             ),
           ),
           SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Text(
                   'Ready to Out Fox your Resume?',
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary,
                   ),
@@ -65,7 +71,7 @@ class ResumeScreen extends ConsumerWidget {
                 Text(
                   '"Scout the Fox will use AI magic to help you stand out"',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     color: AppColors.textSecondary.withValues(alpha: 0.7),
                   ),
                   textAlign: TextAlign.center,

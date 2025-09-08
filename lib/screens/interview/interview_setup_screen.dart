@@ -23,7 +23,7 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
   final TextEditingController _roleIndustryController = TextEditingController();
 
   String? _selectedSessionType;
-  String? _selectedLanguage;
+  String? _selectedLanguage = 'English'; // Default to English for now
   bool _realTimeTranscription = true;
   bool _liveCoaching = false;
   bool _followUpQuestions = false;
@@ -78,17 +78,17 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
         _jobDescriptionError = 'Please enter job description';
       }
 
-      if (_selectedLanguage == null || _selectedLanguage!.isEmpty) {
-        _languageError = 'Please select a language';
-      }
+      // Language validation commented out - defaulting to English
+      // if (_selectedLanguage == null || _selectedLanguage!.isEmpty) {
+      //   _languageError = 'Please select a language';
+      // }
     });
 
-    // If any errors exist, don't proceed
+    // If any errors exist, don't proceed (language error removed)
     if (_sessionTypeError != null ||
         _roleIndustryError != null ||
         _companyError != null ||
-        _jobDescriptionError != null ||
-        _languageError != null) {
+        _jobDescriptionError != null) {
       return;
     }
 
@@ -145,13 +145,13 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
           ),
         ),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
           child: Column(
             children: [
               const SizedBox(height: 20),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
                   color: AppColors.white,
                   borderRadius: BorderRadius.circular(15),
@@ -279,27 +279,27 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
         ),
         const SizedBox(height: 10),
 
-        // Language Selector
-        GestureDetector(
-          onTap: () {
-            FocusScope.of(context).requestFocus(FocusNode());
-          },
-          child: CustomPickerField(
-            labelText: 'Language Selector',
-            value: _selectedLanguage,
-            items: _languages,
-            hintText: 'Type here or select option',
-            enableSearch: true,
-            errorText: _languageError,
-            onChanged: (value) {
-              FocusScope.of(context).requestFocus(FocusNode());
-              _clearFieldError('language');
-              setState(() {
-                _selectedLanguage = value;
-              });
-            },
-          ),
-        ),
+        // Language Selector - Commented out for now as we only support English
+        // GestureDetector(
+        //   onTap: () {
+        //     FocusScope.of(context).requestFocus(FocusNode());
+        //   },
+        //   child: CustomPickerField(
+        //     labelText: 'Language Selector',
+        //     value: _selectedLanguage,
+        //     items: _languages,
+        //     hintText: 'Type here or select option',
+        //     enableSearch: true,
+        //     errorText: _languageError,
+        //     onChanged: (value) {
+        //       FocusScope.of(context).requestFocus(FocusNode());
+        //       _clearFieldError('language');
+        //       setState(() {
+        //         _selectedLanguage = value;
+        //       });
+        //     },
+        //   ),
+        // ),
       ],
     );
   }

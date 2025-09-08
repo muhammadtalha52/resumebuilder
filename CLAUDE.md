@@ -147,3 +147,37 @@ When creating new screens or features:
 7. Extract reusable widgets
 8. Follow separation of concerns principle
 9. Always use common UI components (textfields, dialogs, snackbars, dropdowns) from widgets and utilities folders to maintain consistency across the app
+
+## Interview Assistant Feature - Real-Time AI Interview Help
+
+### Purpose & Use Case
+The Interview Assistant is a **real-time interview cheat sheet tool** designed to help users during their actual live interviews.
+
+**Real-World Scenario:**
+1. User has a live interview (video call on laptop with speaker mode)
+2. User places phone nearby with the Interview Assistant app open
+3. **Interviewer starts speaking** - asking questions, making small talk, explaining company info, etc.
+4. User clicks the microphone button → app starts listening to **everything the interviewer says**
+5. App continuously transcribes all interviewer speech including:
+   - Casual conversation and context
+   - Actual interview questions
+   - Company information shared
+   - Natural pauses and filler words ("umm", "ahh")
+   - Multi-part questions or explanations
+6. User clicks microphone again (to mute) → stops listening and sends complete transcription to AI
+7. AI processes the full context, understands what was asked, and returns helpful guidance/answers
+8. User sees the AI suggestion on their phone and uses it to formulate their interview response
+
+### Critical Technical Requirements
+- **Continuous Listening**: Must capture EVERYTHING the interviewer says without stopping
+- **No Manual Restarts**: Should never require user to restart listening after pauses
+- **Complete Context Capture**: Transcription must include full context for AI to provide accurate help
+- **Seamless Operation**: Should work silently in background while user focuses on interview
+- **Robust Against Pauses**: Interviewer might speak for 2-3 minutes with natural pauses - system must capture it all
+
+### Technical Implementation Notes
+- This listens to **interviewer speech**, not user speech
+- Speech recognition services have inherent timeout limitations that must be worked around
+- Requires automatic restart mechanism when speech recognition stops due to timeouts
+- Must maintain single growing transcript for complete context
+- Essential for providing accurate AI assistance based on full interview context

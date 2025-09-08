@@ -69,6 +69,20 @@ class AppBarWidgets {
     );
   }
 
+  static Widget foxWithSmallTitle({required String title}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Image.asset('assets/icons/fox-mascot.png', height: 32),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+        ),
+      ],
+    );
+  }
+
   static Widget backButton({VoidCallback? onPressed}) {
     return Builder(
       builder: (context) => GestureDetector(

@@ -14,6 +14,7 @@ import '../screens/profile/edit_education_screen.dart';
 import '../screens/profile/edit_work_experience_screen.dart';
 import '../screens/legal/legal_screen.dart';
 import '../screens/resume/resume_review_screen.dart';
+import '../screens/history/resume_history_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -81,6 +82,10 @@ final GoRouter appRouter = GoRouter(
         final flowType = state.uri.queryParameters['flow'];
         return ResumeReviewScreen(flowType: flowType);
       },
+    ),
+    GoRoute(
+      path: '/resume/history',
+      builder: (context, state) => const ResumeHistoryScreen(),
     ),
   ],
 );

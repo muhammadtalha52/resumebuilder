@@ -33,7 +33,7 @@ class InterviewScreen extends ConsumerWidget {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
           child: Column(
             children: [
               const SizedBox(height: 20),
@@ -79,7 +79,7 @@ class InterviewScreen extends ConsumerWidget {
       'Boost Your Interview\nSkills with Scout',
       textAlign: TextAlign.center,
       style: TextStyle(
-        fontSize: 28,
+        fontSize: 24,
         fontWeight: FontWeight.bold,
         color: AppColors.textPrimary,
         height: 1.2,
@@ -92,7 +92,7 @@ class InterviewScreen extends ConsumerWidget {
       'Set up your session — real-time coaching,\nsmart feedback, and role-based insights\nincluded.',
       textAlign: TextAlign.center,
       style: TextStyle(
-        fontSize: 16,
+        fontSize: 14,
         color: AppColors.textSecondary,
         height: 1.5,
       ),
