@@ -97,7 +97,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                           child: Padding(
-                            padding: const EdgeInsets.all(AppSizes.paddingL),
+                            padding: const EdgeInsets.all(AppSizes.paddingM),
                             child: Form(
                               key: _formKey,
                               child: Column(

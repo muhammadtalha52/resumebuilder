@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,6 +6,8 @@ import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/common/custom_picker_field.dart';
 import '../../widgets/common/custom_text_field.dart';
+import '../../providers/interview_session_provider.dart';
+import '../../providers/auth_provider.dart';
 import 'interview_session_screen.dart';
 
 class InterviewSetupScreen extends ConsumerStatefulWidget {
@@ -41,6 +44,69 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
   final List<String> _languages = ['English'];
 
   @override
+  void initState() {
+    super.initState();
+    // Prefill form fields for testing
+    _selectedSessionType = 'Interview';
+    _roleIndustryController.text = 'Senior Flutter Developer';
+    _companyController.text = 'Proxify';
+    _jobDescriptionController.text =
+        '''Talent has no borders. Proxify's mission is to connect top developers around the world with opportunities they deserve. So, it doesn't matter where you are; we are here to help you fast-track your independent career in the right direction. 🙂
+
+Since our launch, Proxify's developers have successfully worked with 1200+ happy clients to build their products and growth features. 5000+ talented developers trust Proxify and its network to fulfill their dreams and objectives.
+
+Proxify is shaped by a global network of supportive, talented developers interested in remote full-time jobs. Our Glassdoor (4.5/5) and Trustpilot (4.8/5) ratings reflect the trust developers place in us and our commitment to our members' success.
+
+The Role:
+
+We are looking for a Senior Flutter Developer for one of our clients. You are a perfect candidate if you are growth-oriented, you love what you do, and you enjoy working on new ideas to develop exciting products and growth features.
+
+What we are looking for:
+
+* 3 years of concentrated experience in Flutter
+* 5+ years of experience in software development with a robust background in any framework/language/OS such as React Native, iOS (Swift), Android (Kotlin)
+* Proven track record of deploying applications on Google Play/App Store using Flutter.
+* Profound knowledge of front-end languages like HTML, CSS3, and JavaScript.
+* Comprehensive understanding of Object-Oriented programming languages like Java and C++.
+* Experience with version control tools (Git, Subversion, etc.) and IDEs (Android Studio, VS Code, etc.).
+* A commitment to following best practices and conventions in software development.
+* Ability to work independently with minimal supervision.
+* Intermediate-advanced English level, with excellent communication skills for both technical and non-technical clients.
+* Located in CET timezone (+/- 3 hours), we are unable to consider applications from candidates in other time zones.
+
+Responsibilities:
+
+* You will be building and shipping robust apps to Android/ iOS devices (using a single codebase).
+* You will be running and designing product application features across various cross platform devices.
+* You will be writing readable and clear code that will be extensively documented for future use and upgrades.
+* You will be sharing feedback and brainstorming ideas with teams to improve the development process.
+* You will put effort in staying up-to-date with the latest technologies.
+
+What we offer:
+
+Get paid, not played
+No more unreliable clients. Enjoy on-time monthly payments with flexible withdrawal options.
+
+Predictable project hours
+Enjoy a harmonious work-life balance with consistent 8-hour working days with clients.
+
+Flex days, so you can recharge
+Enjoy up to 24 flex days off per year without losing pay, for full-time positions found through Proxify.
+
+Career-accelerating positions at cutting-edge companies
+Discover exclusive long-term remote positions at the world's most exciting companies.
+
+Hand-picked opportunities, just for you
+Skip the typical recruitment roadblocks and biases with personally matched positions.
+
+One seamless process, multiple opportunities
+A one-time contracting process for endless opportunities, with no extra assessments.
+
+Compensation
+Enjoy the same pay, every month with positions landed through Proxify.''';
+  }
+
+  @override
   void dispose() {
     _companyController.dispose();
     _jobDescriptionController.dispose();
@@ -52,7 +118,7 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
     FocusScope.of(context).requestFocus(FocusNode());
   }
 
-  void _validateAndContinue() {
+  Future<void> _validateAndContinue() async {
     setState(() {
       // Clear all errors first
       _sessionTypeError = null;
@@ -92,22 +158,63 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
       return;
     }
 
-    // All validation passed, navigate to next screen
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => InterviewSessionScreen(
-          sessionType: _selectedSessionType!,
-          roleIndustry: _roleIndustryController.text.trim(),
-          company: _companyController.text.trim(),
-          jobDescription: _jobDescriptionController.text.trim(),
-          language: _selectedLanguage!,
-          realTimeTranscription: _realTimeTranscription,
-          liveCoaching: _liveCoaching,
-          followUpQuestions: _followUpQuestions,
-          summaryGeneration: _summaryGeneration,
-        ),
-      ),
+    // All validation passed, start API integration
+    final sessionNotifier = ref.read(interviewSessionProvider.notifier);
+
+    // Get user data from auth provider and convert to JSON string
+    final authState = ref.read(authProvider);
+    String? resumeText;
+    if (authState.user != null) {
+      resumeText = jsonEncode(authState.user!.toJson());
+      print(
+        '[SETUP] User data converted to JSON for resume_text (${resumeText.length} chars)',
+      );
+    }
+
+    // Call API to start session
+    final success = await sessionNotifier.startSessionWithAPI(
+      sessionType: _selectedSessionType!.toLowerCase(),
+      // Convert to lowercase for API
+      role: _roleIndustryController.text.trim(),
+      companyName: _companyController.text.trim(),
+      jobDescription: _jobDescriptionController.text.trim(),
+      language: "en",
+      // Hard-coded to English for now
+      resumeText: resumeText, // Pass user data as JSON string
     );
+
+    if (success) {
+      // API call successful, navigate to session screen
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => InterviewSessionScreen(
+            sessionType: _selectedSessionType!,
+            roleIndustry: _roleIndustryController.text.trim(),
+            company: _companyController.text.trim(),
+            jobDescription: _jobDescriptionController.text.trim(),
+            language: _selectedLanguage!,
+            realTimeTranscription: _realTimeTranscription,
+            liveCoaching: _liveCoaching,
+            followUpQuestions: _followUpQuestions,
+            summaryGeneration: _summaryGeneration,
+          ),
+        ),
+      );
+    } else {
+      // API call failed, show error dialog or snackbar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              ref.read(interviewSessionProvider).error ??
+                  'Failed to start session',
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
   }
 
   void _clearFieldError(String field) {
@@ -498,23 +605,49 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
   }
 
   Widget _buildStartSessionButton() {
+    final sessionData = ref.watch(interviewSessionProvider);
+    final isLoading = sessionData.isStartingSession;
+
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: _validateAndContinue,
+        onPressed: isLoading ? null : _validateAndContinue,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: isLoading
+              ? AppColors.primary.withOpacity(0.6)
+              : AppColors.primary,
           foregroundColor: AppColors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
           elevation: 0,
         ),
-        child: const Text(
-          'Continue',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
+        child: isLoading
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.white,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    'Starting Session...',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              )
+            : const Text(
+                'Continue',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
       ),
     );
   }

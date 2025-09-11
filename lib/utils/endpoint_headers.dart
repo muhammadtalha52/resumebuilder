@@ -14,4 +14,5 @@ class ApiEndpoints {
   static const String uploadProfilePhoto = '/auth/upload-profile-image/';
   static const String educationData =
       '/resume/degree-types-subject-institutes/';
+  static const String sessionStart = '/session/start';
 }
