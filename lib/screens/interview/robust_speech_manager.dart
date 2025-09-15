@@ -59,7 +59,13 @@ class RobustSpeechManager extends ChangeNotifier {
     _setState(ListeningState.initializing);
     _log('Initializing speech recognition...');
 
+    // Test permission status first
+    final hasPermission = await _speech.hasPermission;
+    _log('Permission status before initialize: $hasPermission');
+
     try {
+      // Let speech_to_text handle permission requests during initialize()
+      _log('Calling speech_to_text initialize...');
       final available = await _speech.initialize(
         onStatus: _handleStatus,
         onError: _handleError,
@@ -128,14 +134,14 @@ class RobustSpeechManager extends ChangeNotifier {
         _handleChunkComplete();
       });
 
-      // Start listening with conservative settings
+      // Start listening with balanced settings for both direct speech and speaker audio
       await _speech.listen(
         onResult: _handleResult,
         listenFor: Duration(seconds: SAFE_CHUNK_DURATION + 2),
-        pauseFor: Duration(seconds: 3),
+        pauseFor: Duration(seconds: 2), // Balanced pause duration
         partialResults: true,
-        onDevice: false,
-        listenMode: stt.ListenMode.confirmation,
+        onDevice: false, // Cloud processing for better accuracy
+        listenMode: stt.ListenMode.dictation, // More flexible than confirmation
         cancelOnError: false,
       );
 

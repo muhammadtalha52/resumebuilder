@@ -5,7 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../constants/app_colors.dart';
 import '../../models/conversation_models.dart';
-import '../../providers/interview_session_provider.dart';
+import '../../providers/continuous_transcription_provider.dart';
 
 class InterviewSessionScreen extends ConsumerWidget {
   final String sessionType;
@@ -33,8 +33,24 @@ class InterviewSessionScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sessionData = ref.watch(interviewSessionProvider);
-    final sessionNotifier = ref.read(interviewSessionProvider.notifier);
+    final sessionData = ref.watch(continuousTranscriptionProvider);
+    final sessionNotifier = ref.read(continuousTranscriptionProvider.notifier);
+
+    // Auto-transition to listening if we have session ID but are in idle state
+    // This happens when coming from setup screen after startSessionWithAPI
+    if (sessionData.sessionId != null &&
+        sessionData.sessionId!.isNotEmpty &&
+        sessionData.state == InterviewSessionState.idle) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        print(
+          '[AUTO-TRANSITION] Session ID exists but in idle state, transitioning to listening',
+        );
+        print('[AUTO-TRANSITION] Session ID: ${sessionData.sessionId}');
+        // Don't call startSession() as that would reset the session
+        // Just transition to listening state and start audio transcription
+        sessionNotifier.transitionToListening();
+      });
+    }
 
     // Check for permission dialog
     if (sessionData.error == 'PERMISSION_DENIED_DIALOG') {
@@ -187,7 +203,7 @@ class InterviewSessionScreen extends ConsumerWidget {
 
                   // Start button for idle state
                   if (sessionData.state == InterviewSessionState.idle)
-                    _buildStartSessionButton(sessionNotifier),
+                    _buildStartSessionButton(ref, sessionNotifier),
                 ],
               ),
             ),
@@ -200,7 +216,7 @@ class InterviewSessionScreen extends ConsumerWidget {
   // Main content area - changes based on session state
   Widget _buildSessionContent(
     InterviewSessionData sessionData,
-    InterviewSessionNotifier sessionNotifier,
+    ContinuousTranscriptionNotifier sessionNotifier,
   ) {
     switch (sessionData.state) {
       case InterviewSessionState.idle:
@@ -251,7 +267,7 @@ class InterviewSessionScreen extends ConsumerWidget {
   // Help popup content - show separate transcription and conversation areas
   Widget _buildHelpContent(
     InterviewSessionData sessionData,
-    InterviewSessionNotifier sessionNotifier,
+    ContinuousTranscriptionNotifier sessionNotifier,
   ) {
     return Column(
       children: [
@@ -275,11 +291,11 @@ class InterviewSessionScreen extends ConsumerWidget {
   Widget _buildBottomSection(
     WidgetRef ref,
     InterviewSessionData sessionData,
-    InterviewSessionNotifier sessionNotifier,
+    ContinuousTranscriptionNotifier sessionNotifier,
   ) {
     switch (sessionData.state) {
       case InterviewSessionState.idle:
-        return _buildStartSessionButton(sessionNotifier);
+        return _buildStartSessionButton(ref, sessionNotifier);
       case InterviewSessionState.paused:
         return _buildPausedStatus();
       case InterviewSessionState.listening:
@@ -291,7 +307,11 @@ class InterviewSessionScreen extends ConsumerWidget {
     }
   }
 
-  Widget _buildStartSessionButton(InterviewSessionNotifier sessionNotifier) {
+  Widget _buildStartSessionButton(
+    WidgetRef ref,
+    ContinuousTranscriptionNotifier sessionNotifier,
+  ) {
+    final sessionData = ref.watch(continuousTranscriptionProvider);
     return Container(
       width: double.infinity,
       height: 56,
@@ -300,7 +320,35 @@ class InterviewSessionScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: ElevatedButton(
-        onPressed: () => sessionNotifier.startSession(),
+        onPressed: () async {
+          // Check if we already have a session ID from startSessionWithAPI
+          if (sessionData.sessionId != null) {
+            print(
+              '[START-BTN] Session ID exists, starting audio transcription only',
+            );
+            await sessionNotifier.startSession();
+          } else {
+            print('[START-BTN] No session ID, need to start with API first');
+            // Start session with API using the screen parameters
+            final success = await sessionNotifier.startSessionWithAPI(
+              sessionType: sessionType.toLowerCase(),
+              role: roleIndustry,
+              companyName: company,
+              jobDescription: jobDescription,
+              language: "en",
+              resumeText: null, // Could be enhanced to pass user data
+            );
+
+            if (success) {
+              print(
+                '[START-BTN] API session started, now starting audio transcription',
+              );
+              await sessionNotifier.startSession();
+            } else {
+              print('[START-BTN] Failed to start API session');
+            }
+          }
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1A237E),
           foregroundColor: AppColors.white,
@@ -324,7 +372,9 @@ class InterviewSessionScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildListeningStatus(InterviewSessionNotifier sessionNotifier) {
+  Widget _buildListeningStatus(
+    ContinuousTranscriptionNotifier sessionNotifier,
+  ) {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
@@ -453,7 +503,7 @@ class InterviewSessionScreen extends ConsumerWidget {
   // Show permission dialog when Scout needs microphone access
   void _showPermissionDialog(
     BuildContext context,
-    InterviewSessionNotifier sessionNotifier,
+    ContinuousTranscriptionNotifier sessionNotifier,
   ) {
     // Clear the dialog error first
     sessionNotifier.clearError();
@@ -825,31 +875,33 @@ class _TranscriptSectionState extends ConsumerState<TranscriptSection> {
   @override
   Widget build(BuildContext context) {
     // Listen for transcript changes and auto-scroll
-    ref.listen(interviewSessionProvider.select((data) => data.fullTranscript), (
-      previous,
-      current,
-    ) {
-      if (current.length > _lastTranscript.length) {
-        _lastTranscript = current;
-        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-      }
-    });
+    ref.listen(
+      continuousTranscriptionProvider.select((data) => data.fullTranscript),
+      (previous, current) {
+        if (current.length > _lastTranscript.length) {
+          _lastTranscript = current;
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _scrollToBottom(),
+          );
+        }
+      },
+    );
 
     // Watch only the data we need
     final fullTranscript = ref.watch(
-      interviewSessionProvider.select((data) => data.fullTranscript),
+      continuousTranscriptionProvider.select((data) => data.fullTranscript),
     );
-    final currentTranscription = ref.watch(
-      interviewSessionProvider.select((data) => data.currentTranscription),
+    final latestSegment = ref.watch(
+      continuousTranscriptionProvider.select((data) => data.latestSegment),
     );
-    final sessionState = ref.watch(
-      interviewSessionProvider.select((data) => data.state),
+    final transcriptionState = ref.watch(
+      continuousTranscriptionProvider.select((data) => data.transcriptionState),
     );
 
     // Check if we have any content to show
     final hasFullTranscript = fullTranscript.isNotEmpty;
-    final hasLiveTranscription =
-        currentTranscription != null && currentTranscription.isNotEmpty;
+    final hasLatestSegment = latestSegment.isNotEmpty;
+    final isRecording = transcriptionState == TranscriptionState.recording;
 
     return Container(
       height: 150,
@@ -900,7 +952,7 @@ class _TranscriptSectionState extends ConsumerState<TranscriptSection> {
 
           // Content area
           Expanded(
-            child: !hasFullTranscript && !hasLiveTranscription
+            child: !hasFullTranscript && !hasLatestSegment
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -940,8 +992,8 @@ class _TranscriptSectionState extends ConsumerState<TranscriptSection> {
                             ),
                           ),
 
-                        // Live transcription (currently being spoken)
-                        if (hasLiveTranscription) ...[
+                        // Latest transcribed segment (highlighted)
+                        if (hasLatestSegment) ...[
                           if (hasFullTranscript) const SizedBox(height: 8),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -952,15 +1004,25 @@ class _TranscriptSectionState extends ConsumerState<TranscriptSection> {
                                 child: _PulsingDot(),
                               ),
                               const SizedBox(width: 8),
-                              // Live transcription
+                              // Latest segment (highlighted)
                               Expanded(
-                                child: Text(
-                                  currentTranscription,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.blue.withValues(alpha: 0.8),
-                                    height: 1.4,
-                                    fontWeight: FontWeight.w500,
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    latestSegment,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.lightBlueAccent,
+                                      height: 1.4,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -968,9 +1030,8 @@ class _TranscriptSectionState extends ConsumerState<TranscriptSection> {
                           ),
                         ],
 
-                        // Show listening indicator when recording but no current transcription
-                        if (sessionState == InterviewSessionState.recording &&
-                            !hasLiveTranscription) ...[
+                        // Show listening indicator when recording but no latest segment
+                        if (isRecording && !hasLatestSegment) ...[
                           if (hasFullTranscript) const SizedBox(height: 8),
                           Row(
                             children: [
