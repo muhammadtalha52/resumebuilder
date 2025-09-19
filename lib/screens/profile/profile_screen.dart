@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/education_data_provider.dart';
-import '../../utils/snackbar_utils.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/common/tag_list.dart';
 import '../../widgets/dialogs/confirmation_dialog.dart';
@@ -117,25 +116,25 @@ class ProfileScreen extends ConsumerWidget {
           _buildCareerDetailRow(
             'assets/icons/goals.png',
             'Desired Job Titles',
-            user?.desiredJobTitles ?? ['Not provided'],
+            _extractJobTitles(user?.desiredJobTitles),
             showDivider: true,
           ),
           _buildCareerDetailRow(
             'assets/icons/industry.png',
             'Industry Preferences',
-            user?.industryPreferences ?? ['Not provided'],
+            _extractIndustryPreferences(user?.industryPreferences),
             showDivider: true,
           ),
           _buildCareerDetailRow(
             'assets/icons/work.png',
             'Location Preferences',
-            _getLocationPreferences(user?.locationPreferences),
+            _extractLocationPreferences(user?.locationPreferences),
             showDivider: true,
           ),
           _buildCareerDetailRow(
             'assets/icons/long-term.png',
             'Long-term Career Goals',
-            user?.longTermCareerGoals ?? ['Not provided'],
+            _extractCareerGoals(user?.careerGoals),
             showDivider: false,
           ),
         ],
@@ -227,13 +226,13 @@ class ProfileScreen extends ConsumerWidget {
           _buildCareerDetailRow(
             'assets/icons/hard-soft-skills.png',
             'Hard Skills, Soft Skills',
-            _combineSkills(user?.hardSkills, user?.softSkills),
+            _extractAndCombineSkills(user?.hardSkills, user?.softSkills),
             showDivider: true,
           ),
           _buildCareerDetailRow(
             'assets/icons/tools-tech.png',
             'Tools/Technologies',
-            user?.toolsTechnologies ?? ['Not provided'],
+            _extractToolsTechnologies(user?.toolsTechnologies),
             showDivider: false,
           ),
         ],
@@ -255,21 +254,19 @@ class ProfileScreen extends ConsumerWidget {
           _buildCareerDetailRow(
             'assets/icons/language-line.png',
             'Languages',
-            user?.languages ?? ['Not provided'],
+            _extractLanguages(user?.languages),
             showDivider: true,
           ),
           _buildDetailRowWithDivider(
             'assets/icons/goals.png',
             'Volunteer Work',
-            (user?.volunteerWork != null && user!.volunteerWork!.isNotEmpty)
-                ? user.volunteerWork!.join(', ')
-                : 'Not provided',
+            _extractVolunteerWork(user?.volunteerWork),
             showDivider: true,
           ),
           _buildCareerDetailRow(
             'assets/icons/industry.png',
             'Hobbies & Interests',
-            user?.hobbiesInterests ?? ['Not provided'],
+            _extractHobbiesInterests(user?.hobbiesInterests),
             showDivider: true,
           ),
           _buildDetailRowWithDivider(
@@ -646,20 +643,6 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  List<String> _parseCommaSeparatedString(String? input) {
-    if (input == null || input.trim().isEmpty) {
-      return ['Not provided'];
-    }
-
-    final parsed = input
-        .split(',')
-        .map((item) => item.trim())
-        .where((item) => item.isNotEmpty)
-        .toList();
-
-    return parsed.isEmpty ? ['Not provided'] : parsed;
-  }
-
   String _formatDegreeText(String? degreeType, String? major) {
     if (degreeType == null || degreeType.isEmpty) {
       return 'Not provided';
@@ -670,18 +653,6 @@ class ProfileScreen extends ConsumerWidget {
     }
 
     return '$degreeType in $major';
-  }
-
-  List<String> _parseCommaSeparatedStringToList(String? input) {
-    if (input == null || input.trim().isEmpty) {
-      return [];
-    }
-
-    return input
-        .split(',')
-        .map((item) => item.trim())
-        .where((item) => item.isNotEmpty)
-        .toList();
   }
 
   List<Map<String, String?>> _createWorkExperienceEntriesFromArray(
@@ -760,27 +731,109 @@ class ProfileScreen extends ConsumerWidget {
     return months[month - 1];
   }
 
-  List<String> _combineSkills(
-    List<String>? hardSkills,
-    List<String>? softSkills,
-  ) {
-    final hardSkillsList = hardSkills ?? [];
-    final softSkillsList = softSkills ?? [];
-
-    final combinedSkills = [...hardSkillsList, ...softSkillsList];
-
-    if (combinedSkills.isEmpty) {
+  // Helper functions for extracting data from new object structures
+  List<String> _extractJobTitles(List<dynamic>? desiredJobTitles) {
+    if (desiredJobTitles == null || desiredJobTitles.isEmpty) {
       return ['Not provided'];
     }
-
-    return combinedSkills;
+    return desiredJobTitles
+        .map((job) => job.title ?? 'Unknown')
+        .cast<String>()
+        .toList();
   }
 
-  List<String> _getLocationPreferences(List<String>? locationPreferences) {
+  List<String> _extractIndustryPreferences(List<dynamic>? industryPreferences) {
+    if (industryPreferences == null || industryPreferences.isEmpty) {
+      return ['Not provided'];
+    }
+    return industryPreferences
+        .map((industry) => industry.industry ?? 'Unknown')
+        .cast<String>()
+        .toList();
+  }
+
+  List<String> _extractCareerGoals(List<dynamic>? careerGoals) {
+    if (careerGoals == null || careerGoals.isEmpty) {
+      return ['Not provided'];
+    }
+    return careerGoals
+        .map((goal) => goal.goal ?? 'Unknown')
+        .cast<String>()
+        .toList();
+  }
+
+  List<String> _extractAndCombineSkills(
+    List<dynamic>? hardSkills,
+    List<dynamic>? softSkills,
+  ) {
+    final List<String> combined = [];
+
+    if (hardSkills != null) {
+      combined.addAll(
+        hardSkills.map((skill) => skill.skill ?? 'Unknown').cast<String>(),
+      );
+    }
+
+    if (softSkills != null) {
+      combined.addAll(
+        softSkills.map((skill) => skill.skill ?? 'Unknown').cast<String>(),
+      );
+    }
+
+    return combined.isEmpty ? ['Not provided'] : combined;
+  }
+
+  List<String> _extractToolsTechnologies(List<dynamic>? toolsTechnologies) {
+    if (toolsTechnologies == null || toolsTechnologies.isEmpty) {
+      return ['Not provided'];
+    }
+    return toolsTechnologies
+        .map((tool) => tool.tool ?? 'Unknown')
+        .cast<String>()
+        .toList();
+  }
+
+  List<String> _extractLanguages(List<dynamic>? languages) {
+    if (languages == null || languages.isEmpty) {
+      return ['Not provided'];
+    }
+    return languages
+        .map((language) => language.language ?? 'Unknown')
+        .cast<String>()
+        .toList();
+  }
+
+  String _extractVolunteerWork(List<dynamic>? volunteerWork) {
+    if (volunteerWork == null || volunteerWork.isEmpty) {
+      return 'Not provided';
+    }
+
+    final workDescriptions = volunteerWork.map((work) {
+      final role = work.role ?? 'Volunteer';
+      final organization = work.organization ?? 'Unknown organization';
+      return '$role at $organization';
+    }).toList();
+
+    return workDescriptions.join(', ');
+  }
+
+  List<String> _extractHobbiesInterests(List<dynamic>? hobbiesInterests) {
+    if (hobbiesInterests == null || hobbiesInterests.isEmpty) {
+      return ['Not provided'];
+    }
+    return hobbiesInterests
+        .map((hobby) => hobby.hobbyInterest ?? 'Unknown')
+        .cast<String>()
+        .toList();
+  }
+
+  List<String> _extractLocationPreferences(List<dynamic>? locationPreferences) {
     if (locationPreferences == null || locationPreferences.isEmpty) {
       return ['Not provided'];
     }
-
-    return locationPreferences;
+    return locationPreferences
+        .map((location) => location.location ?? 'Unknown')
+        .cast<String>()
+        .toList();
   }
 }

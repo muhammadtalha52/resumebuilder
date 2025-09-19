@@ -1,3 +1,300 @@
+class DesiredJobTitle {
+  final int? id;
+  final String? title;
+  final String? createdAt;
+
+  DesiredJobTitle({this.id, this.title, this.createdAt});
+
+  factory DesiredJobTitle.fromJson(Map<String, dynamic> json) {
+    return DesiredJobTitle(
+      id: json['id'],
+      title: json['title'],
+      createdAt: json['created_at'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'title': title, 'created_at': createdAt};
+  }
+}
+
+class IndustryPreference {
+  final int? id;
+  final String? industry;
+  final String? createdAt;
+
+  IndustryPreference({this.id, this.industry, this.createdAt});
+
+  factory IndustryPreference.fromJson(Map<String, dynamic> json) {
+    return IndustryPreference(
+      id: json['id'],
+      industry: json['industry'],
+      createdAt: json['created_at'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'industry': industry, 'created_at': createdAt};
+  }
+}
+
+class CareerGoal {
+  final int? id;
+  final String? goal;
+  final String? createdAt;
+
+  CareerGoal({this.id, this.goal, this.createdAt});
+
+  factory CareerGoal.fromJson(Map<String, dynamic> json) {
+    return CareerGoal(
+      id: json['id'],
+      goal: json['goal'],
+      createdAt: json['created_at'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'goal': goal, 'created_at': createdAt};
+  }
+}
+
+class HardSkill {
+  final int? id;
+  final String? skill;
+  final String? proficiencyLevel;
+  final String? createdAt;
+
+  HardSkill({this.id, this.skill, this.proficiencyLevel, this.createdAt});
+
+  factory HardSkill.fromJson(Map<String, dynamic> json) {
+    return HardSkill(
+      id: json['id'],
+      skill: json['skill'],
+      proficiencyLevel: json['proficiency_level'],
+      createdAt: json['created_at'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'skill': skill,
+      'proficiency_level': proficiencyLevel,
+      'created_at': createdAt,
+    };
+  }
+}
+
+class SoftSkill {
+  final int? id;
+  final String? skill;
+  final String? proficiencyLevel;
+  final String? createdAt;
+
+  SoftSkill({this.id, this.skill, this.proficiencyLevel, this.createdAt});
+
+  factory SoftSkill.fromJson(Map<String, dynamic> json) {
+    return SoftSkill(
+      id: json['id'],
+      skill: json['skill'],
+      proficiencyLevel: json['proficiency_level'],
+      createdAt: json['created_at'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'skill': skill,
+      'proficiency_level': proficiencyLevel,
+      'created_at': createdAt,
+    };
+  }
+}
+
+class ToolTechnology {
+  final int? id;
+  final String? tool;
+  final String? proficiencyLevel;
+  final int? yearsExperience;
+  final String? createdAt;
+
+  ToolTechnology({
+    this.id,
+    this.tool,
+    this.proficiencyLevel,
+    this.yearsExperience,
+    this.createdAt,
+  });
+
+  factory ToolTechnology.fromJson(Map<String, dynamic> json) {
+    return ToolTechnology(
+      id: json['id'],
+      tool: json['tool'],
+      proficiencyLevel: json['proficiency_level'],
+      yearsExperience: json['years_experience'],
+      createdAt: json['created_at'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'tool': tool,
+      'proficiency_level': proficiencyLevel,
+      'years_experience': yearsExperience,
+      'created_at': createdAt,
+    };
+  }
+}
+
+class Language {
+  final int? id;
+  final String? language;
+  final String? proficiencyLevel;
+  final bool? isNative;
+  final String? createdAt;
+
+  Language({
+    this.id,
+    this.language,
+    this.proficiencyLevel,
+    this.isNative,
+    this.createdAt,
+  });
+
+  factory Language.fromJson(Map<String, dynamic> json) {
+    return Language(
+      id: json['id'],
+      language: json['language'],
+      proficiencyLevel: json['proficiency_level'],
+      isNative: json['is_native'],
+      createdAt: json['created_at'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'language': language,
+      'proficiency_level': proficiencyLevel,
+      'is_native': isNative,
+      'created_at': createdAt,
+    };
+  }
+}
+
+class VolunteerWork {
+  final int? id;
+  final String? organization;
+  final String? role;
+  final String? description;
+  final String? startDate;
+  final String? endDate;
+  final bool? isCurrent;
+  final String? createdAt;
+
+  VolunteerWork({
+    this.id,
+    this.organization,
+    this.role,
+    this.description,
+    this.startDate,
+    this.endDate,
+    this.isCurrent,
+    this.createdAt,
+  });
+
+  factory VolunteerWork.fromJson(Map<String, dynamic> json) {
+    return VolunteerWork(
+      id: json['id'],
+      organization: json['organization'],
+      role: json['role'],
+      description: json['description'],
+      startDate: json['start_date'],
+      endDate: json['end_date'],
+      isCurrent: json['is_current'],
+      createdAt: json['created_at'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'organization': organization,
+      'role': role,
+      'description': description,
+      'start_date': startDate,
+      'end_date': endDate,
+      'is_current': isCurrent,
+      'created_at': createdAt,
+    };
+  }
+}
+
+class HobbyInterest {
+  final int? id;
+  final String? hobbyInterest;
+  final String? category;
+  final String? createdAt;
+
+  HobbyInterest({this.id, this.hobbyInterest, this.category, this.createdAt});
+
+  factory HobbyInterest.fromJson(Map<String, dynamic> json) {
+    return HobbyInterest(
+      id: json['id'],
+      hobbyInterest: json['hobby_interest'],
+      category: json['category'],
+      createdAt: json['created_at'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'hobby_interest': hobbyInterest,
+      'category': category,
+      'created_at': createdAt,
+    };
+  }
+}
+
+class LocationPreference {
+  final int? id;
+  final String? location;
+  final String? locationType;
+  final bool? isRemoteOk;
+  final String? createdAt;
+
+  LocationPreference({
+    this.id,
+    this.location,
+    this.locationType,
+    this.isRemoteOk,
+    this.createdAt,
+  });
+
+  factory LocationPreference.fromJson(Map<String, dynamic> json) {
+    return LocationPreference(
+      id: json['id'],
+      location: json['location'],
+      locationType: json['location_type'],
+      isRemoteOk: json['is_remote_ok'],
+      createdAt: json['created_at'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'location': location,
+      'location_type': locationType,
+      'is_remote_ok': isRemoteOk,
+      'created_at': createdAt,
+    };
+  }
+}
+
 class UserWorkExperience {
   final int? id;
   final String? jobTitle;
@@ -71,21 +368,21 @@ class User {
     String? linkedinUrl,
     String? githubUrl,
     String? portfolioUrl,
-    List<String>? desiredJobTitles,
-    List<String>? industryPreferences,
-    List<String>? longTermCareerGoals,
+    List<DesiredJobTitle>? desiredJobTitles,
+    List<IndustryPreference>? industryPreferences,
+    List<CareerGoal>? careerGoals,
     int? degreeType,
     int? major,
     int? institution,
     String? graduationDate,
     int? certificationsTraining,
     List<UserWorkExperience>? workExperience,
-    List<String>? hardSkills,
-    List<String>? softSkills,
-    List<String>? toolsTechnologies,
-    List<String>? languages,
-    List<String>? volunteerWork,
-    List<String>? hobbiesInterests,
+    List<HardSkill>? hardSkills,
+    List<SoftSkill>? softSkills,
+    List<ToolTechnology>? toolsTechnologies,
+    List<Language>? languages,
+    List<VolunteerWork>? volunteerWork,
+    List<HobbyInterest>? hobbiesInterests,
     String? references,
     dynamic profileImage,
     bool? isProfileComplete,
@@ -93,7 +390,7 @@ class User {
     int? signupProgress,
     dynamic resumeFileName,
     int? desiredPayRange,
-    List<String>? locationPreferences,
+    List<LocationPreference>? locationPreferences,
     String? createdAt,
     String? updatedAt,
     int? profileCompletionPercentage,
@@ -119,7 +416,7 @@ class User {
     _portfolioUrl = portfolioUrl;
     _desiredJobTitles = desiredJobTitles;
     _industryPreferences = industryPreferences;
-    _longTermCareerGoals = longTermCareerGoals;
+    _careerGoals = careerGoals;
     _degreeType = degreeType;
     _major = major;
     _institution = institution;
@@ -166,13 +463,19 @@ class User {
     _githubUrl = json['github_url'];
     _portfolioUrl = json['portfolio_url'];
     _desiredJobTitles = json['desired_job_titles'] != null
-        ? List<String>.from(json['desired_job_titles'])
+        ? (json['desired_job_titles'] as List)
+              .map((e) => DesiredJobTitle.fromJson(e))
+              .toList()
         : null;
     _industryPreferences = json['industry_preferences'] != null
-        ? List<String>.from(json['industry_preferences'])
+        ? (json['industry_preferences'] as List)
+              .map((e) => IndustryPreference.fromJson(e))
+              .toList()
         : null;
-    _longTermCareerGoals = json['long_term_career_goals'] != null
-        ? List<String>.from(json['long_term_career_goals'])
+    _careerGoals = json['career_goals'] != null
+        ? (json['career_goals'] as List)
+              .map((e) => CareerGoal.fromJson(e))
+              .toList()
         : null;
     _degreeType = json['degree_type'];
     _major = json['major'];
@@ -185,22 +488,32 @@ class User {
               .toList()
         : null;
     _hardSkills = json['hard_skills'] != null
-        ? List<String>.from(json['hard_skills'])
+        ? (json['hard_skills'] as List)
+              .map((e) => HardSkill.fromJson(e))
+              .toList()
         : null;
     _softSkills = json['soft_skills'] != null
-        ? List<String>.from(json['soft_skills'])
+        ? (json['soft_skills'] as List)
+              .map((e) => SoftSkill.fromJson(e))
+              .toList()
         : null;
     _toolsTechnologies = json['tools_technologies'] != null
-        ? List<String>.from(json['tools_technologies'])
+        ? (json['tools_technologies'] as List)
+              .map((e) => ToolTechnology.fromJson(e))
+              .toList()
         : null;
     _languages = json['languages'] != null
-        ? List<String>.from(json['languages'])
+        ? (json['languages'] as List).map((e) => Language.fromJson(e)).toList()
         : null;
     _volunteerWork = json['volunteer_work'] != null
-        ? List<String>.from(json['volunteer_work'])
+        ? (json['volunteer_work'] as List)
+              .map((e) => VolunteerWork.fromJson(e))
+              .toList()
         : null;
     _hobbiesInterests = json['hobbies_interests'] != null
-        ? List<String>.from(json['hobbies_interests'])
+        ? (json['hobbies_interests'] as List)
+              .map((e) => HobbyInterest.fromJson(e))
+              .toList()
         : null;
     _references = json['references'];
     _profileImage = json['profile_image'];
@@ -210,7 +523,9 @@ class User {
     _resumeFileName = json['resume_file_name'];
     _desiredPayRange = json['desired_pay_range'];
     _locationPreferences = json['location_preferences'] != null
-        ? List<String>.from(json['location_preferences'])
+        ? (json['location_preferences'] as List)
+              .map((e) => LocationPreference.fromJson(e))
+              .toList()
         : null;
     _createdAt = json['created_at'];
     _updatedAt = json['updated_at'];
@@ -236,21 +551,21 @@ class User {
   String? _linkedinUrl;
   String? _githubUrl;
   String? _portfolioUrl;
-  List<String>? _desiredJobTitles;
-  List<String>? _industryPreferences;
-  List<String>? _longTermCareerGoals;
+  List<DesiredJobTitle>? _desiredJobTitles;
+  List<IndustryPreference>? _industryPreferences;
+  List<CareerGoal>? _careerGoals;
   int? _degreeType;
   int? _major;
   int? _institution;
   String? _graduationDate;
   int? _certificationsTraining;
   List<UserWorkExperience>? _workExperience;
-  List<String>? _hardSkills;
-  List<String>? _softSkills;
-  List<String>? _toolsTechnologies;
-  List<String>? _languages;
-  List<String>? _volunteerWork;
-  List<String>? _hobbiesInterests;
+  List<HardSkill>? _hardSkills;
+  List<SoftSkill>? _softSkills;
+  List<ToolTechnology>? _toolsTechnologies;
+  List<Language>? _languages;
+  List<VolunteerWork>? _volunteerWork;
+  List<HobbyInterest>? _hobbiesInterests;
   String? _references;
   dynamic _profileImage;
   bool? _isProfileComplete;
@@ -258,7 +573,7 @@ class User {
   int? _signupProgress;
   dynamic _resumeFileName;
   int? _desiredPayRange;
-  List<String>? _locationPreferences;
+  List<LocationPreference>? _locationPreferences;
   String? _createdAt;
   String? _updatedAt;
   int? _profileCompletionPercentage;
@@ -299,11 +614,11 @@ class User {
 
   String? get portfolioUrl => _portfolioUrl;
 
-  List<String>? get desiredJobTitles => _desiredJobTitles;
+  List<DesiredJobTitle>? get desiredJobTitles => _desiredJobTitles;
 
-  List<String>? get industryPreferences => _industryPreferences;
+  List<IndustryPreference>? get industryPreferences => _industryPreferences;
 
-  List<String>? get longTermCareerGoals => _longTermCareerGoals;
+  List<CareerGoal>? get careerGoals => _careerGoals;
 
   int? get degreeType => _degreeType;
 
@@ -317,17 +632,17 @@ class User {
 
   List<UserWorkExperience>? get workExperience => _workExperience;
 
-  List<String>? get hardSkills => _hardSkills;
+  List<HardSkill>? get hardSkills => _hardSkills;
 
-  List<String>? get softSkills => _softSkills;
+  List<SoftSkill>? get softSkills => _softSkills;
 
-  List<String>? get toolsTechnologies => _toolsTechnologies;
+  List<ToolTechnology>? get toolsTechnologies => _toolsTechnologies;
 
-  List<String>? get languages => _languages;
+  List<Language>? get languages => _languages;
 
-  List<String>? get volunteerWork => _volunteerWork;
+  List<VolunteerWork>? get volunteerWork => _volunteerWork;
 
-  List<String>? get hobbiesInterests => _hobbiesInterests;
+  List<HobbyInterest>? get hobbiesInterests => _hobbiesInterests;
 
   String? get references => _references;
 
@@ -343,7 +658,7 @@ class User {
 
   int? get desiredPayRange => _desiredPayRange;
 
-  List<String>? get locationPreferences => _locationPreferences;
+  List<LocationPreference>? get locationPreferences => _locationPreferences;
 
   String? get createdAt => _createdAt;
 
@@ -374,9 +689,19 @@ class User {
     map['linkedin_url'] = _linkedinUrl;
     map['github_url'] = _githubUrl;
     map['portfolio_url'] = _portfolioUrl;
-    map['desired_job_titles'] = _desiredJobTitles;
-    map['industry_preferences'] = _industryPreferences;
-    map['long_term_career_goals'] = _longTermCareerGoals;
+    if (_desiredJobTitles != null) {
+      map['desired_job_titles'] = _desiredJobTitles!
+          .map((e) => e.toJson())
+          .toList();
+    }
+    if (_industryPreferences != null) {
+      map['industry_preferences'] = _industryPreferences!
+          .map((e) => e.toJson())
+          .toList();
+    }
+    if (_careerGoals != null) {
+      map['career_goals'] = _careerGoals!.map((e) => e.toJson()).toList();
+    }
     map['degree_type'] = _degreeType;
     map['major'] = _major;
     map['institution'] = _institution;
@@ -385,12 +710,28 @@ class User {
     if (_workExperience != null) {
       map['work_experience'] = _workExperience!.map((e) => e.toJson()).toList();
     }
-    map['hard_skills'] = _hardSkills;
-    map['soft_skills'] = _softSkills;
-    map['tools_technologies'] = _toolsTechnologies;
-    map['languages'] = _languages;
-    map['volunteer_work'] = _volunteerWork;
-    map['hobbies_interests'] = _hobbiesInterests;
+    if (_hardSkills != null) {
+      map['hard_skills'] = _hardSkills!.map((e) => e.toJson()).toList();
+    }
+    if (_softSkills != null) {
+      map['soft_skills'] = _softSkills!.map((e) => e.toJson()).toList();
+    }
+    if (_toolsTechnologies != null) {
+      map['tools_technologies'] = _toolsTechnologies!
+          .map((e) => e.toJson())
+          .toList();
+    }
+    if (_languages != null) {
+      map['languages'] = _languages!.map((e) => e.toJson()).toList();
+    }
+    if (_volunteerWork != null) {
+      map['volunteer_work'] = _volunteerWork!.map((e) => e.toJson()).toList();
+    }
+    if (_hobbiesInterests != null) {
+      map['hobbies_interests'] = _hobbiesInterests!
+          .map((e) => e.toJson())
+          .toList();
+    }
     map['references'] = _references;
     map['profile_image'] = _profileImage;
     map['is_profile_complete'] = _isProfileComplete;
@@ -398,7 +739,11 @@ class User {
     map['signup_progress'] = _signupProgress;
     map['resume_file_name'] = _resumeFileName;
     map['desired_pay_range'] = _desiredPayRange;
-    map['location_preferences'] = _locationPreferences;
+    if (_locationPreferences != null) {
+      map['location_preferences'] = _locationPreferences!
+          .map((e) => e.toJson())
+          .toList();
+    }
     map['created_at'] = _createdAt;
     map['updated_at'] = _updatedAt;
     map['profile_completion_percentage'] = _profileCompletionPercentage;

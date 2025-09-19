@@ -137,93 +137,117 @@ class ResumeGenerationLoadingScreenState
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                const SizedBox(height: 30),
-                Image.asset('assets/icons/logo-fox-on-left.png', height: 55),
-                const SizedBox(height: 50),
-
-                Stack(
-                  alignment: Alignment.center,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          child: Column(
+            children: [
+              // Top section with logo - flexible space
+              Expanded(
+                flex: 2,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Circular progress indicator
-                    SizedBox(
-                      width: 235,
-                      height: 235,
-                      child: CustomPaint(
-                        painter: CircularProgressPainter(
-                          progress: _currentProgress,
-                          backgroundColor: AppColors.inputBorder.withValues(
-                            alpha: 0.3,
-                          ),
-                          progressColor: AppColors.primary,
-                          strokeWidth: 12,
-                        ),
-                      ),
+                    Image.asset(
+                      'assets/icons/logo-fox-on-left.png',
+                      height: 55,
                     ),
-                    // Tail icon centered inside the circle
-                    SizedBox(
-                      width: 175,
-                      height: 90,
-                      child: Image.asset(
-                        'assets/icons/loading-icon-tail.png',
-                        fit: BoxFit.contain,
+                  ],
+                ),
+              ),
+
+              // Main content section - centered
+              Expanded(
+                flex: 5,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Circular progress indicator
+                        SizedBox(
+                          width: 235,
+                          height: 235,
+                          child: CustomPaint(
+                            painter: CircularProgressPainter(
+                              progress: _currentProgress,
+                              backgroundColor: AppColors.inputBorder.withValues(
+                                alpha: 0.3,
+                              ),
+                              progressColor: AppColors.primary,
+                              strokeWidth: 12,
+                            ),
+                          ),
+                        ),
+                        // Tail icon centered inside the circle
+                        SizedBox(
+                          width: 175,
+                          height: 90,
+                          child: Image.asset(
+                            'assets/icons/loading-icon-tail.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 40),
+
+                    // Main title with animated dots
+                    AnimatedBuilder(
+                      animation: _dotsController,
+                      builder: (context, child) {
+                        String dots = '';
+                        int dotCount = (_dotsController.value * 4).floor() % 4;
+                        for (int i = 0; i < dotCount; i++) {
+                          dots += '.';
+                        }
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(width: 10),
+                            const Text(
+                              'Crafting Your Resume',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            SizedBox(
+                              width: 36, // Fixed width to hold up to 3 dots
+                              child: Text(
+                                dots,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Subtitle
+                    const Text(
+                      'Scout is generating your professional resume',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 50),
-                AnimatedBuilder(
-                  animation: _dotsController,
-                  builder: (context, child) {
-                    String dots = '';
-                    int dotCount = (_dotsController.value * 4).floor() % 4;
-                    for (int i = 0; i < dotCount; i++) {
-                      dots += '.';
-                    }
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'Crafting Your Resume',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        SizedBox(
-                          width: 36, // Fixed width to hold up to 3 dots
-                          child: Text(
-                            dots,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
+              ),
 
-                // Subtitle
-                const Text(
-                  'Scout is generating your professional resume',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
+              // Bottom spacer - flexible space
+              const Expanded(flex: 2, child: SizedBox()),
+            ],
           ),
         ),
       ),

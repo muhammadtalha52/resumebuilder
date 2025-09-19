@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skillresy/utils/snackbar_utils.dart';
 
+import '../constants/app_colors.dart';
 import '../models/generate_resume_response.dart';
 import '../providers/resume_provider.dart';
-import '../constants/app_colors.dart';
 import '../widgets/dialogs/confirmation_dialog.dart';
 
 class ResumeEditModal extends ConsumerStatefulWidget {
@@ -30,13 +30,6 @@ class ResumeEditModal extends ConsumerStatefulWidget {
 class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
   late GenerateResumeResponse _editableResumeData;
   final ScrollController _scrollController = ScrollController();
-  bool _showSkillsBottomSheet = false;
-
-  // Loading states for each section
-  bool _isSummaryLoading = false;
-  bool _isExperienceLoading = false;
-  bool _isSkillsLoading = false;
-  bool _isProjectsLoading = false;
 
   // AI Suggestions state
   bool _showAISuggestions = false;
@@ -57,27 +50,8 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     // Create a deep copy of the resume data to avoid modifying the original
     try {
       final originalJson = widget.resumeData.toJson();
-      print('🔄 Creating deep copy of resume data...');
-      print(
-        '📋 Original data has ${originalJson['resume_data']?.keys?.length ?? 0} sections',
-      );
-
       _editableResumeData = GenerateResumeResponse.fromJson(originalJson);
-
-      // Verify the copy was successful
-      print('✅ Deep copy created successfully');
-      print(
-        '📋 Name: ${_editableResumeData.resumeData?.personal?.name ?? "No name"}',
-      );
-      print(
-        '📋 Work experience count: ${_editableResumeData.resumeData?.workExperience?.length ?? 0}',
-      );
-      print(
-        '📋 Skills count: ${(_editableResumeData.resumeData?.skills?.hardSkills?.length ?? 0) + (_editableResumeData.resumeData?.skills?.softSkills?.length ?? 0) + (_editableResumeData.resumeData?.skills?.toolsAndTechnologies?.length ?? 0)}',
-      );
     } catch (e) {
-      print('❌ Error creating deep copy: $e');
-      // Fallback: use the original data directly (not ideal but prevents crash)
       _editableResumeData = widget.resumeData;
     }
   }
@@ -176,21 +150,21 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                     Expanded(
                       child: SingleChildScrollView(
                         controller: _scrollController,
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.all(10),
                         child: Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 10,
                                 offset: const Offset(0, 2),
                               ),
                             ],
                           ),
                           child: Padding(
-                            padding: const EdgeInsets.all(20),
+                            padding: const EdgeInsets.all(10),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -1306,10 +1280,6 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       );
     } finally {
       setState(() {
-        _isSummaryLoading = false;
-        _isExperienceLoading = false;
-        _isSkillsLoading = false;
-        _isProjectsLoading = false;
         _isLoadingAISuggestion = false;
       });
     }

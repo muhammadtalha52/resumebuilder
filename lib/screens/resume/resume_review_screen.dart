@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfrx/pdfrx.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../constants/app_colors.dart';
 import '../../constants/salary_ranges.dart';
@@ -250,8 +252,21 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
 
     // Load career goals from user object
     if (user.desiredJobTitles != null || user.industryPreferences != null) {
-      _jobTitles = List.from(user.desiredJobTitles ?? []);
-      _industries = List.from(user.industryPreferences ?? []);
+      // Extract titles from DesiredJobTitle objects
+      if (user.desiredJobTitles != null) {
+        _jobTitles = user.desiredJobTitles!
+            .map((job) => job.title ?? '')
+            .where((title) => title.isNotEmpty)
+            .toList();
+      }
+
+      // Extract industries from IndustryPreference objects
+      if (user.industryPreferences != null) {
+        _industries = user.industryPreferences!
+            .map((industry) => industry.industry ?? '')
+            .where((industry) => industry.isNotEmpty)
+            .toList();
+      }
 
       // Map salary range from user's desiredPayRange
       if (user.desiredPayRange != null) {
@@ -262,12 +277,24 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
         );
       }
 
-      _locationPreference = user.locationPreferences?.toString();
+      // Extract location preferences from LocationPreference objects
+      if (user.locationPreferences != null &&
+          user.locationPreferences!.isNotEmpty) {
+        // Join location names
+        final locations = user.locationPreferences!
+            .map((loc) => loc.location ?? '')
+            .where((loc) => loc.isNotEmpty)
+            .toList();
+        _locationPreference = locations.join(', ');
+      }
 
-      // Load long term goals from user's longTermCareerGoals
-      if (user.longTermCareerGoals != null &&
-          user.longTermCareerGoals!.isNotEmpty) {
-        _longTermGoalsController.text = user.longTermCareerGoals!.join(', ');
+      // Load long term goals from CareerGoal objects
+      if (user.careerGoals != null && user.careerGoals!.isNotEmpty) {
+        final goals = user.careerGoals!
+            .map((goal) => goal.goal ?? '')
+            .where((goal) => goal.isNotEmpty)
+            .toList();
+        _longTermGoalsController.text = goals.join(', ');
       }
     }
 
@@ -364,14 +391,38 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     }
 
     // Load skills from user object
-    _hardSkills = List.from(user.hardSkills ?? []);
-    _softSkills = List.from(user.softSkills ?? []);
-    _tools = List.from(user.toolsTechnologies ?? []);
+    if (user.hardSkills != null) {
+      _hardSkills = user.hardSkills!
+          .map((skill) => skill.skill ?? '')
+          .where((skill) => skill.isNotEmpty)
+          .toList();
+    }
+    if (user.softSkills != null) {
+      _softSkills = user.softSkills!
+          .map((skill) => skill.skill ?? '')
+          .where((skill) => skill.isNotEmpty)
+          .toList();
+    }
+    if (user.toolsTechnologies != null) {
+      _tools = user.toolsTechnologies!
+          .map((tool) => tool.tool ?? '')
+          .where((tool) => tool.isNotEmpty)
+          .toList();
+    }
 
     // Load optional info from user object
-    _languages = List.from(user.languages ?? []);
+    if (user.languages != null) {
+      _languages = user.languages!
+          .map((lang) => lang.language ?? '')
+          .where((lang) => lang.isNotEmpty)
+          .toList();
+    }
     if (user.hobbiesInterests != null && user.hobbiesInterests!.isNotEmpty) {
-      _hobbiesController.text = user.hobbiesInterests!.join(', ');
+      final hobbies = user.hobbiesInterests!
+          .map((hobby) => hobby.hobbyInterest ?? '')
+          .where((hobby) => hobby.isNotEmpty)
+          .toList();
+      _hobbiesController.text = hobbies.join(', ');
     }
 
     debugPrint('✅ User data loaded successfully');
@@ -459,7 +510,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 0),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     minHeight:
@@ -514,7 +565,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                               // Step content
                               Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
+                                  horizontal: 10,
                                 ),
                                 child: _buildStepContent(),
                               ),
@@ -939,7 +990,10 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
               child: OutlinedButton.icon(
                 onPressed: generatedResumeData != null ? _editResume : null,
                 icon: const Icon(Icons.edit, size: 18),
-                label: const Text('Edit Resume'),
+                label: const Text(
+                  'Edit Resume',
+                  style: TextStyle(fontSize: 13),
+                ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   side: const BorderSide(color: AppColors.primary),
@@ -955,8 +1009,11 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: generatedResumeData != null ? _downloadResume : null,
-                icon: const Icon(Icons.download, size: 18),
-                label: const Text('Download PDF'),
+                icon: const Icon(Icons.download, size: 16),
+                label: const Text(
+                  'Download PDF',
+                  style: TextStyle(fontSize: 13),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -996,25 +1053,100 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
         // Decode base64 PDF
         final pdfBytes = base64Decode(generatedResumeData.pdfBase64!);
 
-        // Save to downloads or documents directory
-        final directory = await getApplicationDocumentsDirectory();
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final fileName =
-            'resume_${DateTime.now().toString().split(' ')[0]}_$timestamp.pdf';
-        final file = File('${directory.path}/$fileName');
-        await file.writeAsBytes(pdfBytes);
+        // Generate filename with company and job title if available
+        final companyName = _companyController.text.trim().replaceAll(
+          RegExp(r'[^a-zA-Z0-9]'),
+          '_',
+        );
+        final jobTitle = _jobTitleController.text.trim().replaceAll(
+          RegExp(r'[^a-zA-Z0-9]'),
+          '_',
+        );
+        final dateStr = DateTime.now().toString().split(' ')[0];
 
-        if (mounted) {
-          showSuccessSnackBar(
-            context: context,
-            message: 'Resume downloaded successfully!',
+        String fileName;
+        if (companyName.isNotEmpty && jobTitle.isNotEmpty) {
+          fileName = 'resume_${companyName}_${jobTitle}_$dateStr.pdf';
+        } else if (jobTitle.isNotEmpty) {
+          fileName = 'resume_${jobTitle}_$dateStr.pdf';
+        } else {
+          fileName = 'resume_$dateStr.pdf';
+        }
+
+        // Platform-specific handling
+        if (kIsWeb) {
+          // For web, we'll need to use a different approach
+          // This is a placeholder - web download would need html library
+          if (mounted) {
+            showErrorSnackBar(
+              context: context,
+              message: 'Web download not yet implemented',
+            );
+          }
+        } else if (Platform.isIOS || Platform.isAndroid) {
+          // For mobile platforms, save to temp directory and share
+          final tempDir = await getTemporaryDirectory();
+          final file = File('${tempDir.path}/$fileName');
+          await file.writeAsBytes(pdfBytes);
+
+          // Use share_plus to let user save or share the file
+          final result = await Share.shareXFiles(
+            [XFile(file.path)],
+            subject: 'Resume - ${_getTemplateName()}',
+            text: jobTitle.isNotEmpty
+                ? 'Resume for $jobTitle position${companyName.isNotEmpty ? " at $companyName" : ""}'
+                : 'My Resume',
           );
+
+          if (mounted) {
+            if (result.status == ShareResultStatus.success) {
+              showSuccessSnackBar(
+                context: context,
+                message: 'Resume shared successfully!',
+              );
+            } else if (result.status == ShareResultStatus.dismissed) {
+              // User dismissed the share sheet - this is not an error
+              debugPrint('Share sheet dismissed');
+            }
+          }
+        } else {
+          // For desktop platforms (macOS, Windows, Linux)
+          // Try to save to Downloads folder
+          Directory? downloadsDir;
+
+          if (Platform.isMacOS || Platform.isLinux) {
+            final home = Platform.environment['HOME'];
+            if (home != null) {
+              downloadsDir = Directory('$home/Downloads');
+            }
+          } else if (Platform.isWindows) {
+            final userProfile = Platform.environment['USERPROFILE'];
+            if (userProfile != null) {
+              downloadsDir = Directory('$userProfile\\Downloads');
+            }
+          }
+
+          // Fallback to documents directory if Downloads not found
+          downloadsDir ??= await getApplicationDocumentsDirectory();
+
+          final file = File(
+            '${downloadsDir.path}${Platform.pathSeparator}$fileName',
+          );
+          await file.writeAsBytes(pdfBytes);
+
+          if (mounted) {
+            showSuccessSnackBar(
+              context: context,
+              message: 'Resume saved to: ${file.path}',
+            );
+          }
         }
       } catch (e) {
+        debugPrint('Download error: $e');
         if (mounted) {
           showErrorSnackBar(
             context: context,
-            message: 'Failed to download resume',
+            message: 'Failed to download resume: ${e.toString()}',
           );
         }
       }
@@ -2202,7 +2334,9 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                       sourceName: 'resume.pdf',
                       controller: pdfController,
                       params: PdfViewerParams(
-                        enableTextSelection: true,
+                        textSelectionParams: PdfTextSelectionParams(
+                          enabled: true,
+                        ),
                         maxScale: 5.0,
                         minScale: 0.5,
                         panEnabled: true,
@@ -2509,6 +2643,8 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
         isScrollControlled: true,
         useSafeArea: true,
         backgroundColor: Colors.transparent,
+        enableDrag: false,
+        isDismissible: false,
         builder: (context) => ResumeEditModal(
           resumeData: generatedResumeData,
           jobUrl: jobUrl.isNotEmpty ? jobUrl : null,
@@ -2614,7 +2750,7 @@ class _SaveDialog extends StatefulWidget {
   final Future<void> Function() onSave;
   final VoidCallback onSkip;
 
-  const _SaveDialog({super.key, required this.onSave, required this.onSkip});
+  const _SaveDialog({required this.onSave, required this.onSkip});
 
   @override
   State<_SaveDialog> createState() => _SaveDialogState();
@@ -2743,7 +2879,7 @@ class _DynamicPdfViewerState extends State<_DynamicPdfViewer> {
       key: ValueKey(_currentPdfBytes.hashCode),
       sourceName: 'resume.pdf',
       params: PdfViewerParams(
-        enableTextSelection: false,
+        textSelectionParams: PdfTextSelectionParams(enabled: true),
         maxScale: 3.0,
         minScale: 0.5,
         backgroundColor: Colors.grey[100]!,

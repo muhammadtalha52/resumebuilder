@@ -6,7 +6,6 @@ import '../../constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../utils/snackbar_utils.dart';
-import '../../widgets/common/bottom_sheet_picker.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/common/custom_picker_field.dart';
 import '../../widgets/common/tag_field.dart';
@@ -69,9 +68,8 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
       }
 
       // Load long-term goals from list
-      if (user.longTermCareerGoals != null &&
-          user.longTermCareerGoals!.isNotEmpty) {
-        _longTermGoals = List.from(user.longTermCareerGoals!);
+      if (user.careerGoals != null && user.careerGoals!.isNotEmpty) {
+        _longTermGoals = List.from(user.careerGoals!);
         _originalLongTermGoals = List.from(_longTermGoals);
       }
 

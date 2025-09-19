@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:skillresy/screens/resume/resume_generation_loading_screen.dart';
 
 import '../../constants/app_colors.dart';
 import '../../providers/resume_provider.dart';
@@ -40,7 +41,15 @@ class ResumeScreen extends ConsumerWidget {
         actions: [
           AppBarWidgets.historyButton(
             onPressed: () {
-              context.push('/resume/history');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) {
+                    return ResumeGenerationLoadingScreen();
+                  },
+                ),
+              );
+              //context.push('/resume/history');
             },
           ),
         ],

@@ -207,7 +207,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       portfolioUrl: currentUser.portfolioUrl,
       desiredJobTitles: currentUser.desiredJobTitles,
       industryPreferences: currentUser.industryPreferences,
-      longTermCareerGoals: currentUser.longTermCareerGoals,
+      careerGoals: currentUser.careerGoals,
       degreeType: currentUser.degreeType,
       major: currentUser.major,
       institution: currentUser.institution,

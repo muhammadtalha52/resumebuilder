@@ -1,17 +1,41 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../constants/app_colors.dart';
-import '../../providers/history_provider.dart';
-import '../../widgets/common/custom_app_bar.dart';
-import '../../utils/s3_utils.dart';
 
-class ResumeHistoryScreen extends ConsumerWidget {
+import '../../constants/app_colors.dart';
+import '../../main.dart';
+import '../../providers/history_provider.dart';
+import '../../utils/endpoint_headers.dart';
+import '../../utils/s3_utils.dart';
+import '../../utils/snackbar_utils.dart';
+import '../../widgets/common/custom_app_bar.dart';
+
+class ResumeHistoryScreen extends ConsumerStatefulWidget {
   const ResumeHistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ResumeHistoryScreen> createState() =>
+      _ResumeHistoryScreenState();
+}
+
+class _ResumeHistoryScreenState extends ConsumerState<ResumeHistoryScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Refresh data when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(historyProvider.notifier).refreshHistory();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final historyState = ref.watch(historyProvider);
 
     return Scaffold(
@@ -117,11 +141,9 @@ class ResumeHistoryScreen extends ConsumerWidget {
                 await launchUrl(url, mode: LaunchMode.externalApplication);
               } else {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Could not open resume'),
-                      backgroundColor: AppColors.error,
-                    ),
+                  showErrorSnackBar(
+                    context: context,
+                    message: 'Could not open resume',
                   );
                 }
               }
@@ -132,25 +154,39 @@ class ResumeHistoryScreen extends ConsumerWidget {
           },
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  resume.title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        resume.title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _buildSubtitle(resume),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  _buildSubtitle(resume),
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary.withValues(alpha: 0.6),
+                if (resume.resumeUrl.isNotEmpty) ...[
+                  const SizedBox(width: 12),
+                  IconButton(
+                    onPressed: () => _downloadResume(resume, context),
+                    icon: const Icon(Icons.download, color: AppColors.primary),
+                    tooltip: 'Download Resume',
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -184,5 +220,133 @@ class ResumeHistoryScreen extends ConsumerWidget {
       'Dec',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  Future<void> _downloadResume(
+    ResumeHistory resume,
+    BuildContext context,
+  ) async {
+    try {
+      // Show loading indicator
+      if (context.mounted) {
+        showInfoSnackBar(context: context, message: 'Downloading resume...');
+      }
+
+      // Construct the full URL
+      String urlString = resume.resumeUrl;
+      if (!urlString.startsWith('http')) {
+        urlString = S3Utils.constructAssetUrl(resume.resumeUrl);
+      }
+
+      // Debug: Print the URL and token
+      print('📱 Download URL: $urlString');
+      print('🔑 Token: ${appLogic.accessToken.substring(0, 20)}...');
+
+      // Download with authentication using apiClient with bytes response type
+      final response = await apiClient.dio.get(
+        urlString,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {WAInterceptorHeaders.requiresToken: true},
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final bytes = response.data as List<int>;
+
+        // Generate filename
+        final companyName = resume.companyName.replaceAll(
+          RegExp(r'[^a-zA-Z0-9]'),
+          '_',
+        );
+        final jobTitle = resume.jobTitle.replaceAll(
+          RegExp(r'[^a-zA-Z0-9]'),
+          '_',
+        );
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+        String fileName = '';
+        if (companyName.isNotEmpty && jobTitle.isNotEmpty) {
+          fileName = '${companyName}_${jobTitle}_Resume_$timestamp.pdf';
+        } else if (jobTitle.isNotEmpty) {
+          fileName = '${jobTitle}_Resume_$timestamp.pdf';
+        } else {
+          fileName = 'Resume_$timestamp.pdf';
+        }
+
+        // Save to permanent storage
+        Directory? permanentDir;
+
+        if (Platform.isAndroid) {
+          // On Android, use app-specific external storage (no permissions needed)
+          // This will save to /storage/emulated/0/Android/data/com.skillresy.app/files/Download
+          final dirs = await getExternalStorageDirectories(
+            type: StorageDirectory.downloads,
+          );
+          if (dirs != null && dirs.isNotEmpty) {
+            permanentDir = dirs.first;
+          } else {
+            // Fallback to external storage directory
+            permanentDir = await getExternalStorageDirectory();
+            if (permanentDir != null) {
+              // Create a Download subfolder in app's external storage
+              permanentDir = Directory('${permanentDir.path}/Download');
+              if (!await permanentDir.exists()) {
+                await permanentDir.create(recursive: true);
+              }
+            } else {
+              // Last resort: use app documents directory
+              permanentDir = await getApplicationDocumentsDirectory();
+            }
+          }
+        } else if (Platform.isIOS) {
+          // On iOS, save to Documents directory (accessible via Files app)
+          permanentDir = await getApplicationDocumentsDirectory();
+        } else {
+          // For other platforms, use temporary directory
+          permanentDir = await getTemporaryDirectory();
+        }
+
+        // Save the file permanently
+        final permanentFile = File('${permanentDir!.path}/$fileName');
+        await permanentFile.writeAsBytes(bytes);
+
+        // Also create a temporary file for sharing
+        final tempDir = await getTemporaryDirectory();
+        final tempFile = File('${tempDir.path}/$fileName');
+        await tempFile.writeAsBytes(bytes);
+
+        // Share the file using latest SharePlus v12.0.0 API
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(tempFile.path)],
+            text: 'Resume - ${resume.title}',
+            sharePositionOrigin: context.mounted
+                ? Rect.fromLTWH(
+                    0,
+                    0,
+                    MediaQuery.of(context).size.width,
+                    MediaQuery.of(context).size.height / 2,
+                  )
+                : const Rect.fromLTWH(0, 0, 100, 100),
+          ),
+        );
+
+        if (context.mounted) {
+          showSuccessSnackBar(
+            context: context,
+            message: Platform.isIOS
+                ? 'Resume saved to Files app and ready to share!'
+                : 'Resume saved to Downloads folder!',
+          );
+        }
+      } else {
+        throw Exception('Failed to download resume');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        showErrorSnackBar(context: context, message: e.toString());
+      }
+    }
   }
 }

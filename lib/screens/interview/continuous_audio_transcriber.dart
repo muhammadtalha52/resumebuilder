@@ -34,7 +34,7 @@ class TranscriptionChunk {
 
 class ContinuousAudioTranscriber extends ChangeNotifier {
   // Core components
-  final Record _recorder = Record();
+  final AudioRecorder _recorder = AudioRecorder();
   final Queue<TranscriptionChunk> _chunkQueue = Queue<TranscriptionChunk>();
   final Dio _dio = Dio();
 
@@ -135,13 +135,13 @@ class ContinuousAudioTranscriber extends ChangeNotifier {
       final path = '${dir.path}/chunk_${_chunkCounter}_$timestamp.m4a';
 
       await _recorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.aacLc,
+          bitRate: 128000, // Increased bitrate for better quality
+          sampleRate: 44100, // Higher sample rate for better capture
+          numChannels: 1, // Mono is sufficient for speech
+        ),
         path: path,
-        encoder: AudioEncoder.aacLc,
-        bitRate: 128000,
-        // Increased bitrate for better quality
-        samplingRate: 44100,
-        // Higher sample rate for better capture
-        numChannels: 1, // Mono is sufficient for speech
       );
     } catch (e) {
       rethrow;
