@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/conversation_models.dart';
-import '../../providers/interview_session_provider.dart';
+import '../../providers/continuous_transcription_provider.dart';
 import '../../constants/app_colors.dart';
 import 'message_bubble.dart';
 
@@ -23,7 +23,7 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
 
   @override
   Widget build(BuildContext context) {
-    final sessionData = ref.watch(interviewSessionProvider);
+    final sessionData = ref.watch(continuousTranscriptionProvider);
 
     // For now, create mock conversation from legacy transcript
     // This will be replaced with actual conversation data

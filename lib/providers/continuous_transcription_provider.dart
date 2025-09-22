@@ -167,6 +167,7 @@ class ContinuousTranscriptionNotifier
   String _pendingScoutContent = '';
   late ContinuousAudioTranscriber _audioTranscriber;
   final InterviewService _interviewService = InterviewService();
+  DateTime? _sessionStartTime;
 
   ContinuousTranscriptionNotifier() : super(InterviewSessionData()) {
     print('[INIT] ContinuousTranscriptionNotifier created with Whisper API');
@@ -252,6 +253,7 @@ class ContinuousTranscriptionNotifier
       );
 
       _startTimer();
+      _sessionStartTime = DateTime.now();
 
       // AUTO-START: Begin continuous recording immediately
       print(
@@ -287,41 +289,75 @@ class ContinuousTranscriptionNotifier
     }
   }
 
-  // INSTANT STOP - UI responds immediately, cleanup happens in background
+  // STOP SESSION - Preserve session data for summary screen
   Future<void> stopSession() async {
-    print('[SESSION-STOP] 🔥 INSTANT STOP - UI reset immediately');
+    print('[SESSION-STOP] 🛑 Stopping session - preserving data for summary');
 
-    // 1. IMMEDIATELY reset UI state - no waiting
-    state = InterviewSessionData(
-      state: InterviewSessionState.idle,
-      sessionDuration: Duration.zero,
-      questions: const [],
-      conversation: ConversationData(),
-      fullTranscript: '',
-      latestSegment: '',
-      currentTranscription: null,
-      isListening: false,
-      error: null,
-      sessionId: null,
-      isStartingSession: false,
-      sessionType: null,
-      role: null,
-      companyName: null,
-      jobDescription: null,
-      language: null,
-      resumeText: null,
-      helpResponse: null,
-      helpTimestamp: null,
-      isGettingHelp: false,
-    );
+    // Capture current session data BEFORE stopping
+    final currentSessionId = state.sessionId;
+    final currentSessionType = state.sessionType;
+    final currentRole = state.role;
+    final currentCompanyName = state.companyName;
+    final currentJobDescription = state.jobDescription;
+    final currentLanguage = state.language;
+    final currentResumeText = state.resumeText;
+    final currentFullTranscript = state.fullTranscript;
+    final currentConversation = state.conversation;
+    final currentQuestions = state.questions;
+    final currentHelpResponse = state.helpResponse;
+    final currentHelpTimestamp = state.helpTimestamp;
+    final currentSessionDuration = state.sessionDuration;
 
-    // 2. Stop timer immediately
+    print('[SESSION-STOP] Preserved data:');
+    print('  - Session ID: $currentSessionId');
+    print('  - Session Type: $currentSessionType');
+    print('  - Company: $currentCompanyName');
+    print('  - Transcript length: ${currentFullTranscript.length}');
+    print('  - Conversation messages: ${currentConversation.messages.length}');
+    print('  - Help response length: ${currentHelpResponse?.length ?? 0}');
+    print('  - Session duration: ${currentSessionDuration.inMinutes} minutes');
+
+    // Stop audio recording and timer
     _stopTimer();
-
-    // 3. Force stop audio recording (don't await - it's instant now)
     _audioTranscriber.stopRecording();
 
-    print('[SESSION-STOP] ⚡ UI reset complete - cleanup running in background');
+    // Update state to stopped but PRESERVE all session data
+    state = InterviewSessionData(
+      state: InterviewSessionState.idle,
+      sessionDuration: currentSessionDuration,
+      // Keep duration
+      questions: currentQuestions,
+      // Keep questions
+      conversation: currentConversation,
+      // Keep conversation
+      fullTranscript: currentFullTranscript,
+      // Keep transcript
+      latestSegment: '',
+      // Clear latest segment (no longer recording)
+      currentTranscription: null,
+      isListening: false,
+      // Stop listening
+      error: null,
+      // PRESERVE SESSION METADATA
+      sessionId: currentSessionId,
+      sessionType: currentSessionType,
+      role: currentRole,
+      companyName: currentCompanyName,
+      jobDescription: currentJobDescription,
+      language: currentLanguage,
+      resumeText: currentResumeText,
+      // PRESERVE AI RESPONSES
+      helpResponse: currentHelpResponse,
+      helpTimestamp: currentHelpTimestamp,
+      isGettingHelp: false,
+      // Reset UI states only
+      isStartingSession: false,
+      transcriptionState: null,
+      chunkCount: 0,
+      pendingChunks: 0,
+    );
+
+    print('[SESSION-STOP] ✅ Session stopped - all data preserved for summary');
   }
 
   // Hide help popup
@@ -366,6 +402,7 @@ class ContinuousTranscriptionNotifier
 
       // Start timer and audio transcription
       _startTimer();
+      _sessionStartTime = DateTime.now();
       _startNewConversationMessage();
       await _audioTranscriber.startRecording();
 
@@ -599,6 +636,9 @@ class ContinuousTranscriptionNotifier
 
           // Update help response in state for legacy compatibility
           state = state.copyWith(helpResponse: accumulatedResponse);
+          print(
+            '[SCOUT-DEBUG] Updated helpResponse: ${accumulatedResponse.length} chars',
+          );
         }
       }
 
@@ -621,6 +661,96 @@ class ContinuousTranscriptionNotifier
     }
   }
 
+  // Get next meeting assistance for meeting sessions
+  void getNextMeetingHelp() async {
+    print('📝 [DEBUG] getNextMeetingHelp() method called');
+    print('📝 [DEBUG] Session ID: ${state.sessionId}');
+    print('📝 [DEBUG] Session Type: ${state.sessionType}');
+    print('📝 [DEBUG] Full transcript: "${state.fullTranscript}"');
+    print('📝 [DEBUG] Full transcript length: ${state.fullTranscript.length}');
+
+    if (state.sessionId == null) {
+      print('📝 [DEBUG] ERROR: No active session');
+      return;
+    }
+
+    try {
+      // Set loading state
+      state = state.copyWith(isGettingHelp: true);
+
+      // Create help request (using same structure as help requests)
+      final request = SessionHelpRequest(
+        sessionId: state.sessionId!,
+        transcript: state.fullTranscript.trim(),
+      );
+
+      print('[MEETING-NEXT] Requesting streaming meeting assistance');
+      print('[MEETING-NEXT] Session: ${state.sessionId}');
+      print(
+        '[MEETING-NEXT] Transcript length: ${state.fullTranscript.length} chars',
+      );
+
+      // Start with empty message and add it to conversation
+      final scoutMessageId = _addScoutResponse(
+        '',
+        AssistantMessageType.help, // Use help type for meeting assistance
+      );
+
+      // Update loading and timestamp
+      state = state.copyWith(helpTimestamp: DateTime.now(), error: null);
+
+      // Stream meeting assistance response
+      String accumulatedResponse = '';
+      await for (final chunk in _interviewService.getNextMeetingHelp(request)) {
+        if (chunk.startsWith('Error:')) {
+          print('[MEETING-NEXT] Meeting assistance request failed: $chunk');
+          // Update the message with error
+          _updateScoutResponse(scoutMessageId, chunk);
+          break;
+        } else {
+          // Accumulate the streaming response
+          accumulatedResponse += chunk;
+          print('[MEETING-NEXT] Received chunk: "$chunk"');
+          print(
+            '[MEETING-NEXT] Accumulated length: ${accumulatedResponse.length} chars',
+          );
+
+          // Batch Scout message updates - only update every 10 chars or on punctuation
+          if (accumulatedResponse.length - _pendingScoutContent.length >= 10 ||
+              chunk.contains('.') ||
+              chunk.contains('?') ||
+              chunk.contains('!')) {
+            _updateScoutResponse(scoutMessageId, accumulatedResponse);
+            _pendingScoutContent = accumulatedResponse;
+          }
+
+          // Update help response in state for legacy compatibility
+          state = state.copyWith(helpResponse: accumulatedResponse);
+          print(
+            '[SCOUT-DEBUG] Updated helpResponse: ${accumulatedResponse.length} chars',
+          );
+        }
+      }
+
+      // Final update to ensure complete response is shown
+      _updateScoutResponse(scoutMessageId, accumulatedResponse);
+      _pendingScoutContent = '';
+
+      print(
+        '[MEETING-NEXT] Streaming completed. Final response length: ${accumulatedResponse.length} chars',
+      );
+
+      // Mark help as complete
+      state = state.copyWith(isGettingHelp: false);
+    } catch (e) {
+      print('[MEETING-NEXT] Error getting streaming meeting assistance: $e');
+      state = state.copyWith(
+        isGettingHelp: false,
+        error: 'Failed to get meeting assistance: ${e.toString()}',
+      );
+    }
+  }
+
   // Start session with API integration
   Future<bool> startSessionWithAPI({
     String? sessionId,
@@ -628,6 +758,7 @@ class ContinuousTranscriptionNotifier
     required String role,
     required String companyName,
     required String jobDescription,
+    required String agenda,
     String language = "en",
     String? resumeText,
   }) async {
@@ -642,6 +773,7 @@ class ContinuousTranscriptionNotifier
         role: role,
         companyName: companyName,
         jobDescription: jobDescription,
+        agenda: agenda,
         language: language,
         resumeText: resumeText,
       );
@@ -752,6 +884,9 @@ class ContinuousTranscriptionNotifier
 
           // Update help response in state for legacy compatibility
           state = state.copyWith(helpResponse: accumulatedResponse);
+          print(
+            '[SCOUT-DEBUG] Updated helpResponse: ${accumulatedResponse.length} chars',
+          );
         }
       }
 
@@ -779,6 +914,7 @@ class ContinuousTranscriptionNotifier
 
   // Clear help response
   void clearHelpResponse() {
+    print('[SCOUT-DEBUG] Clearing helpResponse');
     state = state.copyWith(helpResponse: null, helpTimestamp: null);
   }
 
@@ -786,6 +922,9 @@ class ContinuousTranscriptionNotifier
   void clearError() {
     state = state.copyWith(error: null);
   }
+
+  // Get session start time
+  DateTime? get sessionStartTime => _sessionStartTime;
 
   // Timer management
   void _startTimer() {
@@ -806,7 +945,7 @@ class ContinuousTranscriptionNotifier
 
   void _stopTimer() {
     _sessionTimer?.cancel();
-    state = state.copyWith(sessionDuration: Duration.zero);
+    // Don't reset duration to zero - keep it for summary screen
   }
 
   @override

@@ -3,7 +3,12 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import '../main.dart';
 import '../models/interview_session_models.dart';
+import '../models/interview_summary_model.dart';
+import '../models/interview_session_data.dart';
+import 'api_client.dart';
+import '../utils/endpoint_headers.dart';
 
 class InterviewService {
   late final Dio _dio;
@@ -50,6 +55,7 @@ class InterviewService {
         'role': request.role,
         'company_name': request.companyName,
         'job_description': request.jobDescription,
+        'agenda': request.agenda,
         'language': request.language,
         'resume_text': '',
       };
@@ -62,7 +68,7 @@ class InterviewService {
 
       // Make API call with form data
       final response = await _dio.post(
-        'session/start',
+        ApiEndpoints.sessionStart,
         data: formData,
         options: Options(
           contentType: 'application/x-www-form-urlencoded',
@@ -325,6 +331,109 @@ class InterviewService {
     }
   }
 
+  /// Get next meeting assistance during meeting session
+  ///
+  /// [request] - SessionHelpRequest containing session_id and transcript
+  ///
+  /// Returns a Stream<String> that emits text chunks as they arrive for meeting assistance
+  Stream<String> getNextMeetingHelp(SessionHelpRequest request) async* {
+    try {
+      // Convert to form data format (application/x-www-form-urlencoded)
+      final formData = request.toFormData();
+
+      // Make streaming API call to /next endpoint
+      final response = await _dio.post(
+        'meeting/next',
+        data: formData,
+        options: Options(
+          contentType: 'application/x-www-form-urlencoded',
+          headers: {
+            'accept': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          },
+          responseType: ResponseType.stream,
+        ),
+      );
+
+      print('InterviewService: Next response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final stream = response.data as ResponseBody;
+        final streamController = StreamController<String>();
+
+        // Process the stream data
+        String buffer = '';
+
+        stream.stream.listen(
+          (List<int> data) {
+            // Convert bytes to string
+            final chunk = utf8.decode(data, allowMalformed: true);
+            buffer += chunk;
+
+            // Split by newlines and process complete lines
+            final lines = buffer.split('\n');
+            buffer = lines.removeLast(); // Keep incomplete line in buffer
+
+            for (final line in lines) {
+              // Parse Server-Sent Events format: "data: content"
+              if (line.startsWith('data: ')) {
+                final content = line.substring(6); // Remove "data: " prefix
+                streamController.add(content);
+              }
+            }
+          },
+          onError: (error) {
+            print('InterviewService: Next stream error: $error');
+            streamController.addError(error);
+          },
+          onDone: () {
+            // Process any remaining buffer
+            if (buffer.isNotEmpty && buffer.startsWith('data: ')) {
+              final content = buffer.substring(6);
+              print('InterviewService: Final next content: "$content"');
+              streamController.add(content);
+            }
+            print('InterviewService: Next stream completed');
+            streamController.close();
+          },
+        );
+
+        yield* streamController.stream;
+      } else {
+        throw DioException(
+          requestOptions: RequestOptions(path: 'interview/next'),
+          response: response,
+          message: 'Failed to get next meeting help: ${response.statusMessage}',
+        );
+      }
+    } on DioException catch (e) {
+      print('InterviewService: Next DioException: ${e.message}');
+
+      // Handle specific error cases
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        yield 'Error: Request timeout. Please check your internet connection and try again.';
+      } else if (e.type == DioExceptionType.connectionError) {
+        yield 'Error: Unable to connect to server. Please check your internet connection.';
+      } else if (e.response?.statusCode == 400) {
+        yield 'Error: Invalid request. Please check your session or transcript.';
+      } else if (e.response?.statusCode == 401) {
+        yield 'Error: Session not found or expired. Please start a new session.';
+      } else if (e.response?.statusCode == 422) {
+        yield 'Error: Unable to process your request. Please try again.';
+      } else if (e.response?.statusCode == 500) {
+        yield 'Error: Server error occurred while getting meeting help. Please try again later.';
+      } else {
+        yield 'Error: An error occurred while getting meeting help. Please try again.';
+      }
+    } catch (e) {
+      print('InterviewService: Next general exception: $e');
+      yield 'Error: Unexpected error occurred: ${e.toString()}';
+    }
+  }
+
   /// Get streaming follow-up questions during interview session
   ///
   /// [request] - SessionFollowUpRequest containing session_id and transcript
@@ -430,6 +539,179 @@ class InterviewService {
     } catch (e) {
       print('InterviewService: Follow-up general exception: $e');
       yield 'Error: Unexpected error occurred: ${e.toString()}';
+    }
+  }
+
+  /// End an interview session and get summary
+  ///
+  /// [sessionId] - The session ID to end
+  ///
+  /// Returns a Map containing status and summary
+  Future<Map<String, dynamic>> endSession(String sessionId) async {
+    try {
+      final formData = {'session_id': sessionId};
+
+      final response = await _dio.post(
+        'session/end',
+        data: formData,
+        options: Options(
+          contentType: 'application/x-www-form-urlencoded',
+          headers: {
+            'accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (response.data != null) {
+          return response.data as Map<String, dynamic>;
+        } else {
+          return {'status': 'error', 'summary': 'Empty response from server'};
+        }
+      } else {
+        return {
+          'status': 'error',
+          'summary': 'Failed to end session: ${response.statusMessage}',
+        };
+      }
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return {
+          'status': 'error',
+          'summary': 'Request timeout. Please check your internet connection.',
+        };
+      } else if (e.type == DioExceptionType.connectionError) {
+        return {'status': 'error', 'summary': 'Unable to connect to server.'};
+      } else if (e.response?.statusCode == 400) {
+        return {'status': 'error', 'summary': 'Invalid session ID.'};
+      } else if (e.response?.statusCode == 401) {
+        return {'status': 'error', 'summary': 'Session not found or expired.'};
+      } else if (e.response?.statusCode == 500) {
+        return {
+          'status': 'error',
+          'summary': 'Server error occurred while ending session.',
+        };
+      } else {
+        String errorMessage = 'An error occurred while ending session.';
+        if (e.response?.data is Map) {
+          final data = e.response!.data as Map;
+          if (data.containsKey('message')) {
+            errorMessage = data['message'].toString();
+          } else if (data.containsKey('error')) {
+            errorMessage = data['error'].toString();
+          }
+        }
+        return {'status': 'error', 'summary': errorMessage};
+      }
+    } catch (e) {
+      return {
+        'status': 'error',
+        'summary': 'Unexpected error: ${e.toString()}',
+      };
+    }
+  }
+
+  /// Save interview session to database using APIClient
+  ///
+  /// [sessionData] - InterviewSessionData containing complete interview information
+  ///
+  /// Returns a Map containing save status and response
+  Future<Map<String, dynamic>> saveInterview(
+    InterviewSessionData sessionData,
+  ) async {
+    try {
+      final nowDateTime =
+          '${DateTime.now().toUtc().toIso8601String().split('.').first}Z';
+
+      var payload = {
+        'company_name': sessionData.companyName,
+        'position_title': sessionData.positionTitle,
+        'interview_type': "meeting",
+        'role_industry': sessionData.roleIndustry,
+        'job_description': sessionData.jobDescription,
+        "language_selector": "English",
+        "status": "scheduled",
+        "interview_date": nowDateTime,
+        "duration_minutes": 90,
+        "location": "https://meet.google.com/abc-defg-hij",
+        "interviewer_name": "Sarah Johnson",
+        "interviewer_email": "sarah.johnson@techsolutions.com",
+        "notes":
+            "Prepare for technical questions on Python, Django, and system design",
+        "transcrip": sessionData.transcript,
+        "key_topics": sessionData.keyTopics,
+        "strength_highlight": sessionData.strengthHighlight,
+        "weakness_highlight": sessionData.weaknessHighlight,
+        "action_items": sessionData.actionItems,
+      };
+
+      final response = await apiClient.dio.post(
+        ApiEndpoints.saveInterviewData,
+        data: payload,
+        options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'status': 'success',
+          'data': response.data,
+          'message': 'Interview saved successfully',
+        };
+      } else {
+        return {
+          'status': 'error',
+          'message': 'Failed to save interview: ${response.statusMessage}',
+        };
+      }
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return {
+          'status': 'error',
+          'message': 'Request timeout. Please check your internet connection.',
+        };
+      } else if (e.type == DioExceptionType.connectionError) {
+        return {'status': 'error', 'message': 'Unable to connect to server.'};
+      } else if (e.response?.statusCode == 400) {
+        return {'status': 'error', 'message': 'Invalid interview data.'};
+      } else if (e.response?.statusCode == 401) {
+        return {
+          'status': 'error',
+          'message': 'Authentication required. Please log in and try again.',
+        };
+      } else if (e.response?.statusCode == 403) {
+        return {
+          'status': 'error',
+          'message': 'Permission denied. Unable to save interview.',
+        };
+      } else if (e.response?.statusCode == 500) {
+        return {
+          'status': 'error',
+          'message': 'Server error occurred while saving interview.',
+        };
+      } else {
+        String errorMessage = 'An error occurred while saving interview.';
+        if (e.response?.data is Map) {
+          final data = e.response!.data as Map;
+          if (data.containsKey('message')) {
+            errorMessage = data['message'].toString();
+          } else if (data.containsKey('error')) {
+            errorMessage = data['error'].toString();
+          } else if (data.containsKey('detail')) {
+            errorMessage = data['detail'].toString();
+          }
+        }
+        return {'status': 'error', 'message': errorMessage};
+      }
+    } catch (e) {
+      return {
+        'status': 'error',
+        'message': 'Unexpected error: ${e.toString()}',
+      };
     }
   }
 }

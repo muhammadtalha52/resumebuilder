@@ -6,6 +6,7 @@ class SessionStartRequest {
   final String role;
   final String companyName;
   final String jobDescription;
+  final String agenda;
   final String language;
   final String? resumeText;
 
@@ -15,6 +16,7 @@ class SessionStartRequest {
     required this.role,
     required this.companyName,
     required this.jobDescription,
+    required this.agenda,
     this.language = "en",
     this.resumeText,
   });
@@ -25,6 +27,7 @@ class SessionStartRequest {
       'role': role,
       'company_name': companyName,
       'job_description': jobDescription,
+      'agenda': agenda,
       'language': language,
     };
 

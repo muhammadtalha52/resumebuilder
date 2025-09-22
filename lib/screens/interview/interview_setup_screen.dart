@@ -24,6 +24,8 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
   final TextEditingController _jobDescriptionController =
       TextEditingController();
   final TextEditingController _roleIndustryController = TextEditingController();
+  final TextEditingController _meetingAgendaController =
+      TextEditingController();
 
   String? _selectedSessionType;
   String? _selectedLanguage = 'English'; // Default to English for now
@@ -37,6 +39,7 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
   String? _roleIndustryError;
   String? _companyError;
   String? _jobDescriptionError;
+  String? _meetingAgendaError;
   String? _languageError;
 
   final List<String> _sessionTypes = ['Interview', 'Meeting'];
@@ -111,6 +114,7 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
     _companyController.dispose();
     _jobDescriptionController.dispose();
     _roleIndustryController.dispose();
+    _meetingAgendaController.dispose();
     super.dispose();
   }
 
@@ -125,6 +129,7 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
       _roleIndustryError = null;
       _companyError = null;
       _jobDescriptionError = null;
+      _meetingAgendaError = null;
       _languageError = null;
 
       // Check all required fields and set errors
@@ -136,84 +141,56 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
         _roleIndustryError = 'Please enter your role/industry';
       }
 
-      if (_companyController.text.trim().isEmpty) {
-        _companyError = 'Please enter company name';
-      }
+      // Conditional validation based on session type
+      if (_selectedSessionType?.toLowerCase() == 'interview') {
+        if (_companyController.text.trim().isEmpty) {
+          _companyError = 'Please enter company name';
+        }
 
-      if (_jobDescriptionController.text.trim().isEmpty) {
-        _jobDescriptionError = 'Please enter job description';
+        if (_jobDescriptionController.text.trim().isEmpty) {
+          _jobDescriptionError = 'Please enter job description';
+        }
+      } else if (_selectedSessionType?.toLowerCase() == 'meeting') {
+        if (_meetingAgendaController.text.trim().isEmpty) {
+          _meetingAgendaError = 'Please enter meeting agenda';
+        }
       }
-
-      // Language validation commented out - defaulting to English
-      // if (_selectedLanguage == null || _selectedLanguage!.isEmpty) {
-      //   _languageError = 'Please select a language';
-      // }
     });
 
     // If any errors exist, don't proceed (language error removed)
     if (_sessionTypeError != null ||
         _roleIndustryError != null ||
         _companyError != null ||
-        _jobDescriptionError != null) {
+        _jobDescriptionError != null ||
+        _meetingAgendaError != null) {
       return;
     }
 
-    // All validation passed, start API integration
-    final sessionNotifier = ref.read(interviewSessionProvider.notifier);
+    // All validation passed, save data to provider and navigate
+    final provider = ref.read(interviewSessionProvider.notifier);
 
-    // Get user data from auth provider and convert to JSON string
-    final authState = ref.read(authProvider);
-    String? resumeText;
-    if (authState.user != null) {
-      resumeText = jsonEncode(authState.user!.toJson());
-      print(
-        '[SETUP] User data converted to JSON for resume_text (${resumeText.length} chars)',
-      );
-    }
-
-    // Call API to start session
-    final success = await sessionNotifier.startSessionWithAPI(
-      sessionType: _selectedSessionType!.toLowerCase(),
-      // Convert to lowercase for API
-      role: _roleIndustryController.text.trim(),
-      companyName: _companyController.text.trim(),
-      jobDescription: _jobDescriptionController.text.trim(),
-      language: "en",
-      // Hard-coded to English for now
-      resumeText: resumeText, // Pass user data as JSON string
+    // Save the setup data to the provider
+    provider.updateSetupData(
+      positionTitle: _roleIndustryController.text.trim(),
+      companyName: _selectedSessionType?.toLowerCase() == 'interview'
+          ? _companyController.text.trim()
+          : '',
+      jobDescription: _selectedSessionType?.toLowerCase() == 'interview'
+          ? _jobDescriptionController.text.trim()
+          : '',
+      meetingAgenda: _selectedSessionType?.toLowerCase() == 'meeting'
+          ? _meetingAgendaController.text.trim()
+          : '',
+      languageSelector: _selectedLanguage ?? 'English',
+      interviewType: _selectedSessionType,
+      roleIndustry: _roleIndustryController.text.trim(),
     );
 
-    if (success) {
-      // API call successful, navigate to session screen
+    // Navigate to session screen without API call
+    if (mounted) {
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => InterviewSessionScreen(
-            sessionType: _selectedSessionType!,
-            roleIndustry: _roleIndustryController.text.trim(),
-            company: _companyController.text.trim(),
-            jobDescription: _jobDescriptionController.text.trim(),
-            language: _selectedLanguage!,
-            realTimeTranscription: _realTimeTranscription,
-            liveCoaching: _liveCoaching,
-            followUpQuestions: _followUpQuestions,
-            summaryGeneration: _summaryGeneration,
-          ),
-        ),
+        MaterialPageRoute(builder: (context) => const InterviewSessionScreen()),
       );
-    } else {
-      // API call failed, show error dialog or snackbar
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              ref.read(interviewSessionProvider).error ??
-                  'Failed to start session',
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
     }
   }
 
@@ -231,6 +208,9 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
           break;
         case 'jobDescription':
           _jobDescriptionError = null;
+          break;
+        case 'meetingAgenda':
+          _meetingAgendaError = null;
           break;
         case 'language':
           _languageError = null;
@@ -280,8 +260,8 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
                       _buildFormFields(),
                       SizedBox(height: 20),
                       _buildScoutTipBanner(),
-                      SizedBox(height: 20),
-                      _buildSessionSettings(),
+                      // SizedBox(height: 20),
+                      // _buildSessionSettings(),
                       SizedBox(height: 20),
                       _buildStartSessionButton(),
                     ],
@@ -342,6 +322,16 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
               _clearFieldError('sessionType');
               setState(() {
                 _selectedSessionType = value;
+                // Clear fields when session type changes
+                if (value?.toLowerCase() == 'meeting') {
+                  _companyController.clear();
+                  _jobDescriptionController.clear();
+                  _companyError = null;
+                  _jobDescriptionError = null;
+                } else if (value?.toLowerCase() == 'interview') {
+                  _meetingAgendaController.clear();
+                  _meetingAgendaError = null;
+                }
               });
             },
           ),
@@ -360,31 +350,11 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
         ),
         const SizedBox(height: 10),
 
-        // Company Name
-        CustomTextField(
-          controller: _companyController,
-          hintText: 'Type here',
-          labelText: 'Company Name',
-          errorText: _companyError,
-          onChanged: (value) {
-            _clearFieldError('company');
-          },
-        ),
-        const SizedBox(height: 10),
-
-        // Job Description
-        CustomTextField(
-          controller: _jobDescriptionController,
-          hintText: 'Enter job description',
-          labelText: 'Job Description',
-          maxLines: 6,
-          maxLength: 500,
-          errorText: _jobDescriptionError,
-          onChanged: (value) {
-            _clearFieldError('jobDescription');
-          },
-        ),
-        const SizedBox(height: 10),
+        // Conditional fields based on session type
+        if (_selectedSessionType?.toLowerCase() == 'interview')
+          ..._buildInterviewFields(),
+        if (_selectedSessionType?.toLowerCase() == 'meeting')
+          ..._buildMeetingFields(),
 
         // Language Selector - Commented out for now as we only support English
         // GestureDetector(
@@ -409,6 +379,54 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
         // ),
       ],
     );
+  }
+
+  List<Widget> _buildInterviewFields() {
+    return [
+      // Company Name
+      CustomTextField(
+        controller: _companyController,
+        hintText: 'Type here',
+        labelText: 'Company Name',
+        errorText: _companyError,
+        onChanged: (value) {
+          _clearFieldError('company');
+        },
+      ),
+      const SizedBox(height: 10),
+
+      // Job Description
+      CustomTextField(
+        controller: _jobDescriptionController,
+        hintText: 'Enter job description',
+        labelText: 'Job Description',
+        maxLines: 6,
+        maxLength: 500,
+        errorText: _jobDescriptionError,
+        onChanged: (value) {
+          _clearFieldError('jobDescription');
+        },
+      ),
+      const SizedBox(height: 10),
+    ];
+  }
+
+  List<Widget> _buildMeetingFields() {
+    return [
+      // Meeting Agenda
+      CustomTextField(
+        controller: _meetingAgendaController,
+        hintText: 'Enter meeting agenda',
+        labelText: 'Meeting Agenda',
+        maxLines: 4,
+        maxLength: 300,
+        errorText: _meetingAgendaError,
+        onChanged: (value) {
+          _clearFieldError('meetingAgenda');
+        },
+      ),
+      const SizedBox(height: 10),
+    ];
   }
 
   Widget _buildScoutTipBanner() {
@@ -496,17 +514,17 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
                   color: AppColors.textSecondary.withValues(alpha: 0.2),
                 ),
               ),
-              _buildSettingToggle(
-                icon: Icons.chat_bubble_outline,
-                title: 'Live Coaching',
-                subtitle: 'Get guidance and structure in real time',
-                value: _liveCoaching,
-                onChanged: (value) {
-                  setState(() {
-                    _liveCoaching = value;
-                  });
-                },
-              ),
+              // _buildSettingToggle(
+              //   icon: Icons.chat_bubble_outline,
+              //   title: 'Live Coaching',
+              //   subtitle: 'Get guidance and structure in real time',
+              //   value: _liveCoaching,
+              //   onChanged: (value) {
+              //     setState(() {
+              //       _liveCoaching = value;
+              //     });
+              //   },
+              // ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Divider(
@@ -605,49 +623,23 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
   }
 
   Widget _buildStartSessionButton() {
-    final sessionData = ref.watch(interviewSessionProvider);
-    final isLoading = sessionData.isStartingSession;
-
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: isLoading ? null : _validateAndContinue,
+        onPressed: _validateAndContinue,
         style: ElevatedButton.styleFrom(
-          backgroundColor: isLoading
-              ? AppColors.primary.withOpacity(0.6)
-              : AppColors.primary,
+          backgroundColor: AppColors.primary,
           foregroundColor: AppColors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
           elevation: 0,
         ),
-        child: isLoading
-            ? Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.white,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Text(
-                    'Starting Session...',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              )
-            : const Text(
-                'Continue',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
+        child: const Text(
+          'Continue',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }

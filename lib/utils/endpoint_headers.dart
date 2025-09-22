@@ -8,6 +8,7 @@ class WAInterceptorHeaders {
 
 class ApiEndpoints {
   static const String baseUrl = 'https://api-dev.skillresy.com/api';
+  //static const String baseUrl = 'http://192.168.12.16:8000/api';
   static const String register = '/auth/register/';
   static const String login = '/auth/login/';
   static const String profileUpdate = '/auth/profile/';
@@ -15,4 +16,5 @@ class ApiEndpoints {
   static const String educationData =
       '/resume/degree-types-subject-institutes/';
   static const String sessionStart = '/session/start';
+  static const String saveInterviewData = '/interview/interviews/';
 }

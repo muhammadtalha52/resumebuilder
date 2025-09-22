@@ -15,6 +15,7 @@ import '../screens/profile/edit_work_experience_screen.dart';
 import '../screens/legal/legal_screen.dart';
 import '../screens/resume/resume_review_screen.dart';
 import '../screens/history/resume_history_screen.dart';
+import '../screens/interview/interview_summary_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -86,6 +87,27 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/resume/history',
       builder: (context, state) => const ResumeHistoryScreen(),
+    ),
+    GoRoute(
+      path: '/interview/summary',
+      builder: (context, state) {
+        final params = state.uri.queryParameters;
+        final sessionId = params['sessionId'] ?? '';
+        final sessionType = params['sessionType'] ?? 'Interview';
+        final startTimeStr = params['startTime'];
+        final durationSeconds = int.tryParse(params['duration'] ?? '0') ?? 0;
+
+        final startTime = startTimeStr != null
+            ? DateTime.tryParse(startTimeStr) ?? DateTime.now()
+            : DateTime.now();
+
+        return InterviewSummaryScreen(
+          sessionId: sessionId,
+          sessionType: sessionType,
+          startTime: startTime,
+          duration: Duration(seconds: durationSeconds),
+        );
+      },
     ),
   ],
 );

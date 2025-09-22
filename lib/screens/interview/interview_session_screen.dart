@@ -1,35 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../constants/app_colors.dart';
 import '../../models/conversation_models.dart';
 import '../../providers/continuous_transcription_provider.dart';
+import '../../providers/interview_session_provider.dart';
 
 class InterviewSessionScreen extends ConsumerWidget {
-  final String sessionType;
-  final String roleIndustry;
-  final String company;
-  final String jobDescription;
-  final String language;
-  final bool realTimeTranscription;
-  final bool liveCoaching;
-  final bool followUpQuestions;
-  final bool summaryGeneration;
-
-  const InterviewSessionScreen({
-    super.key,
-    required this.sessionType,
-    required this.roleIndustry,
-    required this.company,
-    required this.jobDescription,
-    required this.language,
-    required this.realTimeTranscription,
-    required this.liveCoaching,
-    required this.followUpQuestions,
-    required this.summaryGeneration,
-  });
+  const InterviewSessionScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -126,7 +107,37 @@ class InterviewSessionScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: GestureDetector(
-                              onTap: () => sessionNotifier.stopSession(),
+                              onTap: () {
+                                // Capture session data before stopping
+                                final sessionId = sessionData.sessionId;
+                                final sessionType =
+                                    sessionData.sessionType ?? 'Interview';
+                                final startTime =
+                                    sessionNotifier.sessionStartTime ??
+                                    DateTime.now();
+                                final duration = sessionData.sessionDuration;
+
+                                // Stop the session
+                                sessionNotifier.stopSession();
+
+                                // Navigate to summary screen
+                                if (sessionId != null && sessionId.isNotEmpty) {
+                                  final transcriptionData = ref.read(
+                                    continuousTranscriptionProvider,
+                                  );
+
+                                  print(transcriptionData);
+                                  context.go(
+                                    '/interview/summary?sessionId=$sessionId'
+                                    '&sessionType=$sessionType'
+                                    '&startTime=${startTime.toIso8601String()}'
+                                    '&duration=${duration.inSeconds}',
+                                  );
+                                } else {
+                                  // If no session ID, just go back home
+                                  context.go('/home');
+                                }
+                              },
                               child: const Text(
                                 'End',
                                 style: TextStyle(
@@ -166,7 +177,7 @@ class InterviewSessionScreen extends ConsumerWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'Interview',
+                            sessionData.sessionType ?? 'Interview',
                             style: TextStyle(
                               fontSize: 14,
                               color: AppColors.textSecondary.withValues(
@@ -179,15 +190,22 @@ class InterviewSessionScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      roleIndustry.isNotEmpty
-                          ? roleIndustry
-                          : 'Senior Software Position',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final interviewSession = ref.watch(
+                          interviewSessionProvider,
+                        );
+                        return Text(
+                          interviewSession.positionTitle.isNotEmpty
+                              ? interviewSession.positionTitle
+                              : 'Senior Software Position',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -303,7 +321,7 @@ class InterviewSessionScreen extends ConsumerWidget {
       case InterviewSessionState.processing:
       case InterviewSessionState.showingHelp:
         // Always show Scout buttons during any active session
-        return _buildListeningStatus(sessionNotifier);
+        return _buildListeningStatus(sessionNotifier, sessionData);
     }
   }
 
@@ -312,68 +330,112 @@ class InterviewSessionScreen extends ConsumerWidget {
     ContinuousTranscriptionNotifier sessionNotifier,
   ) {
     final sessionData = ref.watch(continuousTranscriptionProvider);
+    final isLoading = sessionData.isStartingSession;
+
     return Container(
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
-        color: const Color(0xFF1A237E),
+        color: isLoading
+            ? const Color(0xFF1A237E).withOpacity(0.6)
+            : const Color(0xFF1A237E),
         borderRadius: BorderRadius.circular(12),
       ),
       child: ElevatedButton(
-        onPressed: () async {
-          // Check if we already have a session ID from startSessionWithAPI
-          if (sessionData.sessionId != null) {
-            print(
-              '[START-BTN] Session ID exists, starting audio transcription only',
-            );
-            await sessionNotifier.startSession();
-          } else {
-            print('[START-BTN] No session ID, need to start with API first');
-            // Start session with API using the screen parameters
-            final success = await sessionNotifier.startSessionWithAPI(
-              sessionType: sessionType.toLowerCase(),
-              role: roleIndustry,
-              companyName: company,
-              jobDescription: jobDescription,
-              language: "en",
-              resumeText: null, // Could be enhanced to pass user data
-            );
+        onPressed: isLoading
+            ? null
+            : () async {
+                // Check if we already have a session ID from startSessionWithAPI
+                if (sessionData.sessionId != null) {
+                  print(
+                    '[START-BTN] Session ID exists, starting audio transcription only',
+                  );
+                  await sessionNotifier.startSession();
+                } else {
+                  print(
+                    '[START-BTN] No session ID, using data from InterviewSessionProvider',
+                  );
+                  // Get interview session data from the global provider
+                  final interviewSession = ref.read(interviewSessionProvider);
 
-            if (success) {
-              print(
-                '[START-BTN] API session started, now starting audio transcription',
-              );
-              await sessionNotifier.startSession();
-            } else {
-              print('[START-BTN] Failed to start API session');
-            }
-          }
-        },
+                  // Start session with API using data from InterviewSessionProvider
+                  final success = await sessionNotifier.startSessionWithAPI(
+                    sessionType: interviewSession.interviewType.isNotEmpty
+                        ? interviewSession.interviewType.toLowerCase()
+                        : 'interview',
+                    role: interviewSession.positionTitle.isNotEmpty
+                        ? interviewSession.positionTitle
+                        : 'Software Developer',
+                    companyName: interviewSession.companyName.isNotEmpty
+                        ? interviewSession.companyName
+                        : 'Company',
+                    jobDescription: interviewSession.jobDescription.isNotEmpty
+                        ? interviewSession.jobDescription
+                        : 'Software development position',
+                    agenda: interviewSession.meetingAgenda ?? '',
+                    language: "en",
+                    resumeText: null, // Could be enhanced to pass user data
+                  );
+
+                  if (success) {
+                    print(
+                      '[START-BTN] API session started, now starting audio transcription',
+                    );
+                    await sessionNotifier.startSession();
+                  } else {
+                    print('[START-BTN] Failed to start API session');
+                  }
+                }
+              },
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1A237E),
+          backgroundColor: isLoading
+              ? const Color(0xFF1A237E).withOpacity(0.6)
+              : const Color(0xFF1A237E),
           foregroundColor: AppColors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
           elevation: 0,
         ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.play_arrow, size: 24),
-            SizedBox(width: 8),
-            Text(
-              'Start Session',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
+        child: isLoading
+            ? const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.white,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    'Starting Session...',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              )
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.play_arrow, size: 24),
+                  SizedBox(width: 8),
+                  Text(
+                    'Start Session',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
       ),
     );
   }
 
   Widget _buildListeningStatus(
     ContinuousTranscriptionNotifier sessionNotifier,
+    InterviewSessionData sessionData,
   ) {
     return Container(
       padding: const EdgeInsets.all(8),
@@ -387,7 +449,15 @@ class InterviewSessionScreen extends ConsumerWidget {
           // Scout Help Button
           Expanded(
             child: GestureDetector(
-              onTap: () => sessionNotifier.getHelp(),
+              onTap: () {
+                // Check session type and call appropriate method
+                final sessionType = sessionData.sessionType?.toLowerCase();
+                if (sessionType == 'meeting') {
+                  sessionNotifier.getNextMeetingHelp();
+                } else {
+                  sessionNotifier.getHelp();
+                }
+              },
               child: Container(
                 height: 65, // Fixed height for both buttons
                 padding: const EdgeInsets.symmetric(
