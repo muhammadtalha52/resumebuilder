@@ -17,6 +17,7 @@ enum InterviewSessionState {
   showingHelp,
   recording, // User is speaking into mic
   processing, // AI is processing the recorded audio
+  ended, // Session completed and stopped
 }
 
 class InterviewQuestion {
@@ -165,29 +166,29 @@ class ContinuousTranscriptionNotifier
   Timer? _updateBatchTimer;
   String? _pendingScoutMessageId;
   String _pendingScoutContent = '';
-  late ContinuousAudioTranscriber _audioTranscriber;
+  ContinuousAudioTranscriber? _audioTranscriber;
   final InterviewService _interviewService = InterviewService();
   DateTime? _sessionStartTime;
 
   ContinuousTranscriptionNotifier() : super(InterviewSessionData()) {
     print('[INIT] ContinuousTranscriptionNotifier created with Whisper API');
-    _audioTranscriber = ContinuousAudioTranscriber();
-    _audioTranscriber.addListener(_onTranscriberUpdate);
   }
 
   // Listen to audio transcriber updates and sync with provider state
   void _onTranscriberUpdate() {
+    if (_audioTranscriber == null) return;
+
     state = state.copyWith(
-      fullTranscript: _audioTranscriber.transcript,
-      latestSegment: _audioTranscriber.latestSegment,
-      isListening: _audioTranscriber.isRecording,
-      transcriptionState: _audioTranscriber.state,
-      chunkCount: _audioTranscriber.chunkCount,
-      pendingChunks: _audioTranscriber.pendingChunks,
+      fullTranscript: _audioTranscriber!.transcript,
+      latestSegment: _audioTranscriber!.latestSegment,
+      isListening: _audioTranscriber!.isRecording,
+      transcriptionState: _audioTranscriber!.state,
+      chunkCount: _audioTranscriber!.chunkCount,
+      pendingChunks: _audioTranscriber!.pendingChunks,
     );
 
     // Update conversation message with new transcript
-    _updateCurrentConversationMessage(_audioTranscriber.transcript);
+    _updateCurrentConversationMessage(_audioTranscriber!.transcript);
   }
 
   // Start interview session
@@ -198,8 +199,8 @@ class ContinuousTranscriptionNotifier
     print('[SESSION_RESET] Performing complete session reset');
     print('[SESSION_RESET] Current sessionId before reset: ${state.sessionId}');
 
-    // Stop any ongoing transcription
-    await _audioTranscriber.stopRecording();
+    // Stop and dispose any existing transcriber
+    await _disposeAudioTranscriber();
 
     // Store session metadata before reset
     final currentSessionId = state.sessionId;
@@ -233,9 +234,13 @@ class ContinuousTranscriptionNotifier
       // Let the record package handle permissions natively during initialization
       // This often works better than permission_handler for audio recording
 
-      // Initialize ContinuousAudioTranscriber
+      // Create new ContinuousAudioTranscriber instance
+      print('Creating new ContinuousAudioTranscriber instance...');
+      _audioTranscriber = ContinuousAudioTranscriber();
+      _audioTranscriber!.addListener(_onTranscriberUpdate);
+
       print('Initializing ContinuousAudioTranscriber...');
-      final initialized = await _audioTranscriber.initialize();
+      final initialized = await _audioTranscriber!.initialize();
       if (!initialized) {
         print('Failed to initialize ContinuousAudioTranscriber');
         state = state.copyWith(
@@ -260,7 +265,7 @@ class ContinuousTranscriptionNotifier
         '[AUTO-START] Starting continuous audio transcription automatically',
       );
       _startNewConversationMessage();
-      await _audioTranscriber.startRecording();
+      await _audioTranscriber!.startRecording();
     } catch (e) {
       print('Error in startSession: $e');
       state = state.copyWith(error: 'Failed to start session: ${e.toString()}');
@@ -319,11 +324,13 @@ class ContinuousTranscriptionNotifier
 
     // Stop audio recording and timer
     _stopTimer();
-    _audioTranscriber.stopRecording();
+    if (_audioTranscriber != null) {
+      await _audioTranscriber!.stopRecording();
+    }
 
-    // Update state to stopped but PRESERVE all session data
+    // Update state to ended (not idle) to prevent auto-transition
     state = InterviewSessionData(
-      state: InterviewSessionState.idle,
+      state: InterviewSessionState.ended,
       sessionDuration: currentSessionDuration,
       // Keep duration
       questions: currentQuestions,
@@ -389,9 +396,17 @@ class ContinuousTranscriptionNotifier
         error: null,
       );
 
+      // Dispose any existing transcriber first
+      await _disposeAudioTranscriber();
+
+      // Create new audio transcriber instance
+      print('[TRANSITION] Creating new audio transcriber instance...');
+      _audioTranscriber = ContinuousAudioTranscriber();
+      _audioTranscriber!.addListener(_onTranscriberUpdate);
+
       // Initialize and start audio transcriber
       print('[TRANSITION] Initializing audio transcriber...');
-      final initialized = await _audioTranscriber.initialize();
+      final initialized = await _audioTranscriber!.initialize();
       if (!initialized) {
         print('[TRANSITION] Failed to initialize audio transcriber');
         state = state.copyWith(
@@ -404,7 +419,7 @@ class ContinuousTranscriptionNotifier
       _startTimer();
       _sessionStartTime = DateTime.now();
       _startNewConversationMessage();
-      await _audioTranscriber.startRecording();
+      await _audioTranscriber!.startRecording();
 
       print('[TRANSITION] Successfully transitioned to listening state');
     } catch (e) {
@@ -573,7 +588,7 @@ class ContinuousTranscriptionNotifier
     print('❓ [DEBUG] Full transcript: "${state.fullTranscript}"');
     print('❓ [DEBUG] Full transcript length: ${state.fullTranscript.length}');
     print(
-      '❓ [DEBUG] Audio transcriber transcript: "${_audioTranscriber.transcript}"',
+      '❓ [DEBUG] Audio transcriber transcript: "${_audioTranscriber?.transcript ?? ""}"',
     );
 
     if (state.sessionId == null) {
@@ -843,13 +858,16 @@ class ContinuousTranscriptionNotifier
       state = state.copyWith(helpTimestamp: DateTime.now(), error: null);
 
       // 2. SET CUTOFF POINT - ignore chunks created after this moment
-      _audioTranscriber.setHelpRequestCutoff();
+      _audioTranscriber?.setHelpRequestCutoff();
 
       // 3. SECRETLY wait for chunks recorded up to the cutoff to complete
-      await _audioTranscriber.waitForChunksUpToCutoff(maxWaitMs: 5000);
+      if (_audioTranscriber != null) {
+        await _audioTranscriber!.waitForChunksUpToCutoff(maxWaitMs: 5000);
+      }
 
       // 4. Get the complete transcript with all context (from chunks ≤ cutoff)
-      final completeTranscript = _audioTranscriber.transcript.trim();
+      final completeTranscript =
+          (_audioTranscriber?.transcript ?? state.fullTranscript).trim();
 
       // Create help request with complete transcript
       final request = SessionHelpRequest(
@@ -895,7 +913,7 @@ class ContinuousTranscriptionNotifier
       _pendingScoutContent = '';
 
       // 5. CLEAR CUTOFF - resume normal processing for future help requests
-      _audioTranscriber.clearHelpRequestCutoff();
+      _audioTranscriber?.clearHelpRequestCutoff();
 
       // Mark help as complete
       state = state.copyWith(isGettingHelp: false);
@@ -903,7 +921,7 @@ class ContinuousTranscriptionNotifier
       print('[HELP] Error getting streaming help: $e');
 
       // Ensure cutoff is cleared even if there's an error
-      _audioTranscriber.clearHelpRequestCutoff();
+      _audioTranscriber?.clearHelpRequestCutoff();
 
       state = state.copyWith(
         isGettingHelp: false,
@@ -948,6 +966,18 @@ class ContinuousTranscriptionNotifier
     // Don't reset duration to zero - keep it for summary screen
   }
 
+  // Helper method to properly dispose audio transcriber
+  Future<void> _disposeAudioTranscriber() async {
+    if (_audioTranscriber != null) {
+      print('[DISPOSE-AUDIO] Disposing existing audio transcriber...');
+      _audioTranscriber!.removeListener(_onTranscriberUpdate);
+      await _audioTranscriber!.stopRecording();
+      _audioTranscriber!.dispose();
+      _audioTranscriber = null;
+      print('[DISPOSE-AUDIO] Audio transcriber disposed');
+    }
+  }
+
   @override
   void dispose() {
     print('[DISPOSE] Cleaning up ContinuousTranscriptionNotifier');
@@ -958,9 +988,13 @@ class ContinuousTranscriptionNotifier
     _updateBatchTimer?.cancel();
     _updateBatchTimer = null;
 
-    // Remove listener and dispose audio transcriber
-    _audioTranscriber.removeListener(_onTranscriberUpdate);
-    _audioTranscriber.dispose();
+    // Dispose audio transcriber synchronously (best effort)
+    if (_audioTranscriber != null) {
+      _audioTranscriber!.removeListener(_onTranscriberUpdate);
+      _audioTranscriber!.stopRecording();
+      _audioTranscriber!.dispose();
+      _audioTranscriber = null;
+    }
 
     // Clear the state
     state = InterviewSessionData(); // Reset to initial state

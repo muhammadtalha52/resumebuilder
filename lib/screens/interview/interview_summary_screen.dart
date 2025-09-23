@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../constants/app_colors.dart';
 import '../../providers/interview_summary_provider.dart';
-import '../../providers/interview_session_provider.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/common/custom_app_bar.dart';
 
@@ -71,7 +70,7 @@ class _InterviewSummaryScreenState
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       appBar: BackNavigationAppBar(
-        title: 'Session Summary',
+        title: 'Meeting Summary',
         onBackPressed: () => context.go('/home'),
         showFoxIcon: true,
       ),
@@ -201,7 +200,7 @@ class _InterviewSummaryScreenState
                                       ),
                                       const SizedBox(height: 16),
                                       const Text(
-                                        'Session Completed',
+                                        'Meeting Completed',
                                         style: TextStyle(
                                           fontSize: 20,
                                           fontWeight: FontWeight.bold,
@@ -209,7 +208,7 @@ class _InterviewSummaryScreenState
                                         ),
                                       ),
                                       const Text(
-                                        'Your interview summary is ready to view',
+                                        'Your meeting summary is ready to view',
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: Colors.black54,
@@ -220,7 +219,7 @@ class _InterviewSummaryScreenState
                                 ),
                                 SizedBox(height: 10),
                                 const Text(
-                                  'Session Overview',
+                                  'Meeting Overview',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -254,34 +253,66 @@ class _InterviewSummaryScreenState
                                   ),
                                 ),
                                 if (summaryState.summary != null) ...[
-                                  const SizedBox(height: 24),
-                                  _buildSection(
-                                    'Key Topics Discussed',
-                                    summaryState.summary!.keyTopics,
-                                    Colors.blue,
-                                  ),
-                                  const SizedBox(height: 24),
-                                  _buildSection(
-                                    'Strengths Highlighted',
-                                    summaryState.summary!.strengths,
-                                    Colors.green,
-                                    isCheckmark: true,
-                                  ),
-                                  const SizedBox(height: 24),
-                                  _buildSection(
-                                    'Areas for Improvement',
-                                    summaryState.summary!.areasForImprovement,
-                                    Colors.orange,
-                                    isCheckmark: false,
-                                    isWarning: true,
-                                  ),
-                                  const SizedBox(height: 24),
-                                  _buildSection(
-                                    'Action Items',
-                                    summaryState.summary!.actionItems,
-                                    Colors.purple,
-                                    isCheckmark: true,
-                                  ),
+                                  if (summaryState
+                                      .summary!
+                                      .keyTopics
+                                      .isNotEmpty) ...[
+                                    const SizedBox(height: 24),
+                                    _buildSection(
+                                      'Key Discussion Points',
+                                      summaryState.summary!.keyTopics,
+                                      Colors.blue,
+                                    ),
+                                  ],
+                                  if (summaryState
+                                      .summary!
+                                      .decisionsMade
+                                      .isNotEmpty) ...[
+                                    const SizedBox(height: 24),
+                                    _buildSection(
+                                      'Decisions Made',
+                                      summaryState.summary!.decisionsMade,
+                                      Colors.teal,
+                                      isCheckmark: true,
+                                    ),
+                                  ],
+                                  if (summaryState
+                                      .summary!
+                                      .strengths
+                                      .isNotEmpty) ...[
+                                    const SizedBox(height: 24),
+                                    _buildSection(
+                                      'Strengths Highlighted',
+                                      summaryState.summary!.strengths,
+                                      Colors.green,
+                                      isCheckmark: true,
+                                    ),
+                                  ],
+                                  if (summaryState
+                                      .summary!
+                                      .areasForImprovement
+                                      .isNotEmpty) ...[
+                                    const SizedBox(height: 24),
+                                    _buildSection(
+                                      'Areas for Improvement',
+                                      summaryState.summary!.areasForImprovement,
+                                      Colors.orange,
+                                      isCheckmark: false,
+                                      isWarning: true,
+                                    ),
+                                  ],
+                                  if (summaryState
+                                      .summary!
+                                      .actionItems
+                                      .isNotEmpty) ...[
+                                    const SizedBox(height: 24),
+                                    _buildSection(
+                                      'Action Items',
+                                      summaryState.summary!.actionItems,
+                                      Colors.purple,
+                                      isCheckmark: true,
+                                    ),
+                                  ],
                                 ],
                                 const SizedBox(height: 24),
                                 // Container(
@@ -470,7 +501,7 @@ class _InterviewSummaryScreenState
           ),
         ),
         const SizedBox(height: 12),
-        if (title == 'Key Topics Discussed')
+        if (title == 'Key Topics Discussed' || title == 'Key Discussion Points')
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -540,8 +571,6 @@ class _InterviewSummaryScreenState
   }
 
   Widget _buildSaveButton(InterviewSummaryState summaryState) {
-    final sessionData = ref.watch(interviewSessionProvider);
-
     if (summaryState.hasSaved) {
       return Container(
         width: double.infinity,

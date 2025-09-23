@@ -37,7 +37,7 @@ class ResumeScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       appBar: CustomAppBar(
-        title: AppBarWidgets.foxWithTitle(title: "Resume"),
+        title: AppBarWidgets.foxWithTitle(title: "Resumes"),
         actions: [
           AppBarWidgets.historyButton(
             onPressed: () {

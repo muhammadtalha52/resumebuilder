@@ -241,6 +241,7 @@ class InterviewSessionScreen extends ConsumerWidget {
         return _buildIdleContent();
       case InterviewSessionState.listening:
       case InterviewSessionState.paused:
+      case InterviewSessionState.ended:
       case InterviewSessionState.recording:
       case InterviewSessionState.processing:
       case InterviewSessionState.showingHelp:
@@ -317,6 +318,7 @@ class InterviewSessionScreen extends ConsumerWidget {
       case InterviewSessionState.paused:
         return _buildPausedStatus();
       case InterviewSessionState.listening:
+      case InterviewSessionState.ended:
       case InterviewSessionState.recording:
       case InterviewSessionState.processing:
       case InterviewSessionState.showingHelp:
@@ -337,7 +339,7 @@ class InterviewSessionScreen extends ConsumerWidget {
       height: 56,
       decoration: BoxDecoration(
         color: isLoading
-            ? const Color(0xFF1A237E).withOpacity(0.6)
+            ? const Color(0xFF1A237E).withValues(alpha: 0.6)
             : const Color(0xFF1A237E),
         borderRadius: BorderRadius.circular(12),
       ),
@@ -372,7 +374,7 @@ class InterviewSessionScreen extends ConsumerWidget {
                     jobDescription: interviewSession.jobDescription.isNotEmpty
                         ? interviewSession.jobDescription
                         : 'Software development position',
-                    agenda: interviewSession.meetingAgenda ?? '',
+                    agenda: interviewSession.meetingAgenda,
                     language: "en",
                     resumeText: null, // Could be enhanced to pass user data
                   );
@@ -389,7 +391,7 @@ class InterviewSessionScreen extends ConsumerWidget {
               },
         style: ElevatedButton.styleFrom(
           backgroundColor: isLoading
-              ? const Color(0xFF1A237E).withOpacity(0.6)
+              ? const Color(0xFF1A237E).withValues(alpha: 0.6)
               : const Color(0xFF1A237E),
           foregroundColor: AppColors.white,
           shape: RoundedRectangleBorder(

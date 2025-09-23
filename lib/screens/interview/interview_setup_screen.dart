@@ -223,7 +223,7 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.scaffold,
-      appBar: const BackNavigationAppBar(title: 'Start Interview Assistant'),
+      appBar: const BackNavigationAppBar(title: 'Start Meeting Assistant'),
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
@@ -281,7 +281,7 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Boost Your Interview\nSkills with AI',
+          'Boost Your Meeting\nSkills with AI',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,

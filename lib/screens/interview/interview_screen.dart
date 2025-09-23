@@ -14,7 +14,7 @@ class InterviewScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       appBar: CustomAppBar(
-        title: AppBarWidgets.foxWithTitle(title: 'Interview'),
+        title: AppBarWidgets.foxWithTitle(title: 'Meetings'),
         actions: [
           AppBarWidgets.historyButton(
             onPressed: () {
@@ -76,7 +76,7 @@ class InterviewScreen extends ConsumerWidget {
 
   Widget _buildHeaderText() {
     return const Text(
-      'Boost Your Interview\nSkills with Scout',
+      'Boost Your Meeting\nSkills with Scout',
       textAlign: TextAlign.center,
       style: TextStyle(
         fontSize: 24,
@@ -119,7 +119,7 @@ class InterviewScreen extends ConsumerWidget {
             Image.asset('assets/icons/mic.png', height: 25),
             SizedBox(width: AppSizes.paddingM),
             Text(
-              'Start Interview Assistant',
+              'Start Meeting Assistant',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,

@@ -185,6 +185,9 @@ class ContinuousAudioTranscriber extends ChangeNotifier {
 
   // Process pending transcriptions in parallel
   Future<void> _processTranscriptionQueue() async {
+    // Don't process if disposed
+    if (_isDisposed) return;
+
     // Count how many are currently processing
     final processingCount = _chunkQueue.where((c) => c.isProcessing).length;
 
@@ -200,12 +203,21 @@ class ContinuousAudioTranscriber extends ChangeNotifier {
 
     // Process each chunk
     for (final chunk in pendingChunks) {
-      _transcribeChunk(chunk);
+      if (!_isDisposed) {
+        _transcribeChunk(chunk);
+      }
     }
   }
 
   // Transcribe a single chunk using Whisper API
   Future<void> _transcribeChunk(TranscriptionChunk chunk) async {
+    // Don't process if disposed
+    if (_isDisposed) {
+      chunk.isProcessed = true;
+      chunk.isProcessing = false;
+      return;
+    }
+
     chunk.isProcessing = true;
 
     try {
@@ -443,16 +455,26 @@ class ContinuousAudioTranscriber extends ChangeNotifier {
 
     // Cancel timer immediately
     _chunkRotationTimer?.cancel();
+    _chunkRotationTimer = null;
+
+    // Mark as disposed to stop all processing
+    _isDisposed = true;
 
     // Force stop recorder with short timeout
     try {
-      await _recorder.stop().timeout(Duration(milliseconds: 500));
+      if (await _recorder.isRecording()) {
+        await _recorder.stop().timeout(Duration(milliseconds: 500));
+      }
     } catch (e) {
       _log('🔥 Recorder force stopped (timeout ignored): $e');
     }
 
     // Clear all pending chunks - don't process them
     _chunkQueue.clear();
+
+    // Reset all counters
+    _chunkCounter = 0;
+    _helpRequestCutoff = null;
 
     // Set state to stopped immediately
     _setState(TranscriptionState.stopped);
@@ -668,11 +690,28 @@ Transcript length: ${_fullTranscript.length} chars
 
   @override
   void dispose() {
+    _log('🗑️ DISPOSE called - cleaning up audio transcriber');
     _isDisposed = true;
     _chunkRotationTimer?.cancel();
-    _recorder.stop();
+    _chunkRotationTimer = null;
+    _chunkQueue.clear();
+    _fullTranscript = '';
+    _latestSegment = '';
+    _chunkCounter = 0;
+    _helpRequestCutoff = null;
+
+    // Stop recorder synchronously
+    try {
+      if (_recorder.isRecording() == true) {
+        _recorder.stop();
+      }
+    } catch (e) {
+      _log('🗑️ Error stopping recorder during dispose: $e');
+    }
+
     _recorder.dispose();
     _cleanupOldAudioFiles();
     super.dispose();
+    _log('🗑️ DISPOSE complete');
   }
 }
