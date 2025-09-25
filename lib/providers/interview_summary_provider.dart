@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/interview_summary_model.dart';
-import '../models/conversation_models.dart';
+
+import '../models/meeting_summary_model.dart';
 import '../services/interview_service.dart';
-import 'interview_session_provider.dart';
 import 'continuous_transcription_provider.dart';
+import 'interview_session_provider.dart';
 
 final interviewServiceProvider = Provider<InterviewService>((ref) {
   return InterviewService();
@@ -11,14 +11,14 @@ final interviewServiceProvider = Provider<InterviewService>((ref) {
 
 class InterviewSummaryState {
   final bool isLoading;
-  final InterviewSummaryModel? summary;
+  final MeetingSummaryModel? meetingSummaryModel;
   final String? error;
   final bool isSaving;
   final bool hasSaved;
 
   InterviewSummaryState({
     this.isLoading = false,
-    this.summary,
+    this.meetingSummaryModel,
     this.error,
     this.isSaving = false,
     this.hasSaved = false,
@@ -26,14 +26,14 @@ class InterviewSummaryState {
 
   InterviewSummaryState copyWith({
     bool? isLoading,
-    InterviewSummaryModel? summary,
+    MeetingSummaryModel? summary,
     String? error,
     bool? isSaving,
     bool? hasSaved,
   }) {
     return InterviewSummaryState(
       isLoading: isLoading ?? this.isLoading,
-      summary: summary ?? this.summary,
+      meetingSummaryModel: summary ?? meetingSummaryModel,
       error: error,
       isSaving: isSaving ?? this.isSaving,
       hasSaved: hasSaved ?? this.hasSaved,
@@ -59,22 +59,32 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
     try {
       final response = await _interviewService.endSession(sessionId);
 
-      if (response['status'] == 'success' && response['summary'] != null) {
-        final summary = InterviewSummaryModel.fromApiResponse(
-          sessionId: sessionId,
-          sessionType: sessionType,
-          startTime: startTime,
-          duration: duration,
-          summary: response['summary'],
-        );
+      if (response['status'] == 'success') {
+        // Parse response and add session metadata
+        final meetingSummaryModel = MeetingSummaryModel.fromJson(response)
+            .copyWith(
+              sessionId: sessionId,
+              sessionType: sessionType,
+              startTime: startTime,
+              duration: duration,
+            );
 
-        state = state.copyWith(isLoading: false, summary: summary, error: null);
-
-        // Summary loaded successfully - save button will trigger save
+        if (meetingSummaryModel.summary != null) {
+          state = state.copyWith(
+            isLoading: false,
+            summary: meetingSummaryModel,
+            error: null,
+          );
+        } else {
+          state = state.copyWith(
+            isLoading: false,
+            error: 'No summary data received',
+          );
+        }
       } else {
         state = state.copyWith(
           isLoading: false,
-          error: response['summary'] ?? 'Failed to get session summary',
+          error: response['message'] ?? 'Failed to get session summary',
         );
       }
     } catch (e) {
@@ -93,50 +103,59 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
 
     // DEBUG: Print what we're getting
     print('[SAVE] DEBUG transcriptionData:');
-    print(
-      '  - fullTranscript length: ${transcriptionData.fullTranscript?.length ?? 0}',
-    );
-    print('  - helpResponse: ${transcriptionData.helpResponse}');
-    print(
-      '  - conversation.messages length: ${transcriptionData.conversation.messages.length}',
-    );
-    print('  - helpTimestamp: ${transcriptionData.helpTimestamp}');
 
-    if (state.summary != null) {
+    if (state.meetingSummaryModel != null &&
+        state.meetingSummaryModel!.summary != null) {
       try {
-        // Update session data with summary information
-        _ref
-            .read(interviewSessionProvider.notifier)
-            .addSummary(
-              keyTopics: state.summary!.keyTopics,
-              strengthHighlight: state.summary!.strengths,
-              weaknessHighlight: state.summary!.areasForImprovement,
-              actionItems: state.summary!.actionItems,
-            );
-
+        final summary = state.meetingSummaryModel!.summary!;
         // Simple: fullTranscript + helpResponse (if exists)
-        String completeTranscript = transcriptionData.fullTranscript ?? '';
+        String completeTranscriptAndScoutResponses =
+            transcriptionData.fullTranscript;
 
-        if (transcriptionData.helpResponse != null &&
-            transcriptionData.helpResponse!.isNotEmpty) {
-          if (completeTranscript.isNotEmpty) {
-            completeTranscript += '\n\n--- Scout AI Responses ---\n\n';
+        if (transcriptionData.conversation.messages.isNotEmpty) {
+          if (completeTranscriptAndScoutResponses.isNotEmpty) {
+            completeTranscriptAndScoutResponses +=
+                '\n\n--- Scout AI Responses ---\n\n';
           }
-          completeTranscript += transcriptionData.helpResponse!;
+
+          for (var element in transcriptionData.conversation.messages) {
+            if (element.content.isNotEmpty) {
+              completeTranscriptAndScoutResponses += element.content;
+            }
+          }
         }
 
-        // Update the transcript field directly
-        _ref.read(interviewSessionProvider.notifier).state = _ref
-            .read(interviewSessionProvider)
-            .copyWith(transcript: completeTranscript);
-
+        final nowDateTime =
+            '${DateTime.now().toUtc().toIso8601String().split('.').first}Z';
         // Get updated session data
-        final updatedSessionData = _ref.read(interviewSessionProvider);
+        final sessionData = _ref.read(interviewSessionProvider);
+        var dataToApi = {
+          'company_name': sessionData.companyName,
+          'position_title': sessionData.positionTitle,
+          'interview_type': sessionData.interviewType,
+          'role_industry': sessionData.roleIndustry,
+          'job_description': sessionData.jobDescription,
+          "interview_date": nowDateTime,
+          "duration_minutes": sessionData.duration ?? 20,
+          "transcript": completeTranscriptAndScoutResponses,
+          "key_topics": summary.keyDiscussionPoints,
+          "strength_highlight": summary.strengthsHighlighted,
+          "weakness_highlight": summary.potentialWeaknessOrStrengths,
+          "action_items": summary.actionItems,
+          "decisions_made": summary.decisionsMade,
+          "top_moments_in_interview": summary.topMomentsInInterview,
+          "ai_driven_interview_analytics": summary.aiDrivenInterviewAnalytics,
+          "areas_of_improvement": summary.areasOfImprovement,
+          "language_selector": "English",
+          "status": "scheduled",
+          "location": "https://meet.google.com/abc-defg-hij",
+          "interviewer_name": "",
+          "interviewer_email": "",
+          "notes": "",
+        };
 
         // Save to database
-        final result = await _interviewService.saveInterview(
-          updatedSessionData,
-        );
+        final result = await _interviewService.saveInterview(dataToApi);
 
         if (result['status'] == 'success') {
           print('Interview saved successfully: ${result['message']}');

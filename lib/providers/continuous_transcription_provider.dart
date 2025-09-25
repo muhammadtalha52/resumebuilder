@@ -55,8 +55,7 @@ class InterviewSessionData {
   // Transcription data from ContinuousAudioTranscriber
   final String fullTranscript; // Complete transcript from all chunks
   final String latestSegment; // Latest transcribed segment (highlighted)
-  final String?
-  currentTranscription; // Live partial transcription (for compatibility)
+  final String? currentTranscription; // Live partial transcription
 
   final bool isListening;
   final String? error;
@@ -164,15 +163,12 @@ class ContinuousTranscriptionNotifier
     extends StateNotifier<InterviewSessionData> {
   Timer? _sessionTimer;
   Timer? _updateBatchTimer;
-  String? _pendingScoutMessageId;
   String _pendingScoutContent = '';
   ContinuousAudioTranscriber? _audioTranscriber;
   final InterviewService _interviewService = InterviewService();
   DateTime? _sessionStartTime;
 
-  ContinuousTranscriptionNotifier() : super(InterviewSessionData()) {
-    print('[INIT] ContinuousTranscriptionNotifier created with Whisper API');
-  }
+  ContinuousTranscriptionNotifier() : super(InterviewSessionData()) {}
 
   // Listen to audio transcriber updates and sync with provider state
   void _onTranscriberUpdate() {
@@ -195,13 +191,8 @@ class ContinuousTranscriptionNotifier
   Future<void> startSession() async {
     print('StartSession called with ContinuousAudioTranscriber');
 
-    // COMPLETE RESET - Clear everything from previous sessions
-    print('[SESSION_RESET] Performing complete session reset');
-    print('[SESSION_RESET] Current sessionId before reset: ${state.sessionId}');
-
     // Stop and dispose any existing transcriber
     await _disposeAudioTranscriber();
-
     // Store session metadata before reset
     final currentSessionId = state.sessionId;
     final currentSessionType = state.sessionType;
@@ -221,11 +212,6 @@ class ContinuousTranscriptionNotifier
       language: currentLanguage,
       resumeText: currentResumeText,
     ); // Reset but preserve API session data
-
-    print('[SESSION_RESET] Session ID after reset: ${state.sessionId}');
-    print(
-      '[SESSION_RESET] All previous data cleared, keeping session metadata',
-    );
 
     try {
       // Use record package's native permission handling instead of permission_handler
@@ -314,13 +300,6 @@ class ContinuousTranscriptionNotifier
     final currentSessionDuration = state.sessionDuration;
 
     print('[SESSION-STOP] Preserved data:');
-    print('  - Session ID: $currentSessionId');
-    print('  - Session Type: $currentSessionType');
-    print('  - Company: $currentCompanyName');
-    print('  - Transcript length: ${currentFullTranscript.length}');
-    print('  - Conversation messages: ${currentConversation.messages.length}');
-    print('  - Help response length: ${currentHelpResponse?.length ?? 0}');
-    print('  - Session duration: ${currentSessionDuration.inMinutes} minutes');
 
     // Stop audio recording and timer
     _stopTimer();
@@ -332,15 +311,10 @@ class ContinuousTranscriptionNotifier
     state = InterviewSessionData(
       state: InterviewSessionState.ended,
       sessionDuration: currentSessionDuration,
-      // Keep duration
       questions: currentQuestions,
-      // Keep questions
       conversation: currentConversation,
-      // Keep conversation
       fullTranscript: currentFullTranscript,
-      // Keep transcript
       latestSegment: '',
-      // Clear latest segment (no longer recording)
       currentTranscription: null,
       isListening: false,
       // Stop listening
@@ -583,14 +557,6 @@ class ContinuousTranscriptionNotifier
 
   // Public method to get follow-up questions
   void getFollowUpQuestions() async {
-    print('❓ [DEBUG] getFollowUpQuestions() method called');
-    print('❓ [DEBUG] Session ID: ${state.sessionId}');
-    print('❓ [DEBUG] Full transcript: "${state.fullTranscript}"');
-    print('❓ [DEBUG] Full transcript length: ${state.fullTranscript.length}');
-    print(
-      '❓ [DEBUG] Audio transcriber transcript: "${_audioTranscriber?.transcript ?? ""}"',
-    );
-
     if (state.sessionId == null) {
       print('❓ [DEBUG] ERROR: No active session');
       return;
@@ -604,12 +570,6 @@ class ContinuousTranscriptionNotifier
       final request = SessionFollowUpRequest(
         sessionId: state.sessionId!,
         transcript: state.fullTranscript.trim(),
-      );
-
-      print('[FOLLOW-UP] Requesting streaming follow-up questions');
-      print('[FOLLOW-UP] Session: ${state.sessionId}');
-      print(
-        '[FOLLOW-UP] Transcript length: ${state.fullTranscript.length} chars',
       );
 
       // Start with empty message and add it to conversation
@@ -679,10 +639,6 @@ class ContinuousTranscriptionNotifier
   // Get next meeting assistance for meeting sessions
   void getNextMeetingHelp() async {
     print('📝 [DEBUG] getNextMeetingHelp() method called');
-    print('📝 [DEBUG] Session ID: ${state.sessionId}');
-    print('📝 [DEBUG] Session Type: ${state.sessionType}');
-    print('📝 [DEBUG] Full transcript: "${state.fullTranscript}"');
-    print('📝 [DEBUG] Full transcript length: ${state.fullTranscript.length}');
 
     if (state.sessionId == null) {
       print('📝 [DEBUG] ERROR: No active session');
@@ -700,10 +656,6 @@ class ContinuousTranscriptionNotifier
       );
 
       print('[MEETING-NEXT] Requesting streaming meeting assistance');
-      print('[MEETING-NEXT] Session: ${state.sessionId}');
-      print(
-        '[MEETING-NEXT] Transcript length: ${state.fullTranscript.length} chars',
-      );
 
       // Start with empty message and add it to conversation
       final scoutMessageId = _addScoutResponse(

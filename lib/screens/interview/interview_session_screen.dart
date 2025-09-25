@@ -3,6 +3,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:skillresy/providers/auth_provider.dart';
 
 import '../../constants/app_colors.dart';
 import '../../models/conversation_models.dart';
@@ -359,6 +360,8 @@ class InterviewSessionScreen extends ConsumerWidget {
                   );
                   // Get interview session data from the global provider
                   final interviewSession = ref.read(interviewSessionProvider);
+                  final authState = ref.watch(authProvider);
+                  final user = authState.user;
 
                   // Start session with API using data from InterviewSessionProvider
                   final success = await sessionNotifier.startSessionWithAPI(
@@ -376,7 +379,8 @@ class InterviewSessionScreen extends ConsumerWidget {
                         : 'Software development position',
                     agenda: interviewSession.meetingAgenda,
                     language: "en",
-                    resumeText: null, // Could be enhanced to pass user data
+                    resumeText: user
+                        .toString(), // Could be enhanced to pass user data
                   );
 
                   if (success) {

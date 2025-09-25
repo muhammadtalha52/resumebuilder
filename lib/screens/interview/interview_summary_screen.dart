@@ -107,7 +107,8 @@ class _InterviewSummaryScreenState
                         color: AppColors.primary,
                       ),
                     )
-                  : summaryState.error != null && summaryState.summary == null
+                  : summaryState.error != null &&
+                        summaryState.meetingSummaryModel == null
                   ? Center(
                       child: Padding(
                         padding: const EdgeInsets.all(20),
@@ -252,68 +253,139 @@ class _InterviewSummaryScreenState
                                     ],
                                   ),
                                 ),
-                                if (summaryState.summary != null) ...[
-                                  if (summaryState
-                                      .summary!
-                                      .keyTopics
-                                      .isNotEmpty) ...[
-                                    const SizedBox(height: 24),
-                                    _buildSection(
-                                      'Key Discussion Points',
-                                      summaryState.summary!.keyTopics,
-                                      Colors.blue,
-                                    ),
-                                  ],
-                                  if (summaryState
-                                      .summary!
-                                      .decisionsMade
-                                      .isNotEmpty) ...[
-                                    const SizedBox(height: 24),
-                                    _buildSection(
-                                      'Decisions Made',
-                                      summaryState.summary!.decisionsMade,
-                                      Colors.teal,
-                                      isCheckmark: true,
-                                    ),
-                                  ],
-                                  if (summaryState
-                                      .summary!
-                                      .strengths
-                                      .isNotEmpty) ...[
-                                    const SizedBox(height: 24),
-                                    _buildSection(
-                                      'Strengths Highlighted',
-                                      summaryState.summary!.strengths,
-                                      Colors.green,
-                                      isCheckmark: true,
-                                    ),
-                                  ],
-                                  if (summaryState
-                                      .summary!
-                                      .areasForImprovement
-                                      .isNotEmpty) ...[
-                                    const SizedBox(height: 24),
-                                    _buildSection(
-                                      'Areas for Improvement',
-                                      summaryState.summary!.areasForImprovement,
-                                      Colors.orange,
-                                      isCheckmark: false,
-                                      isWarning: true,
-                                    ),
-                                  ],
-                                  if (summaryState
-                                      .summary!
-                                      .actionItems
-                                      .isNotEmpty) ...[
-                                    const SizedBox(height: 24),
-                                    _buildSection(
-                                      'Action Items',
-                                      summaryState.summary!.actionItems,
-                                      Colors.purple,
-                                      isCheckmark: true,
-                                    ),
-                                  ],
-                                ],
+                                if (summaryState.meetingSummaryModel != null &&
+                                    summaryState.meetingSummaryModel!.summary !=
+                                        null)
+                                  ...() {
+                                    final summaryData = summaryState
+                                        .meetingSummaryModel!
+                                        .summary!;
+                                    return [
+                                      // Key Discussion Points (for meetings) or Top Moments (for interviews)
+                                      if (summaryData.keyDiscussionPoints !=
+                                              null &&
+                                          summaryData
+                                              .keyDiscussionPoints!
+                                              .isNotEmpty) ...[
+                                        const SizedBox(height: 24),
+                                        _buildSection(
+                                          widget.sessionType
+                                                  .toLowerCase()
+                                                  .contains('meeting')
+                                              ? 'Key Discussion Points'
+                                              : 'Key Topics Discussed',
+                                          summaryData.keyDiscussionPoints!,
+                                          Colors.blue,
+                                        ),
+                                      ],
+
+                                      // Top Moments in Interview
+                                      if (summaryData.topMomentsInInterview !=
+                                              null &&
+                                          summaryData
+                                              .topMomentsInInterview!
+                                              .isNotEmpty) ...[
+                                        const SizedBox(height: 24),
+                                        _buildSection(
+                                          'Top Moments in Interview',
+                                          summaryData.topMomentsInInterview!,
+                                          Colors.indigo,
+                                        ),
+                                      ],
+
+                                      // Decisions Made (mainly for meetings)
+                                      if (summaryData.decisionsMade != null &&
+                                          summaryData
+                                              .decisionsMade!
+                                              .isNotEmpty) ...[
+                                        const SizedBox(height: 24),
+                                        _buildSection(
+                                          'Decisions Made',
+                                          summaryData.decisionsMade!,
+                                          Colors.teal,
+                                          isCheckmark: true,
+                                        ),
+                                      ],
+
+                                      // Strengths Highlighted
+                                      if (summaryData.strengthsHighlighted !=
+                                              null &&
+                                          summaryData
+                                              .strengthsHighlighted!
+                                              .isNotEmpty) ...[
+                                        const SizedBox(height: 24),
+                                        _buildSection(
+                                          'Strengths Highlighted',
+                                          summaryData.strengthsHighlighted!,
+                                          Colors.green,
+                                          isCheckmark: true,
+                                        ),
+                                      ],
+
+                                      // Potential Weaknesses or Strengths
+                                      if (summaryData
+                                                  .potentialWeaknessOrStrengths !=
+                                              null &&
+                                          summaryData
+                                              .potentialWeaknessOrStrengths!
+                                              .isNotEmpty) ...[
+                                        const SizedBox(height: 24),
+                                        _buildSection(
+                                          'Potential Weaknesses or Strengths',
+                                          summaryData
+                                              .potentialWeaknessOrStrengths!,
+                                          Colors.amber,
+                                          isCheckmark: false,
+                                        ),
+                                      ],
+
+                                      // Areas for Improvement
+                                      if (summaryData.areasOfImprovement !=
+                                              null &&
+                                          summaryData
+                                              .areasOfImprovement!
+                                              .isNotEmpty) ...[
+                                        const SizedBox(height: 24),
+                                        _buildSection(
+                                          'Areas for Improvement',
+                                          summaryData.areasOfImprovement!,
+                                          Colors.orange,
+                                          isCheckmark: false,
+                                          isWarning: true,
+                                        ),
+                                      ],
+
+                                      // AI-Driven Interview Analytics
+                                      if (summaryData
+                                                  .aiDrivenInterviewAnalytics !=
+                                              null &&
+                                          summaryData
+                                              .aiDrivenInterviewAnalytics!
+                                              .isNotEmpty) ...[
+                                        const SizedBox(height: 24),
+                                        _buildSection(
+                                          'AI-Driven Interview Analytics',
+                                          summaryData
+                                              .aiDrivenInterviewAnalytics!,
+                                          Colors.deepPurple,
+                                        ),
+                                      ],
+
+                                      // Action Items
+                                      if (summaryData.actionItems != null &&
+                                          summaryData
+                                              .actionItems!
+                                              .isNotEmpty) ...[
+                                        const SizedBox(height: 24),
+                                        _buildSection(
+                                          'Action Items',
+                                          summaryData.actionItems!,
+                                          Colors.purple,
+                                          isCheckmark: true,
+                                        ),
+                                      ],
+                                    ];
+                                  }(),
                                 const SizedBox(height: 24),
                                 // Container(
                                 //   padding: const EdgeInsets.all(16),

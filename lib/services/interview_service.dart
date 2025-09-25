@@ -1,13 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+
 import '../main.dart';
 import '../models/interview_session_models.dart';
-import '../models/interview_summary_model.dart';
-import '../models/interview_session_data.dart';
-import 'api_client.dart';
 import '../utils/endpoint_headers.dart';
 
 class InterviewService {
@@ -57,7 +56,7 @@ class InterviewService {
         'job_description': request.jobDescription,
         'agenda': request.agenda,
         'language': request.language,
-        'resume_text': '',
+        'resume_text': request.resumeText,
       };
 
       // Debug log for resume_text
@@ -615,42 +614,13 @@ class InterviewService {
   }
 
   /// Save interview session to database using APIClient
-  ///
-  /// [sessionData] - InterviewSessionData containing complete interview information
-  ///
-  /// Returns a Map containing save status and response
   Future<Map<String, dynamic>> saveInterview(
-    InterviewSessionData sessionData,
+    Map<String, dynamic> payloadData,
   ) async {
     try {
-      final nowDateTime =
-          '${DateTime.now().toUtc().toIso8601String().split('.').first}Z';
-
-      var payload = {
-        'company_name': sessionData.companyName,
-        'position_title': sessionData.positionTitle,
-        'interview_type': "meeting",
-        'role_industry': sessionData.roleIndustry,
-        'job_description': sessionData.jobDescription,
-        "language_selector": "English",
-        "status": "scheduled",
-        "interview_date": nowDateTime,
-        "duration_minutes": 90,
-        "location": "https://meet.google.com/abc-defg-hij",
-        "interviewer_name": "Sarah Johnson",
-        "interviewer_email": "sarah.johnson@techsolutions.com",
-        "notes":
-            "Prepare for technical questions on Python, Django, and system design",
-        "transcrip": sessionData.transcript,
-        "key_topics": sessionData.keyTopics,
-        "strength_highlight": sessionData.strengthHighlight,
-        "weakness_highlight": sessionData.weaknessHighlight,
-        "action_items": sessionData.actionItems,
-      };
-
       final response = await apiClient.dio.post(
         ApiEndpoints.saveInterviewData,
-        data: payload,
+        data: payloadData,
         options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
       );
 
