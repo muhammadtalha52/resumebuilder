@@ -471,62 +471,58 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           onPressed: () => _handleBackNavigation(),
         ),
       ),
-      body: Stack(
-        children: [
-          // Background pattern
-          Positioned.fill(
-            child: Image.asset(
-              'assets/icons/background.png',
-              fit: BoxFit.cover,
-            ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/icons/background.png'),
+            fit: BoxFit.cover,
           ),
-          // Loading overlay for education data
-          if (isLoadingEducation)
-            Positioned.fill(
-              child: Container(
-                color: AppColors.white.withValues(alpha: 0.8),
-                child: const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.primary,
+        ),
+        child: Stack(
+          children: [
+            // Loading overlay for education data
+            if (isLoadingEducation)
+              Positioned.fill(
+                child: Container(
+                  color: AppColors.white.withValues(alpha: 0.8),
+                  child: const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppColors.primary,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'Loading education data...',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: AppColors.textSecondary,
+                        SizedBox(height: 16),
+                        Text(
+                          'Loading education data...',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 0),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight:
-                        constraints.maxHeight -
-                        40, // Ensure minimum height minus padding
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: MediaQuery.of(context).size.width >= 600
-                              ? 600
-                              : double.infinity,
-                        ),
-                        child: Card(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 0),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight:
+                          constraints.maxHeight -
+                          40, // Ensure minimum height minus padding
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Card(
                           elevation: 0,
                           color: AppColors.white,
                           shape: RoundedRectangleBorder(
@@ -581,14 +577,14 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                             ],
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
-        ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -7,6 +7,7 @@ import 'package:dio/io.dart';
 
 import '../main.dart';
 import '../models/interview_session_models.dart';
+import '../models/meeting_history_response.dart';
 import '../utils/endpoint_headers.dart';
 
 class InterviewService {
@@ -136,92 +137,6 @@ class InterviewService {
       }
     } catch (e) {
       return SessionStartResponse.failure(
-        'Unexpected error occurred: ${e.toString()}',
-      );
-    }
-  }
-
-  /// Get help during interview session
-  ///
-  /// [request] - SessionHelpRequest containing session_id and transcript
-  ///
-  /// Returns a SessionHelpResponse with AI assistance
-  Future<SessionHelpResponse> getHelp(SessionHelpRequest request) async {
-    try {
-      // Convert to form data format (application/x-www-form-urlencoded)
-      final formData = request.toFormData();
-
-      // Make API call with form data
-      final response = await _dio.post(
-        'interview/help',
-        data: formData,
-        options: Options(
-          contentType: 'application/x-www-form-urlencoded',
-          headers: {
-            'accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-          },
-        ),
-      );
-
-      // Parse response
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        if (response.data != null) {
-          return SessionHelpResponse.fromJson(response.data);
-        } else {
-          return SessionHelpResponse.failure('Empty response from server');
-        }
-      } else {
-        return SessionHelpResponse.failure(
-          'Failed to get help: ${response.statusMessage}',
-        );
-      }
-    } on DioException catch (e) {
-      // Handle Dio specific errors
-      if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.sendTimeout ||
-          e.type == DioExceptionType.receiveTimeout) {
-        return SessionHelpResponse.failure(
-          'Request timeout. Please check your internet connection and try again.',
-        );
-      } else if (e.type == DioExceptionType.connectionError) {
-        return SessionHelpResponse.failure(
-          'Unable to connect to server. Please check your internet connection.',
-        );
-      } else if (e.response?.statusCode == 400) {
-        return SessionHelpResponse.failure(
-          'Invalid request. Please check your session or transcript.',
-        );
-      } else if (e.response?.statusCode == 401) {
-        return SessionHelpResponse.failure(
-          'Session not found or expired. Please start a new session.',
-        );
-      } else if (e.response?.statusCode == 422) {
-        return SessionHelpResponse.failure(
-          'Unable to process your request. Please try again.',
-        );
-      } else if (e.response?.statusCode == 500) {
-        return SessionHelpResponse.failure(
-          'Server error occurred while getting help. Please try again later.',
-        );
-      } else {
-        // Try to extract error message from response
-        String errorMessage =
-            'An error occurred while getting help. Please try again.';
-        if (e.response?.data is Map) {
-          final data = e.response!.data as Map;
-          if (data.containsKey('message')) {
-            errorMessage = data['message'].toString();
-          } else if (data.containsKey('error')) {
-            errorMessage = data['error'].toString();
-          } else if (data.containsKey('detail')) {
-            errorMessage = data['detail'].toString();
-          }
-        }
-        return SessionHelpResponse.failure(errorMessage);
-      }
-    } catch (e) {
-      return SessionHelpResponse.failure(
         'Unexpected error occurred: ${e.toString()}',
       );
     }
@@ -683,6 +598,284 @@ class InterviewService {
         'message': 'Unexpected error: ${e.toString()}',
       };
     }
+  }
+
+  /// Setup Scout chat session for meeting history
+  ///
+  /// [sessionId] - The meeting session ID
+  /// [meeting] - MeetingHistoryItem containing meeting data
+  ///
+  /// Returns a Map containing status and setup response
+  Future<Map<String, dynamic>> setupScoutChatSession(
+    int sessionId,
+    MeetingHistoryItem meeting,
+  ) async {
+    try {
+      // Prepare transcription from meeting data
+      String transcription = _buildTranscriptionFromMeeting(meeting);
+
+      print('Scout: Setting up chat session for meeting ID: $sessionId');
+      print('Scout: Transcription length: ${transcription.length} chars');
+
+      final formData = {
+        'session_id': sessionId,
+        'transcription': transcription,
+      };
+
+      final response = await _dio.post(
+        'chat/start',
+        data: formData,
+        options: Options(
+          contentType: 'application/x-www-form-urlencoded',
+          headers: {
+            'accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (response.data != null) {
+          return {
+            'status': 'success',
+            'data': response.data,
+            'message': 'Scout chat session setup successfully',
+          };
+        } else {
+          return {
+            'status': 'error',
+            'message': 'Empty response from Scout chat setup',
+          };
+        }
+      } else {
+        return {
+          'status': 'error',
+          'message': 'Failed to setup Scout chat: ${response.statusMessage}',
+        };
+      }
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return {
+          'status': 'error',
+          'message': 'Request timeout. Please check your internet connection.',
+        };
+      } else if (e.type == DioExceptionType.connectionError) {
+        return {
+          'status': 'error',
+          'message': 'Unable to connect to Scout server.',
+        };
+      } else if (e.response?.statusCode == 400) {
+        return {
+          'status': 'error',
+          'message': 'Invalid session data for Scout chat.',
+        };
+      } else if (e.response?.statusCode == 401) {
+        return {
+          'status': 'error',
+          'message': 'Authentication required for Scout chat.',
+        };
+      } else if (e.response?.statusCode == 500) {
+        return {
+          'status': 'error',
+          'message': 'Scout server error occurred. Please try again later.',
+        };
+      } else {
+        String errorMessage = 'An error occurred while setting up Scout chat.';
+        if (e.response?.data is Map) {
+          final data = e.response!.data as Map;
+          if (data.containsKey('message')) {
+            errorMessage = data['message'].toString();
+          } else if (data.containsKey('error')) {
+            errorMessage = data['error'].toString();
+          } else if (data.containsKey('detail')) {
+            errorMessage = data['detail'].toString();
+          }
+        }
+        return {'status': 'error', 'message': errorMessage};
+      }
+    } catch (e) {
+      return {
+        'status': 'error',
+        'message': 'Unexpected Scout chat error: ${e.toString()}',
+      };
+    }
+  }
+
+  /// Send message to Scout chat with streaming response
+  ///
+  /// [sessionId] - The session ID for the chat
+  /// [message] - User's message to Scout
+  ///
+  /// Returns a Stream<String> that emits text chunks as they arrive
+  Stream<String> sendScoutChatMessage(int sessionId, String message) async* {
+    try {
+      final formData = {
+        'session_id': sessionId.toString(),
+        'message': Uri.encodeComponent(message),
+      };
+
+      print('Scout: Sending message to session $sessionId');
+      print('Scout: Message: $message');
+
+      final response = await _dio.post(
+        'chat/query',
+        data: formData,
+        options: Options(
+          contentType: 'application/x-www-form-urlencoded',
+          headers: {
+            'accept': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          },
+          responseType: ResponseType.stream,
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final stream = response.data as ResponseBody;
+        final streamController = StreamController<String>();
+
+        // Process the stream data
+        String buffer = '';
+
+        stream.stream.listen(
+          (List<int> data) {
+            // Convert bytes to string
+            final chunk = utf8.decode(data, allowMalformed: true);
+            buffer += chunk;
+
+            // Split by newlines and process complete lines
+            final lines = buffer.split('\n');
+            buffer = lines.removeLast(); // Keep incomplete line in buffer
+
+            for (final line in lines) {
+              // Parse Server-Sent Events format: "data: content"
+              if (line.startsWith('data: ')) {
+                final content = line.substring(6); // Remove "data: " prefix
+                streamController.add(content);
+              }
+            }
+          },
+          onError: (error) {
+            print('Scout: Stream error: $error');
+            streamController.addError(error);
+          },
+          onDone: () {
+            // Process any remaining buffer
+            if (buffer.isNotEmpty && buffer.startsWith('data: ')) {
+              final content = buffer.substring(6);
+              streamController.add(content);
+            }
+            print('Scout: Stream completed');
+            streamController.close();
+          },
+        );
+
+        yield* streamController.stream;
+      } else {
+        yield 'Error: Failed to get response from Scout (${response.statusCode})';
+      }
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        yield 'Request timeout. Please check your internet connection.';
+      } else if (e.type == DioExceptionType.connectionError) {
+        yield 'Unable to connect to Scout server.';
+      } else {
+        String errorMessage = 'An error occurred while chatting with Scout.';
+        if (e.response?.data is Map) {
+          final data = e.response!.data as Map;
+          if (data.containsKey('message')) {
+            errorMessage = data['message'].toString();
+          } else if (data.containsKey('error')) {
+            errorMessage = data['error'].toString();
+          }
+        }
+        yield errorMessage;
+      }
+    } catch (e) {
+      yield 'Unexpected error: ${e.toString()}';
+    }
+  }
+
+  /// Build comprehensive transcription from meeting data
+  String _buildTranscriptionFromMeeting(MeetingHistoryItem meeting) {
+    List<String> transcriptionParts = [];
+
+    // Add session type and basic info
+    if (meeting.isInterview && meeting.companyName != null) {
+      transcriptionParts.add(
+        'This is an interview session for ${meeting.companyName}',
+      );
+      if (meeting.positionTitle != null) {
+        transcriptionParts.add('for the position of ${meeting.positionTitle}');
+      }
+    } else if (meeting.isMeeting && meeting.roleIndustry != null) {
+      transcriptionParts.add(
+        'This is a meeting session in ${meeting.roleIndustry}',
+      );
+    }
+
+    // Add key topics discussed
+    if (meeting.keyTopics != null && meeting.keyTopics!.isNotEmpty) {
+      transcriptionParts.add('Key topics discussed included:');
+      transcriptionParts.addAll(meeting.keyTopics!);
+    }
+
+    // Add top moments
+    if (meeting.topMomentsInInterview != null &&
+        meeting.topMomentsInInterview!.isNotEmpty) {
+      transcriptionParts.add('Important moments in the session:');
+      transcriptionParts.addAll(meeting.topMomentsInInterview!);
+    }
+
+    // Add decisions made
+    if (meeting.decisionsMade != null && meeting.decisionsMade!.isNotEmpty) {
+      transcriptionParts.add('Decisions made during the session:');
+      transcriptionParts.addAll(meeting.decisionsMade!);
+    }
+
+    // Add strengths highlighted
+    if (meeting.strengthHighlight != null &&
+        meeting.strengthHighlight!.isNotEmpty) {
+      transcriptionParts.add('Strengths highlighted:');
+      transcriptionParts.addAll(meeting.strengthHighlight!);
+    }
+
+    // Add areas for improvement
+    if (meeting.weaknessHighlight != null &&
+        meeting.weaknessHighlight!.isNotEmpty) {
+      transcriptionParts.add('Areas for improvement mentioned:');
+      transcriptionParts.addAll(meeting.weaknessHighlight!);
+    }
+
+    // Add action items
+    if (meeting.actionItems != null && meeting.actionItems!.isNotEmpty) {
+      transcriptionParts.add('Action items identified:');
+      transcriptionParts.addAll(meeting.actionItems!);
+    }
+
+    // Add AI analytics if available
+    if (meeting.aiDrivenInterviewAnalytics != null &&
+        meeting.aiDrivenInterviewAnalytics!.isNotEmpty) {
+      transcriptionParts.add('AI-driven insights:');
+      transcriptionParts.addAll(meeting.aiDrivenInterviewAnalytics!);
+    }
+
+    // Join all parts with proper spacing
+    String result = transcriptionParts.join('. ');
+
+    // If no content, provide basic info
+    if (result.isEmpty) {
+      result = meeting.isInterview
+          ? 'This was an interview session'
+          : 'This was a meeting session';
+    }
+
+    return result;
   }
 }
 

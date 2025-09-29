@@ -87,4 +87,81 @@ class DateHelpers {
       return false;
     }
   }
+
+  /// Formats a DateTime to a readable format with time
+  /// Returns 'N/A' if date is null
+  /// Example: "15 Jan, 2:30pm"
+  static String formatToReadableDateTime(DateTime? dateTime) {
+    if (dateTime == null) return 'N/A';
+
+    final hour = dateTime.hour > 12 ? dateTime.hour - 12 : dateTime.hour;
+    final period = dateTime.hour >= 12 ? 'pm' : 'am';
+    final displayHour = hour == 0 ? 12 : hour; // Handle midnight and noon
+
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    return '${dateTime.day} ${months[dateTime.month - 1]}, $displayHour:${dateTime.minute.toString().padLeft(2, '0')}$period';
+  }
+
+  /// Formats duration in minutes to a readable format
+  /// Returns 'N/A' if minutes is null
+  /// Example: "90 minutes", "2 hours, 30 minutes", "1 hour"
+  static String formatDuration(int? minutes) {
+    if (minutes == null) return 'N/A';
+    if (minutes < 60) return '$minutes minutes';
+
+    final hours = minutes ~/ 60;
+    final remainingMinutes = minutes % 60;
+
+    return remainingMinutes > 0
+        ? '$hours hour${hours > 1 ? 's' : ''}, $remainingMinutes minutes'
+        : '$hours hour${hours > 1 ? 's' : ''}';
+  }
+
+  /// Formats a date string to relative time
+  /// Returns relative time like "just now", "1 hour ago", "2 days ago"
+  /// Returns empty string if date string is invalid
+  static String getTimeAgo(String? dateString) {
+    if (dateString == null || dateString.isEmpty) return '';
+
+    try {
+      final date = DateTime.parse(dateString);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      if (difference.inDays > 365) {
+        final years = (difference.inDays / 365).floor();
+        return '$years year${years > 1 ? 's' : ''} ago';
+      } else if (difference.inDays > 30) {
+        final months = (difference.inDays / 30).floor();
+        return '$months month${months > 1 ? 's' : ''} ago';
+      } else if (difference.inDays > 7) {
+        final weeks = (difference.inDays / 7).floor();
+        return '$weeks week${weeks > 1 ? 's' : ''} ago';
+      } else if (difference.inDays > 0) {
+        return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
+      } else {
+        return 'just now';
+      }
+    } catch (e) {
+      return '';
+    }
+  }
 }

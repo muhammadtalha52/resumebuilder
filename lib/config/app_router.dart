@@ -4,6 +4,7 @@ import 'package:skillresy/screens/splash_screen.dart';
 
 import '../screens/auth/onboarding/get_started_screen.dart';
 import '../screens/auth/onboarding/onboarding_step_screen.dart';
+import '../screens/auth/user_type_selection_screen.dart';
 import '../screens/main_screen.dart';
 import '../screens/welcome/welcome_screen.dart';
 import '../screens/profile/edit_personal_details_screen.dart';
@@ -14,8 +15,11 @@ import '../screens/profile/edit_education_screen.dart';
 import '../screens/profile/edit_work_experience_screen.dart';
 import '../screens/legal/legal_screen.dart';
 import '../screens/resume/resume_review_screen.dart';
-import '../screens/history/resume_history_screen.dart';
-import '../screens/interview/interview_summary_screen.dart';
+import '../screens/resume/resume_history_screen.dart';
+import '../screens/interview/meeting_history_screen.dart';
+import '../screens/interview/meeting_detail_screen.dart';
+import '../screens/interview/meeting_summary_screen.dart';
+import '../models/meeting_history_response.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -30,6 +34,10 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const GetStartedScreen(),
     ),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+    GoRoute(
+      path: '/user-type-selection',
+      builder: (context, state) => const UserTypeSelectionScreen(),
+    ),
     GoRoute(path: '/home', builder: (context, state) => const MainScreen()),
     GoRoute(
       path: '/profile/edit-personal-details',
@@ -89,6 +97,17 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const ResumeHistoryScreen(),
     ),
     GoRoute(
+      path: '/meeting/history',
+      builder: (context, state) => const MeetingHistoryScreen(),
+    ),
+    GoRoute(
+      path: '/meeting/detail',
+      builder: (context, state) {
+        final meeting = state.extra as MeetingHistoryItem;
+        return MeetingDetailScreen(meeting: meeting);
+      },
+    ),
+    GoRoute(
       path: '/interview/summary',
       builder: (context, state) {
         final params = state.uri.queryParameters;
@@ -101,7 +120,7 @@ final GoRouter appRouter = GoRouter(
             ? DateTime.tryParse(startTimeStr) ?? DateTime.now()
             : DateTime.now();
 
-        return InterviewSummaryScreen(
+        return MeetingSummaryScreen(
           sessionId: sessionId,
           sessionType: sessionType,
           startTime: startTime,

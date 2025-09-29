@@ -379,8 +379,7 @@ class InterviewSessionScreen extends ConsumerWidget {
                         : 'Software development position',
                     agenda: interviewSession.meetingAgenda,
                     language: "en",
-                    resumeText: user
-                        .toString(), // Could be enhanced to pass user data
+                    resumeText: user?.toJson().toString(),
                   );
 
                   if (success) {

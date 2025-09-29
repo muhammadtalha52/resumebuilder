@@ -52,6 +52,10 @@ class AppColors {
   static const Color smallCard = Color(0xFFF2F4F7);
   static const Color cardShadow = Color(0x1A000000);
 
+  // Additional UI colors
+  static const Color border = Color(0xFFE5E7EB);
+  static const Color backgroundSecondary = Color(0xFFF3F4F6);
+
   // Social button colors
   static const Color googleRed = Color(0xFFEA4335);
   static const Color appleBlack = Color(0xFF000000);

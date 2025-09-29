@@ -132,11 +132,11 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
         var dataToApi = {
           'company_name': sessionData.companyName,
           'position_title': sessionData.positionTitle,
-          'interview_type': sessionData.interviewType,
+          'interview_type': sessionData.interviewType.toLowerCase(),
           'role_industry': sessionData.roleIndustry,
           'job_description': sessionData.jobDescription,
           "interview_date": nowDateTime,
-          "duration_minutes": sessionData.duration ?? 20,
+          "duration_minutes": sessionData.duration?.inMinutes ?? 20,
           "transcript": completeTranscriptAndScoutResponses,
           "key_topics": summary.keyDiscussionPoints,
           "strength_highlight": summary.strengthsHighlighted,

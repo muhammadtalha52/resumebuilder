@@ -81,7 +81,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             SafeArea(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.all(isTablet ? AppSizes.paddingXL : 10),
+                  padding: EdgeInsets.all(isTablet ? AppSizes.paddingXL : 5),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       maxWidth: isTablet ? 600 : double.infinity,
@@ -255,7 +255,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             TextButton(
                               onPressed: () {
-                                context.go('/onboarding');
+                                context.go('/user-type-selection');
                               },
                               style: TextButton.styleFrom(
                                 padding: EdgeInsets.zero,

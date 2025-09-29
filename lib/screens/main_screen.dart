@@ -4,7 +4,7 @@ import '../constants/app_colors.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'profile/profile_screen.dart';
 import 'resume/resume_screen.dart';
-import 'interview/interview_screen.dart';
+import 'interview/meetings_screen.dart';
 
 // Provider to track current navigation index
 final navigationIndexProvider = StateProvider<int>((ref) => 0);
@@ -22,7 +22,7 @@ class MainScreen extends ConsumerWidget {
         children: const [
           DashboardScreen(),
           ResumeScreen(),
-          InterviewScreen(),
+          MeetingScreen(),
           ProfileScreen(),
         ],
       ),

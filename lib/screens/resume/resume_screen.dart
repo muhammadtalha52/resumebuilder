@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:skillresy/screens/resume/resume_generation_loading_screen.dart';
 
 import '../../constants/app_colors.dart';
 import '../../providers/resume_provider.dart';
@@ -46,45 +45,45 @@ class ResumeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Image.asset(
-              'assets/icons/background.png',
-              fit: BoxFit.cover,
-            ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/icons/background.png'),
+            fit: BoxFit.cover,
           ),
-          SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Text(
-                  'Ready to Out Fox your Resume?',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                'Ready to Out Fox your Resume?',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  '"Scout the Fox will use AI magic to help you stand out"',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary.withValues(alpha: 0.7),
-                  ),
-                  textAlign: TextAlign.center,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 5),
+              Text(
+                '"Scout the Fox will use AI magic to help you stand out"',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary.withValues(alpha: 0.7),
                 ),
-                const SizedBox(height: 10),
-                _buildUploadResumeCard(context, ref, resumeState),
-                const SizedBox(height: 20),
-                _buildCreateResumeCard(context, ref),
-              ],
-            ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              _buildUploadResumeCard(context, ref, resumeState),
+              const SizedBox(height: 20),
+              _buildCreateResumeCard(context, ref),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

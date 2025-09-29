@@ -7,13 +7,13 @@ import '../../providers/interview_summary_provider.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/common/custom_app_bar.dart';
 
-class InterviewSummaryScreen extends ConsumerStatefulWidget {
+class MeetingSummaryScreen extends ConsumerStatefulWidget {
   final String sessionId;
   final String sessionType;
   final DateTime startTime;
   final Duration duration;
 
-  const InterviewSummaryScreen({
+  const MeetingSummaryScreen({
     super.key,
     required this.sessionId,
     required this.sessionType,
@@ -22,12 +22,11 @@ class InterviewSummaryScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<InterviewSummaryScreen> createState() =>
+  ConsumerState<MeetingSummaryScreen> createState() =>
       _InterviewSummaryScreenState();
 }
 
-class _InterviewSummaryScreenState
-    extends ConsumerState<InterviewSummaryScreen> {
+class _InterviewSummaryScreenState extends ConsumerState<MeetingSummaryScreen> {
   final TextEditingController _questionController = TextEditingController();
 
   @override
@@ -689,7 +688,7 @@ class _InterviewSummaryScreenState
                     // Show success message and navigate home
                     showSuccessSnackBar(
                       context: context,
-                      message: 'Interview data saved successfully!',
+                      message: 'Meeting saved successfully!',
                     );
 
                     // Navigate back to home like the back button does
@@ -730,13 +729,13 @@ class _InterviewSummaryScreenState
                   ),
                   SizedBox(width: 12),
                   Text(
-                    'Saving Interview...',
+                    'Saving Meeting...',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ],
               )
             : const Text(
-                'Save Interview Data',
+                'Save Meeting',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
       ),

@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/dashboard_provider.dart';
+import '../../utils/date_helpers.dart';
 
 final selectedTabProvider = StateProvider<int>((ref) => 1);
 
@@ -36,7 +38,7 @@ class DashboardScreen extends ConsumerWidget {
                 const SizedBox(height: 10),
                 _buildProgressAndMetricsSection(ref),
                 const SizedBox(height: 24),
-                _buildRecentActivitySection(),
+                _buildRecentActivitySection(ref),
                 const SizedBox(height: 20),
               ],
             ),
@@ -90,6 +92,11 @@ class DashboardScreen extends ConsumerWidget {
 
   Widget _buildProgressAndMetricsSection(WidgetRef ref) {
     final selectedTab = ref.watch(selectedTabProvider);
+    final filterMap = {0: 'day', 1: 'week', 2: 'month'};
+    final currentFilter = filterMap[selectedTab];
+    final dashboardStatsAsync = ref.watch(
+      dashboardStatsProvider(currentFilter),
+    );
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -131,35 +138,54 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.6,
-            children: [
-              _buildMetricCard(
-                icon: Icons.description_outlined,
-                title: 'Resumes Generated',
-                value: '15',
+          dashboardStatsAsync.when(
+            data: (stats) => GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.6,
+              children: [
+                _buildMetricCard(
+                  icon: Icons.description_outlined,
+                  title: 'Resumes Generated',
+                  value: stats.data?.itemCount?.totalResumes?.toString() ?? '0',
+                ),
+                _buildMetricCard(
+                  icon: Icons.work_outline,
+                  title: 'Job Applications',
+                  value: '0',
+                ),
+                _buildMetricCard(
+                  icon: Icons.groups_outlined,
+                  title: 'Interviews',
+                  value:
+                      stats.data?.itemCount?.totalInterviews?.toString() ?? '0',
+                ),
+                _buildMetricCard(
+                  icon: Icons.history,
+                  title: 'Activities',
+                  value:
+                      stats.data?.itemCount?.activitiesCount?.toString() ?? '0',
+                ),
+              ],
+            ),
+            loading: () => GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.6,
+              children: List.generate(4, (index) => _buildMetricCardShimmer()),
+            ),
+            error: (error, _) => Center(
+              child: Text(
+                'Failed to load stats',
+                style: TextStyle(color: AppColors.textSecondary),
               ),
-              _buildMetricCard(
-                icon: Icons.work_outline,
-                title: 'Job Applications',
-                value: '14',
-              ),
-              _buildMetricCard(
-                icon: Icons.groups_outlined,
-                title: 'Interviews',
-                value: '05',
-              ),
-              _buildMetricCard(
-                icon: Icons.history,
-                title: 'Interview History',
-                value: '18',
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -255,7 +281,14 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRecentActivitySection() {
+  Widget _buildRecentActivitySection(WidgetRef ref) {
+    final selectedTab = ref.watch(selectedTabProvider);
+    final filterMap = {0: 'day', 1: 'week', 2: 'month'};
+    final currentFilter = filterMap[selectedTab];
+    final dashboardStatsAsync = ref.watch(
+      dashboardStatsProvider(currentFilter),
+    );
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -281,47 +314,55 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _buildActivityItem(
-            title: 'Senior Unity Developer',
-            subtitle: 'Resume Generation',
-            timeAgo: '1 day ago',
-            iconPath: 'assets/icons/resume.png',
-            showDivider: true,
-          ),
-          _buildActivityItem(
-            title: 'Software Engineer',
-            subtitle: 'Interview Assistant',
-            timeAgo: '1 day ago',
-            iconPath: 'assets/icons/session.png',
-            showDivider: true,
-          ),
-          _buildActivityItem(
-            title: 'DevOps Engineer',
-            subtitle: 'Job Interview',
-            timeAgo: '1 day ago',
-            iconPath: 'assets/icons/session.png',
-            showDivider: true,
-          ),
-          _buildActivityItem(
-            title: 'Senior Unity Developer',
-            subtitle: 'Resume Generation',
-            timeAgo: '1 day ago',
-            iconPath: 'assets/icons/resume.png',
-            showDivider: true,
-          ),
-          _buildActivityItem(
-            title: 'Software Engineer',
-            subtitle: 'Interview Assistant',
-            timeAgo: '1 day ago',
-            iconPath: 'assets/icons/session.png',
-            showDivider: true,
-          ),
-          _buildActivityItem(
-            title: 'DevOps Engineer',
-            subtitle: 'Job Interview',
-            timeAgo: '1 day ago',
-            iconPath: 'assets/icons/session.png',
-            showDivider: false,
+          dashboardStatsAsync.when(
+            data: (stats) {
+              final items = stats.data?.items ?? [];
+              if (items.isEmpty) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Text(
+                      'No recent activities',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ),
+                );
+              }
+              return Column(
+                children: items.take(6).map((item) {
+                  final index = items.indexOf(item);
+                  final isLast = index == items.length - 1 || index == 5;
+                  final iconPath = item.type == 'resume'
+                      ? 'assets/icons/resume.png'
+                      : 'assets/icons/session.png';
+
+                  return _buildActivityItem(
+                    title: item.title ?? 'Unknown',
+                    subtitle: item.activityTypeDisplay ?? item.subTitle ?? '',
+                    timeAgo: DateHelpers.getTimeAgo(
+                      item.timestamp ?? item.createdAt ?? '',
+                    ),
+                    iconPath: iconPath,
+                    showDivider: !isLast,
+                  );
+                }).toList(),
+              );
+            },
+            loading: () => Column(
+              children: List.generate(
+                3,
+                (index) => _buildActivityItemShimmer(showDivider: index < 2),
+              ),
+            ),
+            error: (error, _) => Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: Text(
+                  'Failed to load activities',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -377,6 +418,119 @@ class DashboardScreen extends ConsumerWidget {
                 width: 22,
                 height: 22,
                 color: AppColors.textSecondary,
+              ),
+            ],
+          ),
+        ),
+        if (showDivider)
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: Colors.grey.withValues(alpha: 0.2),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMetricCardShimmer() {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.topLeft,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: 40,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActivityItemShimmer({bool showDivider = true}) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 150,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      width: 100,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      width: 60,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
               ),
             ],
           ),

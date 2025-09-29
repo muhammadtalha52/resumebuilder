@@ -1,13 +1,11 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../constants/app_colors.dart';
+import '../../providers/interview_session_provider.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/common/custom_picker_field.dart';
 import '../../widgets/common/custom_text_field.dart';
-import '../../providers/interview_session_provider.dart';
-import '../../providers/auth_provider.dart';
 import 'interview_session_screen.dart';
 
 class InterviewSetupScreen extends ConsumerStatefulWidget {
@@ -27,10 +25,9 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
   final TextEditingController _meetingAgendaController =
       TextEditingController();
 
-  String? _selectedSessionType;
-  String? _selectedLanguage = 'English'; // Default to English for now
+  String? _selectedSessionType = 'Meeting'; // Default to Meeting
+  final String? _selectedLanguage = 'English'; // Default to English for now
   bool _realTimeTranscription = true;
-  bool _liveCoaching = false;
   bool _followUpQuestions = false;
   bool _summaryGeneration = true;
 
@@ -50,63 +47,6 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
   void initState() {
     super.initState();
     // Prefill form fields for testing
-    _selectedSessionType = 'Interview';
-    _roleIndustryController.text = 'Senior Flutter Developer';
-    _companyController.text = 'Proxify';
-    _jobDescriptionController.text =
-        '''Talent has no borders. Proxify's mission is to connect top developers around the world with opportunities they deserve. So, it doesn't matter where you are; we are here to help you fast-track your independent career in the right direction. 🙂
-
-Since our launch, Proxify's developers have successfully worked with 1200+ happy clients to build their products and growth features. 5000+ talented developers trust Proxify and its network to fulfill their dreams and objectives.
-
-Proxify is shaped by a global network of supportive, talented developers interested in remote full-time jobs. Our Glassdoor (4.5/5) and Trustpilot (4.8/5) ratings reflect the trust developers place in us and our commitment to our members' success.
-
-The Role:
-
-We are looking for a Senior Flutter Developer for one of our clients. You are a perfect candidate if you are growth-oriented, you love what you do, and you enjoy working on new ideas to develop exciting products and growth features.
-
-What we are looking for:
-
-* 3 years of concentrated experience in Flutter
-* 5+ years of experience in software development with a robust background in any framework/language/OS such as React Native, iOS (Swift), Android (Kotlin)
-* Proven track record of deploying applications on Google Play/App Store using Flutter.
-* Profound knowledge of front-end languages like HTML, CSS3, and JavaScript.
-* Comprehensive understanding of Object-Oriented programming languages like Java and C++.
-* Experience with version control tools (Git, Subversion, etc.) and IDEs (Android Studio, VS Code, etc.).
-* A commitment to following best practices and conventions in software development.
-* Ability to work independently with minimal supervision.
-* Intermediate-advanced English level, with excellent communication skills for both technical and non-technical clients.
-* Located in CET timezone (+/- 3 hours), we are unable to consider applications from candidates in other time zones.
-
-Responsibilities:
-
-* You will be building and shipping robust apps to Android/ iOS devices (using a single codebase).
-* You will be running and designing product application features across various cross platform devices.
-* You will be writing readable and clear code that will be extensively documented for future use and upgrades.
-* You will be sharing feedback and brainstorming ideas with teams to improve the development process.
-* You will put effort in staying up-to-date with the latest technologies.
-
-What we offer:
-
-Get paid, not played
-No more unreliable clients. Enjoy on-time monthly payments with flexible withdrawal options.
-
-Predictable project hours
-Enjoy a harmonious work-life balance with consistent 8-hour working days with clients.
-
-Flex days, so you can recharge
-Enjoy up to 24 flex days off per year without losing pay, for full-time positions found through Proxify.
-
-Career-accelerating positions at cutting-edge companies
-Discover exclusive long-term remote positions at the world's most exciting companies.
-
-Hand-picked opportunities, just for you
-Skip the typical recruitment roadblocks and biases with personally matched positions.
-
-One seamless process, multiple opportunities
-A one-time contracting process for endless opportunities, with no extra assessments.
-
-Compensation
-Enjoy the same pay, every month with positions landed through Proxify.''';
   }
 
   @override
@@ -118,7 +58,7 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
     super.dispose();
   }
 
-  void _unfocusAllFields() {
+  void unFocusAllFields() {
     FocusScope.of(context).requestFocus(FocusNode());
   }
 
@@ -259,9 +199,9 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
                       const SizedBox(height: 10),
                       _buildFormFields(),
                       SizedBox(height: 20),
-                      _buildScoutTipBanner(),
+                      //_buildScoutTipBanner(),
                       // SizedBox(height: 20),
-                      // _buildSessionSettings(),
+                      //_buildSessionSettings(),
                       SizedBox(height: 20),
                       _buildStartSessionButton(),
                     ],
@@ -291,7 +231,7 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
         ),
         const SizedBox(height: 8),
         Text(
-          'Set up your session — real-time coaching,smart feedback, and role-based insights included.',
+          'Set up your session real-time coaching,smart feedback, and role-based insights included.',
           style: TextStyle(
             fontSize: 14,
             color: AppColors.textSecondary.withValues(alpha: 0.7),
@@ -309,7 +249,7 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
         // Session Type
         GestureDetector(
           onTap: () {
-            _unfocusAllFields();
+            unFocusAllFields();
           },
           child: CustomPickerField(
             labelText: 'Session Type',
@@ -318,7 +258,7 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
             hintText: 'Select Options',
             errorText: _sessionTypeError,
             onChanged: (value) {
-              _unfocusAllFields();
+              unFocusAllFields();
               _clearFieldError('sessionType');
               setState(() {
                 _selectedSessionType = value;
@@ -418,7 +358,7 @@ Enjoy the same pay, every month with positions landed through Proxify.''';
         controller: _meetingAgendaController,
         hintText: 'Enter meeting agenda',
         labelText: 'Meeting Agenda',
-        maxLines: 4,
+        maxLines: 6,
         maxLength: 300,
         errorText: _meetingAgendaError,
         onChanged: (value) {

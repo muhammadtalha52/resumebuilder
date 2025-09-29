@@ -6,8 +6,8 @@ import '../../constants/app_sizes.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import 'interview_setup_screen.dart';
 
-class InterviewScreen extends ConsumerWidget {
-  const InterviewScreen({super.key});
+class MeetingScreen extends ConsumerWidget {
+  const MeetingScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -18,7 +18,7 @@ class InterviewScreen extends ConsumerWidget {
         actions: [
           AppBarWidgets.historyButton(
             onPressed: () {
-              // Navigate to interview history
+              context.push('/meeting/history');
             },
           ),
         ],
@@ -89,7 +89,7 @@ class InterviewScreen extends ConsumerWidget {
 
   Widget _buildSubtitleText() {
     return const Text(
-      'Set up your session — real-time coaching,\nsmart feedback, and role-based insights\nincluded.',
+      'Set up your session real-time coaching,\nsmart feedback, and role-based insights\nincluded.',
       textAlign: TextAlign.center,
       style: TextStyle(
         fontSize: 14,
