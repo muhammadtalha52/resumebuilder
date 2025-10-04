@@ -179,7 +179,7 @@ class _OnboardingStepScreenState extends ConsumerState<OnboardingStepScreen> {
     if (widget.stepNumber > 1) {
       context.go('/onboarding/step/${widget.stepNumber - 1}');
     } else {
-      context.go('/onboarding');
+      context.go('/user-type-selection');
     }
   }
 

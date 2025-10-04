@@ -21,7 +21,13 @@ class _UserTypeSelectionScreenState
   void _handleContinue() {
     if (_selectedUserType != null) {
       ref.read(userTypeProvider.notifier).state = _selectedUserType!;
-      context.go('/onboarding');
+
+      // Navigate based on user type
+      if (_selectedUserType == 'student') {
+        context.go('/student-signup');
+      } else {
+        context.go('/onboarding');
+      }
     }
   }
 
@@ -110,7 +116,7 @@ class _UserTypeSelectionScreenState
                                       context: context,
                                       type: 'candidate',
                                       icon: Icons.work_outline,
-                                      title: 'Job Candidate',
+                                      title: 'Candidate',
                                       description:
                                           'I\'m actively seeking employment opportunities',
                                       isSelected:

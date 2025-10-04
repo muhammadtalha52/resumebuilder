@@ -396,6 +396,11 @@ class User {
     int? profileCompletionPercentage,
     String? workStartDate,
     String? workEndDate,
+    String? homeTown,
+    String? schoolName,
+    String? schoolMajor,
+    String? schoolGraduationDate,
+    List<String>? idealJobTitles,
   }) {
     _id = id;
     _email = email;
@@ -442,6 +447,11 @@ class User {
     _profileCompletionPercentage = profileCompletionPercentage;
     _workStartDate = workStartDate;
     _workEndDate = workEndDate;
+    _homeTown = homeTown;
+    _schoolName = schoolName;
+    _schoolMajor = schoolMajor;
+    _schoolGraduationDate = schoolGraduationDate;
+    _idealJobTitles = idealJobTitles;
   }
 
   User.fromJson(dynamic json) {
@@ -532,6 +542,13 @@ class User {
     _profileCompletionPercentage = json['profile_completion_percentage'];
     _workStartDate = json['work_start_date'];
     _workEndDate = json['work_end_date'];
+    _homeTown = json['home_town'];
+    _schoolName = json['school_name'];
+    _schoolMajor = json['school_major'];
+    _schoolGraduationDate = json['school_graduation_date'];
+    _idealJobTitles = json['ideal_job_titles'] != null
+        ? List<String>.from(json['ideal_job_titles'])
+        : null;
   }
 
   int? _id;
@@ -579,6 +596,11 @@ class User {
   int? _profileCompletionPercentage;
   String? _workStartDate;
   String? _workEndDate;
+  String? _homeTown;
+  String? _schoolName;
+  String? _schoolMajor;
+  String? _schoolGraduationDate;
+  List<String>? _idealJobTitles;
 
   int? get id => _id;
 
@@ -670,6 +692,16 @@ class User {
 
   String? get workEndDate => _workEndDate;
 
+  String? get homeTown => _homeTown;
+
+  String? get schoolName => _schoolName;
+
+  String? get schoolMajor => _schoolMajor;
+
+  String? get schoolGraduationDate => _schoolGraduationDate;
+
+  List<String>? get idealJobTitles => _idealJobTitles;
+
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['id'] = _id;
@@ -749,6 +781,13 @@ class User {
     map['profile_completion_percentage'] = _profileCompletionPercentage;
     map['work_start_date'] = _workStartDate;
     map['work_end_date'] = _workEndDate;
+    map['home_town'] = _homeTown;
+    map['school_name'] = _schoolName;
+    map['school_major'] = _schoolMajor;
+    map['school_graduation_date'] = _schoolGraduationDate;
+    if (_idealJobTitles != null) {
+      map['ideal_job_titles'] = _idealJobTitles;
+    }
     return map;
   }
 }

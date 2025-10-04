@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../models/login_model.dart';
 import '../models/signup_request.dart';
+import '../models/student_signup_request.dart';
 import '../utils/endpoint_headers.dart';
 import 'api_client.dart';
 
@@ -149,6 +150,91 @@ class AuthService {
       };
 
       print(requestData);
+
+      final response = await _apiClient.dio.post(
+        ApiEndpoints.register,
+        data: requestData,
+      );
+
+      if (response.statusCode == 201 && response.data != null) {
+        return LoginModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data?['error'] ?? 'Registration failed');
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final responseData = e.response!.data;
+        String errorMessage = 'Registration failed';
+
+        // Handle different error response formats
+        if (responseData is Map) {
+          // Check for 'error' field
+          if (responseData.containsKey('error')) {
+            errorMessage = responseData['error'].toString();
+          }
+          // Check for 'message' field
+          else if (responseData.containsKey('message')) {
+            errorMessage = responseData['message'].toString();
+          }
+          // Check for 'errors' field (validation errors)
+          else if (responseData.containsKey('errors')) {
+            final errors = responseData['errors'];
+            if (errors is Map) {
+              // Collect all validation errors
+              final errorMessages = <String>[];
+              errors.forEach((field, messages) {
+                if (messages is List) {
+                  errorMessages.addAll(messages.map((m) => m.toString()));
+                } else {
+                  errorMessages.add(messages.toString());
+                }
+              });
+              errorMessage = errorMessages.join('\n');
+            } else if (errors is List) {
+              errorMessage = errors.join('\n');
+            } else {
+              errorMessage = errors.toString();
+            }
+          }
+          // Check for 'detail' field (common in some APIs)
+          else if (responseData.containsKey('detail')) {
+            errorMessage = responseData['detail'].toString();
+          }
+          // If none of the above, try to extract any meaningful message
+          else {
+            errorMessage = responseData.toString();
+          }
+        } else if (responseData is String) {
+          errorMessage = responseData;
+        }
+
+        // Add status code information for better debugging
+        if (e.response!.statusCode == 422) {
+          errorMessage = 'Validation Error: $errorMessage';
+        } else if (e.response!.statusCode == 400) {
+          errorMessage = 'Bad Request: $errorMessage';
+        } else if (e.response!.statusCode == 409) {
+          errorMessage = 'Conflict: $errorMessage';
+        }
+
+        throw Exception(errorMessage);
+      } else {
+        throw Exception('Network error: ${e.message}');
+      }
+    } catch (e) {
+      // Only wrap in Exception if it's not already an Exception
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Registration failed: $e');
+    }
+  }
+
+  Future<LoginModel> registerStudent(StudentSignupRequest request) async {
+    try {
+      final requestData = request.toJson();
+
+      print('Student Registration Data: $requestData');
 
       final response = await _apiClient.dio.post(
         ApiEndpoints.register,

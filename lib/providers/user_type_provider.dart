@@ -17,7 +17,7 @@ extension UserTypeExtension on UserType {
   String get displayName {
     switch (this) {
       case UserType.candidate:
-        return 'Job Candidate';
+        return 'Candidate';
       case UserType.student:
         return 'Student';
     }

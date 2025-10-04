@@ -5,10 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../main.dart';
 import '../models/signup_request.dart';
+import '../models/student_signup_request.dart';
 import '../models/user_model.dart';
 import '../utils/keys.dart';
 import 'auth_service_provider.dart';
 import 'onboarding_provider.dart';
+import 'student_signup_provider.dart';
 
 // Auth State
 class AuthState extends Equatable {
@@ -239,6 +241,50 @@ class AuthNotifier extends StateNotifier<AuthState> {
     updateUserData(updatedUser);
   }
 
+  Future<void> signUpStudent(StudentSignupRequest request) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final authService = _ref.read(authServiceProvider);
+      final registerResponse = await authService.registerStudent(request);
+
+      if (registerResponse.status == 'success' &&
+          registerResponse.data != null) {
+        final user = registerResponse.data!.user;
+        final token = registerResponse.data!.token;
+
+        if (user != null && token != null) {
+          // Store token and user data in AppLogic
+          appLogic.accessToken = token;
+          appLogic.user = user;
+
+          // Save to local storage
+          await appLogic.box.write(AppKeys.accessToken, token);
+          await appLogic.box.write(AppKeys.user, jsonEncode(user.toJson()));
+
+          // Clear student signup state after successful account creation
+          _ref.read(studentSignupProvider.notifier).reset();
+
+          state = state.copyWith(
+            isLoading: false,
+            isAuthenticated: true,
+            user: user,
+          );
+        } else {
+          throw Exception('Invalid response data');
+        }
+      } else {
+        throw Exception(registerResponse.message ?? 'Registration failed');
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString().replaceAll('Exception: ', ''),
+      );
+      rethrow; // Rethrow to let the UI handle the error
+    }
+  }
+
   void signOut() {
     // Clear app logic data
     appLogic.accessToken = '';
@@ -247,6 +293,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     // Clear onboarding state to ensure fresh forms for new accounts
     _ref.read(onboardingProvider.notifier).reset();
+    _ref.read(studentSignupProvider.notifier).reset();
 
     // Reset auth state
     state = const AuthState();
