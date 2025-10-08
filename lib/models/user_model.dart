@@ -18,6 +18,26 @@ class DesiredJobTitle {
   }
 }
 
+class IdealJobTitle {
+  final int? id;
+  final String? title;
+  final String? createdAt;
+
+  IdealJobTitle({this.id, this.title, this.createdAt});
+
+  factory IdealJobTitle.fromJson(Map<String, dynamic> json) {
+    return IdealJobTitle(
+      id: json['id'],
+      title: json['title'],
+      createdAt: json['created_at'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'title': title, 'created_at': createdAt};
+  }
+}
+
 class IndustryPreference {
   final int? id;
   final String? industry;
@@ -209,7 +229,7 @@ class VolunteerWork {
     return VolunteerWork(
       id: json['id'],
       organization: json['organization'],
-      role: json['role'],
+      role: json['role'] ?? 2,
       description: json['description'],
       startDate: json['start_date'],
       endDate: json['end_date'],
@@ -400,7 +420,7 @@ class User {
     String? schoolName,
     String? schoolMajor,
     String? schoolGraduationDate,
-    List<String>? idealJobTitles,
+    List<IdealJobTitle>? idealJobTitles,
   }) {
     _id = id;
     _email = email;
@@ -547,7 +567,9 @@ class User {
     _schoolMajor = json['school_major'];
     _schoolGraduationDate = json['school_graduation_date'];
     _idealJobTitles = json['ideal_job_titles'] != null
-        ? List<String>.from(json['ideal_job_titles'])
+        ? (json['ideal_job_titles'] as List)
+              .map((e) => IdealJobTitle.fromJson(e))
+              .toList()
         : null;
   }
 
@@ -600,7 +622,7 @@ class User {
   String? _schoolName;
   String? _schoolMajor;
   String? _schoolGraduationDate;
-  List<String>? _idealJobTitles;
+  List<IdealJobTitle>? _idealJobTitles;
 
   int? get id => _id;
 
@@ -700,7 +722,7 @@ class User {
 
   String? get schoolGraduationDate => _schoolGraduationDate;
 
-  List<String>? get idealJobTitles => _idealJobTitles;
+  List<IdealJobTitle>? get idealJobTitles => _idealJobTitles;
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
@@ -786,7 +808,9 @@ class User {
     map['school_major'] = _schoolMajor;
     map['school_graduation_date'] = _schoolGraduationDate;
     if (_idealJobTitles != null) {
-      map['ideal_job_titles'] = _idealJobTitles;
+      map['ideal_job_titles'] = _idealJobTitles!
+          .map((e) => e.toJson())
+          .toList();
     }
     return map;
   }

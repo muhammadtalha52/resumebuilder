@@ -1,25 +1,27 @@
 import 'package:go_router/go_router.dart';
 import 'package:skillresy/screens/auth/login_screen.dart';
-import 'package:skillresy/screens/splash_screen.dart';
+import 'package:skillresy/screens/common/splash_screen.dart';
 
 import '../models/meeting_history_response.dart';
-import '../screens/auth/onboarding/onboarding_step_screen.dart';
-import '../screens/auth/student_signup/student_onboarding_step_screen.dart';
+import '../screens/auth/onboarding_step_screen.dart';
+import '../screens/auth/student_onboarding_step_screen.dart';
 import '../screens/auth/user_type_selection_screen.dart';
-import '../screens/interview/meeting_detail_screen.dart';
-import '../screens/interview/meeting_history_screen.dart';
-import '../screens/interview/meeting_summary_screen.dart';
-import '../screens/legal/legal_screen.dart';
-import '../screens/main_screen.dart';
-import '../screens/profile/edit_career_goals_screen.dart';
-import '../screens/profile/edit_education_screen.dart';
-import '../screens/profile/edit_others_screen.dart';
-import '../screens/profile/edit_personal_details_screen.dart';
-import '../screens/profile/edit_skills_tools_screen.dart';
-import '../screens/profile/edit_work_experience_screen.dart';
-import '../screens/resume/resume_history_screen.dart';
-import '../screens/resume/resume_review_screen.dart';
-import '../screens/welcome/welcome_screen.dart';
+import '../screens/candidate/interview/meeting_detail_screen.dart';
+import '../screens/candidate/interview/meeting_history_screen.dart';
+import '../screens/candidate/interview/meeting_summary_screen.dart';
+import '../screens/candidate/profile/edit_career_goals_screen.dart';
+import '../screens/candidate/profile/edit_education_screen.dart';
+import '../screens/candidate/profile/edit_others_screen.dart';
+import '../screens/candidate/profile/edit_personal_details_screen.dart';
+import '../screens/candidate/profile/edit_skills_tools_screen.dart';
+import '../screens/candidate/profile/edit_work_experience_screen.dart';
+
+import '../screens/candidate/resume/resume_history_screen.dart';
+import '../screens/candidate/resume/resume_review_screen.dart';
+import '../screens/common/legal_screen.dart';
+import '../screens/common/main_screen.dart';
+
+import '../screens/common/welcome_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',

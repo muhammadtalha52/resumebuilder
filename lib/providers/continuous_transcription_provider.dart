@@ -1,14 +1,11 @@
 import 'dart:async';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:permission_handler/permission_handler.dart';
-import '../services/interview_service.dart';
-import '../models/interview_session_models.dart';
-import '../models/conversation_models.dart';
-import '../screens/interview/continuous_audio_transcriber.dart';
 
-// Re-export TranscriptionState for use in UI
-export '../screens/interview/continuous_audio_transcriber.dart'
-    show TranscriptionState;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../models/conversation_models.dart';
+import '../models/interview_session_models.dart';
+import '../screens/candidate/interview/continuous_audio_transcriber.dart';
+import '../services/interview_service.dart';
 
 enum InterviewSessionState {
   idle,
