@@ -4,8 +4,14 @@ import '../../constants/app_colors.dart';
 class CreateSubjectDialog extends StatefulWidget {
   final String? initialName;
   final String? initialEmoji;
+  final Future<void> Function(String name, String emoji)? onCreateFolder;
 
-  const CreateSubjectDialog({super.key, this.initialName, this.initialEmoji});
+  const CreateSubjectDialog({
+    super.key,
+    this.initialName,
+    this.initialEmoji,
+    this.onCreateFolder,
+  });
 
   @override
   State<CreateSubjectDialog> createState() => _CreateSubjectDialogState();
@@ -15,6 +21,8 @@ class _CreateSubjectDialogState extends State<CreateSubjectDialog> {
   late TextEditingController _nameController;
   final String _defaultEmoji = '📁';
   final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -28,11 +36,44 @@ class _CreateSubjectDialogState extends State<CreateSubjectDialog> {
     super.dispose();
   }
 
-  void _handleCreate() {
+  Future<void> _handleCreate() async {
     if (_formKey.currentState!.validate()) {
-      Navigator.of(
-        context,
-      ).pop({'name': _nameController.text.trim(), 'emoji': _defaultEmoji});
+      // If no callback provided, just return data (for edit mode)
+      if (widget.onCreateFolder == null) {
+        Navigator.of(
+          context,
+        ).pop({'name': _nameController.text.trim(), 'emoji': _defaultEmoji});
+        return;
+      }
+
+      // Show loading state
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      try {
+        // Call the API
+        await widget.onCreateFolder!(
+          _nameController.text.trim(),
+          _defaultEmoji,
+        );
+
+        // Close dialog on success
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pop({'name': _nameController.text.trim(), 'emoji': _defaultEmoji});
+        }
+      } catch (e) {
+        // Show error in dialog
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = e.toString().replaceAll('Exception: ', '');
+          });
+        }
+      }
     }
   }
 
@@ -78,8 +119,8 @@ class _CreateSubjectDialogState extends State<CreateSubjectDialog> {
                 autofocus: true,
                 textCapitalization: TextCapitalization.words,
                 decoration: InputDecoration(
-                  labelText: 'Subject Name',
-                  hintText: 'e.g., Mathematics, Chemistry',
+                  labelText: 'Name',
+                  hintText: 'e.g., Mathematics',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: AppColors.inputBorder),
@@ -122,7 +163,39 @@ class _CreateSubjectDialogState extends State<CreateSubjectDialog> {
                   return null;
                 },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+
+              // Error message
+              if (_errorMessage != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: AppColors.error,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.error,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              if (_errorMessage != null) const SizedBox(height: 16),
 
               // Buttons
               Row(
@@ -130,20 +203,26 @@ class _CreateSubjectDialogState extends State<CreateSubjectDialog> {
                   // Cancel button
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
+                      onTap: _isLoading
+                          ? null
+                          : () => Navigator.of(context).pop(),
                       child: Container(
                         height: 48,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE5E7EB),
+                          color: _isLoading
+                              ? const Color(0xFFE5E7EB).withOpacity(0.5)
+                              : const Color(0xFFE5E7EB),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Text(
                             'Cancel',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF6B7280),
+                              color: _isLoading
+                                  ? const Color(0xFF6B7280).withOpacity(0.5)
+                                  : const Color(0xFF6B7280),
                             ),
                           ),
                         ),
@@ -156,22 +235,37 @@ class _CreateSubjectDialogState extends State<CreateSubjectDialog> {
                   // Create button
                   Expanded(
                     child: GestureDetector(
-                      onTap: _handleCreate,
+                      onTap: _isLoading ? null : _handleCreate,
                       child: Container(
                         height: 48,
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: _isLoading
+                              ? AppColors.primary.withOpacity(0.7)
+                              : AppColors.primary,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Center(
-                          child: Text(
-                            widget.initialName != null ? 'Save' : 'Create',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : Text(
+                                  widget.initialName != null
+                                      ? 'Save'
+                                      : 'Create',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
                         ),
                       ),
                     ),
@@ -191,6 +285,7 @@ Future<Map<String, String>?> showCreateSubjectDialog({
   required BuildContext context,
   String? initialName,
   String? initialEmoji,
+  Future<void> Function(String name, String emoji)? onCreateFolder,
 }) {
   return showDialog<Map<String, String>>(
     context: context,
@@ -198,6 +293,7 @@ Future<Map<String, String>?> showCreateSubjectDialog({
     builder: (context) => CreateSubjectDialog(
       initialName: initialName,
       initialEmoji: initialEmoji,
+      onCreateFolder: onCreateFolder,
     ),
   );
 }

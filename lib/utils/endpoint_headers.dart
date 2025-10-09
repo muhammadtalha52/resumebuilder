@@ -17,4 +17,5 @@ class ApiEndpoints {
       '/resume/degree-types-subject-institutes/';
   static const String sessionStart = '/session/start';
   static const String saveInterviewData = '/interview/interviews/';
+  static const String folders = '/auth/folders/';
 }

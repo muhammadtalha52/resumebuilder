@@ -369,56 +369,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
               return null;
             },
           ),
-          const SizedBox(height: 32),
-          // Terms and Privacy
-          Wrap(
-            alignment: WrapAlignment.center,
-            children: [
-              Text(
-                'By continuing you agree to our ',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  context.push('/privacy-policy');
-                },
-                child: Text(
-                  'Privacy policy',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.primary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              ),
-              Text(
-                ' and ',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  context.push('/terms-of-use');
-                },
-                child: Text(
-                  'terms of use',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.primary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           // Next button
           SizedBox(
             width: double.infinity,

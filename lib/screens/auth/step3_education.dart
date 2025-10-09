@@ -286,24 +286,6 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
     final majors = ref.watch(majorsProvider);
     final institutions = ref.watch(institutionsProvider);
     final certifications = ref.watch(certificationsProvider);
-    final educationDataAsync = ref.watch(educationDataProvider);
-
-    // Show loading indicator if data is still being fetched
-    if (educationDataAsync.isLoading) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(color: AppColors.primary),
-            const SizedBox(height: 16),
-            Text(
-              'Loading education options...',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-            ),
-          ],
-        ),
-      );
-    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

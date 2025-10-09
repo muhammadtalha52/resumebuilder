@@ -28,7 +28,9 @@ class _StudentStep2AcademicInfoState
   List<String> _idealJobTitles = [];
   DateTime? _selectedGraduationDate;
   String? _graduationDateError;
+  String? _termsError;
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
+  bool _agreedToTerms = false;
 
   @override
   void initState() {
@@ -93,9 +95,14 @@ class _StudentStep2AcademicInfoState
       if (_selectedGraduationDate == null) {
         _graduationDateError = 'Please select your expected graduation date';
       }
+      if (!_agreedToTerms) {
+        _termsError = 'Please accept our terms to continue';
+      }
     });
 
-    if (_formKey.currentState!.validate() && _selectedGraduationDate != null) {
+    if (_formKey.currentState!.validate() &&
+        _selectedGraduationDate != null &&
+        _agreedToTerms) {
       ref
           .read(studentSignupProvider.notifier)
           .updateStep2(
@@ -267,55 +274,98 @@ class _StudentStep2AcademicInfoState
             },
           ),
           const SizedBox(height: 32),
-          // Terms and Privacy
-          Wrap(
-            alignment: WrapAlignment.center,
+          // Terms and Privacy Checkbox
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'By continuing you agree to our ',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  context.push('/privacy-policy');
+              Checkbox(
+                value: _agreedToTerms,
+                onChanged: (value) async {
+                  if (value == true) {
+                    // Show privacy policy before allowing user to check
+                    await context.push('/privacy-policy');
+                    // After user returns from privacy policy, check the box
+                    setState(() {
+                      _agreedToTerms = true;
+                      _termsError = null;
+                    });
+                  } else {
+                    setState(() {
+                      _agreedToTerms = false;
+                    });
+                  }
                 },
-                child: Text(
-                  'Privacy policy',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.primary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
+                activeColor: AppColors.primary,
+                visualDensity: VisualDensity.compact,
               ),
-              Text(
-                ' and ',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  context.push('/terms-of-use');
-                },
-                child: Text(
-                  'terms of use',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.primary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    decoration: TextDecoration.underline,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 12.0),
+                  child: Wrap(
+                    children: [
+                      Text(
+                        'I agree to the ',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          context.push('/privacy-policy');
+                        },
+                        child: Text(
+                          'Privacy Policy',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: AppColors.primary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
+                        ),
+                      ),
+                      Text(
+                        ' and ',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          context.push('/terms-of-use');
+                        },
+                        child: Text(
+                          'Terms of Use',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: AppColors.primary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          if (_termsError != null) ...[
+            Padding(
+              padding: const EdgeInsets.only(left: 40.0),
+              child: Text(
+                _termsError!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 24),
           // Next button
           SizedBox(
             width: double.infinity,

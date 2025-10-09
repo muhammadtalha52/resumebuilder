@@ -1,22 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:intl/intl.dart';
 import '../../constants/app_colors.dart';
-import '../../providers/subjects_provider.dart';
+import '../../providers/documents_provider.dart' hide FileType;
 import '../../widgets/common/custom_app_bar.dart';
-import '../../widgets/dialogs/create_subject_dialog.dart';
 
-class WorkspaceScreen extends ConsumerWidget {
-  const WorkspaceScreen({super.key});
+class DocumentsScreen extends ConsumerWidget {
+  final String lectureId;
+  final String lectureName;
+
+  const DocumentsScreen({
+    super.key,
+    required this.lectureId,
+    required this.lectureName,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final subjects = ref.watch(subjectsProvider);
-    final hasSubjects = subjects.isNotEmpty;
+    final allDocuments = ref.watch(documentsProvider);
+    final documents = allDocuments
+        .where((document) => document.lectureId == lectureId)
+        .toList();
+    final hasDocuments = documents.isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
-      appBar: CustomAppBar(
-        title: AppBarWidgets.foxWithTitle(title: 'Workspace'),
+      appBar: BackNavigationAppBar(
+        title: lectureName,
+        onBackPressed: () => Navigator.pop(context),
       ),
       body: Container(
         width: double.infinity,
@@ -27,45 +39,38 @@ class WorkspaceScreen extends ConsumerWidget {
             fit: BoxFit.cover,
           ),
         ),
-        child: hasSubjects
-            ? Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 20,
-                ),
-                child: _buildSubjectsList(context, ref, subjects),
-              )
+        child: hasDocuments
+            ? _buildDocumentsList(context, ref, documents)
             : _buildEmptyState(context, ref),
       ),
-      floatingActionButton: hasSubjects
-          ? FloatingActionButton(
-              onPressed: () => _showCreateSubjectDialog(context, ref),
-              backgroundColor: AppColors.primary,
-              child: const Icon(Icons.add, color: AppColors.white),
-            )
-          : null,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _pickAndUploadFile(context, ref),
+        backgroundColor: AppColors.primary,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add, color: AppColors.white),
+      ),
     );
   }
 
-  Widget _buildSubjectsList(
+  Widget _buildDocumentsList(
     BuildContext context,
     WidgetRef ref,
-    List<Subject> subjects,
+    List<Document> documents,
   ) {
     return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: subjects.length,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      itemCount: documents.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final subject = subjects[index];
-        return _buildSubjectCard(
-          emoji: subject.emoji,
-          name: subject.name,
-          lectures: subject.lectureCount,
-          files: subject.fileCount,
+        final document = documents[index];
+        return _buildDocumentCard(
+          context: context,
+          icon: document.fileTypeIcon,
+          name: document.name,
+          size: document.fileSizeFormatted,
+          date: DateFormat('MMM dd, yyyy').format(document.uploadedAt),
           onTap: () {
-            // TODO: Navigate to subject detail screen
+            // TODO: Open/preview document
           },
           onLongPress: () {
             // TODO: Show options menu (Rename/Delete)
@@ -75,11 +80,12 @@ class WorkspaceScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSubjectCard({
-    required String emoji,
+  Widget _buildDocumentCard({
+    required BuildContext context,
+    required String icon,
     required String name,
-    required int lectures,
-    required int files,
+    required String size,
+    required String date,
     required VoidCallback onTap,
     required VoidCallback onLongPress,
   }) {
@@ -101,10 +107,10 @@ class WorkspaceScreen extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            // Emoji/Icon
-            Text(emoji, style: const TextStyle(fontSize: 32)),
+            // File icon
+            Text(icon, style: const TextStyle(fontSize: 32)),
             const SizedBox(width: 16),
-            // Subject info
+            // Document info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,10 +122,12 @@ class WorkspaceScreen extends ConsumerWidget {
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '$lectures Lectures • $files Files',
+                    '$size • $date',
                     style: const TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,
@@ -127,12 +135,6 @@ class WorkspaceScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-            ),
-            // Arrow icon
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: AppColors.textSecondary,
             ),
           ],
         ),
@@ -164,7 +166,7 @@ class WorkspaceScreen extends ConsumerWidget {
             Image.asset('assets/icons/interview-fox.png'),
             const SizedBox(height: 32),
             const Text(
-              'Organize Your Study\nMaterials with Scout',
+              'No Documents Yet',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 24,
@@ -175,7 +177,7 @@ class WorkspaceScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Create subjects, add lectures, and upload\nyour documents for easy access.',
+              'Upload your study materials like PDFs,\nDOCs, PPTs, and TXTs.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -185,7 +187,7 @@ class WorkspaceScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 40),
             GestureDetector(
-              onTap: () => _showCreateSubjectDialog(context, ref),
+              onTap: () => _pickAndUploadFile(context, ref),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 decoration: BoxDecoration(
@@ -196,10 +198,10 @@ class WorkspaceScreen extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.add, color: AppColors.accent, size: 22),
+                    Icon(Icons.upload_file, color: AppColors.accent, size: 22),
                     const SizedBox(width: 12),
                     const Text(
-                      'Create Your First Subject',
+                      'Upload Your First Document',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -216,12 +218,51 @@ class WorkspaceScreen extends ConsumerWidget {
     );
   }
 
-  void _showCreateSubjectDialog(BuildContext context, WidgetRef ref) async {
-    final result = await showCreateSubjectDialog(context: context);
-    if (result != null) {
-      ref
-          .read(subjectsProvider.notifier)
-          .addSubject(result['name']!, result['emoji']!);
+  Future<void> _pickAndUploadFile(BuildContext context, WidgetRef ref) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt'],
+      );
+
+      if (result != null) {
+        final file = result.files.first;
+        final fileName = file.name;
+        final filePath = file.path ?? '';
+        final fileSize = file.size;
+
+        // Add document to provider
+        ref
+            .read(documentsProvider.notifier)
+            .addDocument(
+              name: fileName,
+              lectureId: lectureId,
+              filePath: filePath,
+              fileSize: fileSize,
+            );
+
+        // Show success message
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$fileName uploaded successfully'),
+              backgroundColor: AppColors.primary,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Show error message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload file: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 }

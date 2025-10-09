@@ -1093,6 +1093,14 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
             text: jobTitle.isNotEmpty
                 ? 'Resume for $jobTitle position${companyName.isNotEmpty ? " at $companyName" : ""}'
                 : 'My Resume',
+            sharePositionOrigin: context.mounted
+                ? Rect.fromLTWH(
+                    0,
+                    0,
+                    MediaQuery.of(context).size.width,
+                    MediaQuery.of(context).size.height / 2,
+                  )
+                : null,
           );
 
           if (mounted) {

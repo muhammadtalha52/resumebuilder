@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../constants/app_colors.dart';
 import '../../../../providers/onboarding_provider.dart';
@@ -24,6 +25,8 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
   List<String> _languages = [];
   List<String> _volunteerWork = [];
   List<String> _hobbies = [];
+  bool _agreedToTerms = false;
+  String? _termsError;
 
   @override
   void initState() {
@@ -147,6 +150,14 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
   }
 
   void _handleSubmit() {
+    // Check if user agreed to terms
+    if (!_agreedToTerms) {
+      setState(() {
+        _termsError = 'Please accept our terms to continue';
+      });
+      return;
+    }
+
     // Since this is optional info, we don't need strict validation
     // Save whatever data is available
     ref.read(onboardingProvider.notifier).updateOptionalInfo({
@@ -202,7 +213,97 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
           hintText: 'Type here',
           maxLines: 4,
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 32),
+        // Terms and Privacy Checkbox
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(
+              value: _agreedToTerms,
+              onChanged: (value) async {
+                if (value == true) {
+                  // Show privacy policy before allowing user to check
+                  await context.push('/privacy-policy');
+                  // After user returns from privacy policy, check the box
+                  setState(() {
+                    _agreedToTerms = true;
+                    _termsError = null;
+                  });
+                } else {
+                  setState(() {
+                    _agreedToTerms = false;
+                  });
+                }
+              },
+              activeColor: AppColors.primary,
+              visualDensity: VisualDensity.compact,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12.0),
+                child: Wrap(
+                  children: [
+                    Text(
+                      'I agree to the ',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        context.push('/privacy-policy');
+                      },
+                      child: Text(
+                        'Privacy Policy',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.primary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      ' and ',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        context.push('/terms-of-use');
+                      },
+                      child: Text(
+                        'Terms of Use',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.primary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (_termsError != null) ...[
+          Padding(
+            padding: const EdgeInsets.only(left: 40.0),
+            child: Text(
+              _termsError!,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 24),
         // Next button
         SizedBox(
           width: double.infinity,

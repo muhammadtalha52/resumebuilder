@@ -77,6 +77,7 @@ class _StudentOnboardingStepScreenState
         pageBuilder: (context, animation, secondaryAnimation) =>
             AccountCreationLoadingScreen(
               key: loadingScreenKey,
+              isStudent: true,
               onAnimationComplete: () {
                 // Navigate to home screen after animation completes
                 if (mounted) {

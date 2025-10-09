@@ -3,8 +3,13 @@ import '../../constants/app_colors.dart';
 
 class AccountCreationLoadingScreen extends StatefulWidget {
   final VoidCallback? onAnimationComplete;
+  final bool isStudent;
 
-  const AccountCreationLoadingScreen({super.key, this.onAnimationComplete});
+  const AccountCreationLoadingScreen({
+    super.key,
+    this.onAnimationComplete,
+    this.isStudent = false,
+  });
 
   @override
   State<AccountCreationLoadingScreen> createState() =>
@@ -161,22 +166,32 @@ class AccountCreationLoadingScreenState
                   ],
                 ),
                 SizedBox(height: 50),
-                const Text(
-                  'Assembling Your Skill Card',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    widget.isStudent
+                        ? 'Setting Up Your Student Profile'
+                        : 'Assembling Your Skill Card',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
 
                 // Subtitle
-                const Text(
-                  'Get ready to level up your lair!',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AppColors.textSecondary,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    widget.isStudent
+                        ? 'Preparing your academic study space!'
+                        : 'Get ready to level up your lair!',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ],

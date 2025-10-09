@@ -9,7 +9,7 @@ import '../candidate/dashboard_screen.dart';
 import '../candidate/resume/resume_screen.dart';
 import '../student/student_dashboard_screen.dart';
 import '../student/student_profile_screen.dart';
-import '../student/workspace_screen.dart';
+import '../student/study_space_screen.dart';
 
 // Provider to track current navigation index
 final navigationIndexProvider = StateProvider<int>((ref) => 0);
@@ -22,12 +22,12 @@ class MainScreen extends ConsumerWidget {
     final currentIndex = ref.watch(navigationIndexProvider);
     final isStudent = ref.watch(isStudentProvider);
 
-    // Student screens: Dashboard, Workspace, Profile
+    // Student screens: Dashboard, Study Space, Profile
     // Candidate screens: Dashboard, Resumes, Meetings, Profile
     final screens = isStudent
         ? const [
             StudentDashboardScreen(),
-            WorkspaceScreen(),
+            StudySpaceScreen(),
             StudentProfileScreen(),
           ]
         : const [
@@ -99,9 +99,9 @@ class MainScreen extends ConsumerWidget {
         ref: ref,
         index: 1,
         currentIndex: currentIndex,
-        icon: Icons.workspace_premium_outlined,
-        activeIcon: Icons.workspace_premium,
-        label: 'Workspace',
+        icon: Icons.folder_copy_outlined,
+        activeIcon: Icons.folder_copy,
+        label: 'Study Space',
       ),
       _buildNavItem(
         ref: ref,

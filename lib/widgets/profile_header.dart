@@ -177,8 +177,14 @@ class _ProfileHeaderState extends ConsumerState<ProfileHeader> {
   }
 
   String _getJoinedDate(String? createdAt) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+
+    // Determine label based on role: 1 = Candidate, 2 = Student
+    final label = (user?.role == 2) ? 'Study Partner' : 'Member';
+
     if (createdAt == null || createdAt.isEmpty) {
-      return 'Study Partner since recently';
+      return '$label since recently';
     }
 
     try {
@@ -198,9 +204,9 @@ class _ProfileHeaderState extends ConsumerState<ProfileHeader> {
         'Dec',
       ];
 
-      return 'Study Partner since ${months[date.month - 1]} ${date.year}';
+      return '$label since ${months[date.month - 1]} ${date.year}';
     } catch (e) {
-      return 'Study Partner since recently';
+      return '$label since recently';
     }
   }
 
