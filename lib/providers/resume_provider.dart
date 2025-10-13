@@ -547,7 +547,7 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
       // Decode base64 to bytes and write to file
       final pdfBytes = base64Decode(pdfBase64);
       await tempPdfFile.writeAsBytes(pdfBytes);
-      final s3Url = await _resumeService.uploadPdfToS3(tempPdfFile);
+      final saveDocResponse = await _resumeService.uploadDocsToS3(tempPdfFile);
       final result = await _resumeService.saveResume(
         title: title,
         companyName: companyName,
@@ -555,7 +555,7 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
         linkedinJobUrl: linkedinJobUrl,
         jobDescription: jobDescription,
         resumeData: resumeData.toJson(),
-        resumeUrl: s3Url,
+        resumeUrl: saveDocResponse.s3FileName,
       );
 
       state = state.copyWith(isLoading: false);

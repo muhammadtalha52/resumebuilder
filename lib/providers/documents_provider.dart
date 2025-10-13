@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/documents_response.dart';
+import '../services/documents_service.dart';
 
 enum DocumentFileType { pdf, doc, ppt, txt, other }
 
@@ -129,4 +131,16 @@ class DocumentsNotifier extends StateNotifier<List<Document>> {
 final documentsProvider =
     StateNotifierProvider<DocumentsNotifier, List<Document>>((ref) {
       return DocumentsNotifier();
+    });
+
+// Service instance provider
+final documentsServiceProvider = Provider<DocumentsService>((ref) {
+  return DocumentsService();
+});
+
+// FutureProvider to fetch documents from API for a specific folder
+final folderDocumentsProvider = FutureProvider.family
+    .autoDispose<DocumentsResponse, int>((ref, folderId) async {
+      final service = ref.watch(documentsServiceProvider);
+      return await service.getFolderItems(folderId: folderId);
     });

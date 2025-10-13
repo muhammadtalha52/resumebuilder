@@ -5,7 +5,6 @@ import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
-import '../../utils/date_helpers.dart';
 
 class StudentDashboardScreen extends ConsumerWidget {
   const StudentDashboardScreen({super.key});
@@ -26,20 +25,27 @@ class StudentDashboardScreen extends ConsumerWidget {
               fit: BoxFit.cover,
             ),
           ),
-          SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 10),
-                _buildWelcomeSection(ref),
-                const SizedBox(height: 10),
-                _buildProgressAndMetricsSection(ref),
-                const SizedBox(height: 24),
-                _buildRecentActivitySection(ref),
-                const SizedBox(height: 20),
-              ],
-            ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 10),
+                        _buildWelcomeSection(ref),
+                        const SizedBox(height: 10),
+                        _buildProgressAndMetricsSection(ref),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -249,152 +255,6 @@ class StudentDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRecentActivitySection(WidgetRef ref) {
-    final dashboardStatsAsync = ref.watch(dashboardStatsProvider(null));
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Recent Activity',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1A1A1A),
-            ),
-          ),
-          const SizedBox(height: 16),
-          dashboardStatsAsync.when(
-            data: (stats) {
-              final items = stats.data?.items ?? [];
-              if (items.isEmpty) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 32),
-                    child: Text(
-                      'No recent activities',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  ),
-                );
-              }
-              return Column(
-                children: items.take(6).map((item) {
-                  final index = items.indexOf(item);
-                  final isLast = index == items.length - 1 || index == 5;
-                  final iconPath = item.type == 'resume'
-                      ? 'assets/icons/resume.png'
-                      : 'assets/icons/session.png';
-
-                  return _buildActivityItem(
-                    title: item.title ?? 'Unknown',
-                    subtitle: item.activityTypeDisplay ?? item.subTitle ?? '',
-                    timeAgo: DateHelpers.getTimeAgo(
-                      item.timestamp ?? item.createdAt ?? '',
-                    ),
-                    iconPath: iconPath,
-                    showDivider: !isLast,
-                  );
-                }).toList(),
-              );
-            },
-            loading: () => Column(
-              children: List.generate(
-                3,
-                (index) => _buildActivityItemShimmer(showDivider: index < 2),
-              ),
-            ),
-            error: (error, _) => const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 60),
-                child: Text(
-                  'Failed to load activities',
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActivityItem({
-    required String title,
-    required String subtitle,
-    required String timeAgo,
-    required String iconPath,
-    bool showDivider = true,
-  }) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A1A1A),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      timeAgo,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Image.asset(
-                iconPath,
-                width: 22,
-                height: 22,
-                color: AppColors.textSecondary,
-              ),
-            ],
-          ),
-        ),
-        if (showDivider)
-          Divider(
-            height: 1,
-            thickness: 1,
-            color: Colors.grey.withValues(alpha: 0.2),
-          ),
-      ],
-    );
-  }
-
   Widget _buildMetricCardShimmer() {
     return Container(
       padding: const EdgeInsets.all(10),
@@ -444,67 +304,6 @@ class StudentDashboardScreen extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildActivityItemShimmer({bool showDivider = true}) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 150,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      width: 100,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      width: 60,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (showDivider)
-          Divider(
-            height: 1,
-            thickness: 1,
-            color: Colors.grey.withValues(alpha: 0.2),
-          ),
-      ],
     );
   }
 }

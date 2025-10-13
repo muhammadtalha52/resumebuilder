@@ -55,5 +55,14 @@
 	<string>This app needs access to speech recognition to transcribe interview conversations and provide real-time AI assistance</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app needs access to your microphone to record and transcribe interview conversations for AI assistance</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsArbitraryLoadsInWebContent</key>
+		<true/>
+	</dict>
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
 </dict>
 </plist>

@@ -18,4 +18,5 @@ class ApiEndpoints {
   static const String sessionStart = '/session/start';
   static const String saveInterviewData = '/interview/interviews/';
   static const String folders = '/auth/folders/';
+  static const String folderItems = '/auth/folder-items/';
 }

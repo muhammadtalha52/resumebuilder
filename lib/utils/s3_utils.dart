@@ -2,7 +2,19 @@ import 'endpoint_headers.dart';
 
 class S3Utils {
   /// Constructs the full S3 asset URL from the filename
+  /// Handles both S3 filenames and already-complete URLs
   static String constructAssetUrl(String s3FileName) {
+    // If the string is null or empty, return empty string
+    if (s3FileName.isEmpty) {
+      return '';
+    }
+
+    // If it's already a complete URL (starts with http:// or https://), return as-is
+    if (s3FileName.startsWith('http://') || s3FileName.startsWith('https://')) {
+      return s3FileName;
+    }
+
+    // Otherwise, construct the full URL with base URL and endpoint
     return '${ApiEndpoints.baseUrl}/auth/view-s3-assets/?filename=$s3FileName';
   }
 

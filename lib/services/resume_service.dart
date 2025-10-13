@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:skillresy/models/save_doc_response.dart';
 import '../models/resume_parse_model.dart';
 import '../models/generate_resume_response.dart';
 import '../utils/endpoint_headers.dart';
@@ -522,11 +524,11 @@ class ResumeService {
   /// [pdfFile] - PDF file to upload
   ///
   /// Returns the S3 file name/URL from the API response
-  Future<String> uploadPdfToS3(File pdfFile) async {
+  Future<SaveDocResponse> uploadDocsToS3(File pdfFile) async {
     try {
       // Validate file before upload
       if (!await pdfFile.exists()) {
-        throw SaveResumeException('PDF file no longer exists');
+        throw SaveResumeException('File no longer exists');
       }
 
       // Check file size (same validation as other uploads)
@@ -535,7 +537,7 @@ class ResumeService {
 
       if (fileSizeInBytes > maxSizeInBytes) {
         throw SaveResumeException(
-          'PDF file size (${getFileSize(fileSizeInBytes)}) exceeds 10MB limit',
+          'File size (${getFileSize(fileSizeInBytes)}) exceeds 10MB limit',
         );
       }
 
@@ -551,20 +553,19 @@ class ResumeService {
 
       // Use singleton APIClient for authenticated requests
       final response = await apiClient.dio.post(
-        '/auth/upload-pdf-to-s3/',
+        '/auth/upload-docs-to-s3/',
         data: formData,
         options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
       );
 
       // Parse response
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseData = response.data;
-
-        if (responseData != null &&
-            responseData is Map<String, dynamic> &&
-            responseData.containsKey('s3_file_name')) {
-          final s3FileName = responseData['s3_file_name'] as String;
-          return s3FileName;
+        SaveDocResponse saveDocResponse = SaveDocResponse.fromJson(
+          jsonDecode(response.toString()),
+        );
+        if (saveDocResponse.s3FileName == null ||
+            saveDocResponse.s3FileName != '') {
+          return saveDocResponse;
         } else {
           throw SaveResumeException(
             'Invalid response format from S3 upload API',
