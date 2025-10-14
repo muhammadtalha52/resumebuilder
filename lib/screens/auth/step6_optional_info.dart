@@ -64,6 +64,13 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
     super.dispose();
   }
 
+  @override
+  void deactivate() {
+    // Unfocus any text fields before deactivation
+    FocusManager.instance.primaryFocus?.unfocus();
+    super.deactivate();
+  }
+
   void _addTag(
     String tag,
     List<String> list,
@@ -150,6 +157,9 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
   }
 
   void _handleSubmit() {
+    // Dismiss keyboard before validation
+    FocusScope.of(context).requestFocus(FocusNode());
+
     // Check if user agreed to terms
     if (!_agreedToTerms) {
       setState(() {

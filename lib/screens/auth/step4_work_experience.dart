@@ -63,6 +63,22 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
     }
   }
 
+  @override
+  void dispose() {
+    // Dispose all work experience controllers
+    for (var experience in _workExperiences) {
+      experience.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  void deactivate() {
+    // Unfocus any text fields before deactivation
+    FocusManager.instance.primaryFocus?.unfocus();
+    super.deactivate();
+  }
+
   void _addMoreExperience() {
     if (_isParsingResume) {
       _showParsingBlockedMessage();
@@ -206,6 +222,9 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
   }
 
   void _handleSubmit() {
+    // Dismiss keyboard before validation
+    FocusScope.of(context).requestFocus(FocusNode());
+
     if (_isParsingResume) {
       _showParsingBlockedMessage();
       return;
@@ -424,6 +443,8 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
         _buildCheckbox(
           value: experience.currentJob,
           onChanged: (value) {
+            // Dismiss keyboard when checkbox is clicked
+            FocusScope.of(context).requestFocus(FocusNode());
             setState(() {
               experience.currentJob = value ?? false;
               if (experience.currentJob) {
@@ -487,6 +508,9 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
           onTap: isDisabled
               ? null
               : () async {
+                  // Dismiss keyboard before opening date picker
+                  FocusScope.of(context).requestFocus(FocusNode());
+
                   if (_isParsingResume) {
                     _showParsingBlockedMessage();
                     return;

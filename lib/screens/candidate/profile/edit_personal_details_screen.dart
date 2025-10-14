@@ -7,6 +7,7 @@ import 'package:intl_phone_field/intl_phone_field.dart';
 import '../../../constants/app_colors.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/profile_provider.dart';
+import '../../../utils/phone_utils.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/custom_text_field.dart';
 
@@ -28,147 +29,6 @@ class _EditPersonalDetailsScreenState
 
   String _selectedCountryCode = 'US'; // Default country code
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
-
-  // Country code mapping for common countries
-  // IMPORTANT: Order matters - longer codes must come before shorter ones
-  final Map<String, String> _countryCodeMap = {
-    // North American specific codes (longer codes first)
-    '1684': 'AS', // American Samoa
-    '1787': 'PR', // Puerto Rico
-    '1939': 'PR', // Puerto Rico
-    '1671': 'GU', // Guam
-    '1670': 'MP', // Northern Mariana Islands
-    '1340': 'VI', // US Virgin Islands
-    '1284': 'VG', // British Virgin Islands
-    '1246': 'BB', // Barbados
-    '1242': 'BS', // Bahamas
-    '1268': 'AG', // Antigua and Barbuda
-    '1264': 'AI', // Anguilla
-    '1345': 'KY', // Cayman Islands
-    '1441': 'BM', // Bermuda
-    '1473': 'GD', // Grenada
-    '1649': 'TC', // Turks and Caicos
-    '1664': 'MS', // Montserrat
-    '1721': 'SX', // Sint Maarten
-    '1758': 'LC', // Saint Lucia
-    '1767': 'DM', // Dominica
-    '1784': 'VC', // Saint Vincent and the Grenadines
-    '1809': 'DO', // Dominican Republic
-    '1829': 'DO', // Dominican Republic
-    '1849': 'DO', // Dominican Republic
-    '1868': 'TT', // Trinidad and Tobago
-    '1869': 'KN', // Saint Kitts and Nevis
-    '1876': 'JM', // Jamaica
-    '1878': 'NA', // North America (other)
-    '1902': 'CA', // Canada (Nova Scotia)
-    '1905': 'CA', // Canada (Ontario)
-    // Other longer codes
-    '966': 'SA', // Saudi Arabia
-    '971': 'AE', // UAE
-    '234': 'NG', // Nigeria
-    '254': 'KE', // Kenya
-    // Common country codes
-    '1': 'US', // USA, Canada (fallback for +1)
-    '92': 'PK', // Pakistan
-    '91': 'IN', // India
-    '44': 'GB', // UK
-    '49': 'DE', // Germany
-    '33': 'FR', // France
-    '39': 'IT', // Italy
-    '34': 'ES', // Spain
-    '86': 'CN', // China
-    '81': 'JP', // Japan
-    '82': 'KR', // South Korea
-    '61': 'AU', // Australia
-    '55': 'BR', // Brazil
-    '52': 'MX', // Mexico
-    '7': 'RU', // Russia
-    '90': 'TR', // Turkey
-    '20': 'EG', // Egypt
-    '27': 'ZA', // South Africa
-    '60': 'MY', // Malaysia
-    '65': 'SG', // Singapore
-    '66': 'TH', // Thailand
-    '84': 'VN', // Vietnam
-    '63': 'PH', // Philippines
-    '62': 'ID', // Indonesia
-  };
-
-  // Detect country code from phone number
-  String _detectCountryCode(String phoneNumber) {
-    if (phoneNumber.isEmpty) return 'US';
-
-    print('DEBUG: Original phone: $phoneNumber');
-
-    // Remove all non-digit characters except +
-    String cleanNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
-    print('DEBUG: Cleaned phone: $cleanNumber');
-
-    // Remove + sign if present
-    if (cleanNumber.startsWith('+')) {
-      cleanNumber = cleanNumber.substring(1);
-    }
-    print('DEBUG: Without +: $cleanNumber');
-
-    // Try to match country codes (from longest to shortest)
-    List<String> codes = _countryCodeMap.keys.toList()
-      ..sort((a, b) => b.length.compareTo(a.length));
-
-    for (String code in codes) {
-      if (cleanNumber.startsWith(code)) {
-        // Verify remaining digits form a reasonable phone number
-        String remainingDigits = cleanNumber.substring(code.length);
-        print(
-          'DEBUG: Trying code $code, remaining: $remainingDigits (length: ${remainingDigits.length})',
-        );
-        if (remainingDigits.length >= 7 && remainingDigits.length <= 12) {
-          print('DEBUG: Found match! Country: ${_countryCodeMap[code]}');
-          return _countryCodeMap[code]!;
-        }
-      }
-    }
-
-    print('DEBUG: No match found, defaulting to US');
-    return 'US'; // Default fallback
-  }
-
-  // Extract phone number without country code
-  String _extractPhoneNumber(String fullPhoneNumber) {
-    if (fullPhoneNumber.isEmpty) return '';
-
-    print('DEBUG Extract: Original phone: $fullPhoneNumber');
-
-    // Remove all non-digit characters except +
-    String cleanNumber = fullPhoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
-    print('DEBUG Extract: Cleaned phone: $cleanNumber');
-
-    // Remove + sign if present
-    if (cleanNumber.startsWith('+')) {
-      cleanNumber = cleanNumber.substring(1);
-    }
-    print('DEBUG Extract: Without +: $cleanNumber');
-
-    // Try to match country codes (from longest to shortest)
-    List<String> codes = _countryCodeMap.keys.toList()
-      ..sort((a, b) => b.length.compareTo(a.length));
-
-    for (String code in codes) {
-      if (cleanNumber.startsWith(code)) {
-        String remainingDigits = cleanNumber.substring(code.length);
-        print(
-          'DEBUG Extract: Trying code $code, remaining: $remainingDigits (length: ${remainingDigits.length})',
-        );
-        if (remainingDigits.length >= 7 && remainingDigits.length <= 12) {
-          print('DEBUG Extract: Extracting: $remainingDigits');
-          return remainingDigits;
-        }
-      }
-    }
-
-    // If no country code found, return the original number (cleaned)
-    print('DEBUG Extract: No match, returning cleaned: $cleanNumber');
-    return cleanNumber;
-  }
 
   @override
   void initState() {
@@ -194,11 +54,11 @@ class _EditPersonalDetailsScreenState
       // Handle phone number - extract number without country code
       final savedPhone = user.phoneNumber ?? '';
       if (savedPhone.isNotEmpty) {
-        // Detect country code from saved phone number
-        final detectedCountryCode = _detectCountryCode(savedPhone);
+        // Detect country code from saved phone number using PhoneUtils
+        final detectedCountryCode = PhoneUtils.detectCountryCode(savedPhone);
 
-        // Extract phone number without country code
-        String phoneNumber = _extractPhoneNumber(savedPhone);
+        // Extract phone number without country code using PhoneUtils
+        String phoneNumber = PhoneUtils.extractPhoneNumber(savedPhone);
 
         setState(() {
           _selectedCountryCode = detectedCountryCode;

@@ -86,6 +86,8 @@ class CustomPickerField extends StatelessWidget {
         // Picker Field
         GestureDetector(
           onTap: () {
+            // Dismiss keyboard before opening picker
+            FocusScope.of(context).requestFocus(FocusNode());
             HapticFeedback.lightImpact();
             if (isMultiSelect) {
               showBottomSheetMultiPicker(

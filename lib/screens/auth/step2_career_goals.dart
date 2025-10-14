@@ -48,9 +48,9 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
         _desiredSalaryRange = careerGoals['desiredPayRange'];
         _locationPreferences = List.from(
           careerGoals['locationPreferences'] ??
-                  careerGoals['locationPreference'] != null
-              ? [careerGoals['locationPreference']]
-              : [],
+              (careerGoals['locationPreference'] != null
+                  ? [careerGoals['locationPreference']]
+                  : []),
         );
       });
     }
@@ -58,10 +58,20 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
 
   @override
   void dispose() {
+    // Dispose controllers before calling super.dispose()
+    // to ensure they're cleaned up while the widget tree is still stable
     _jobTitlesController.dispose();
     _industriesController.dispose();
     _longTermGoalsController.dispose();
     super.dispose();
+  }
+
+  @override
+  void deactivate() {
+    // Unfocus any text fields before deactivation to prevent
+    // looking up deactivated widget's ancestor
+    FocusManager.instance.primaryFocus?.unfocus();
+    super.deactivate();
   }
 
   void _addTag(
@@ -247,6 +257,9 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
   }
 
   void _handleSubmit() {
+    // Dismiss keyboard before validation
+    FocusScope.of(context).requestFocus(FocusNode());
+
     bool isValid = _formKey.currentState!.validate();
     bool hasCustomErrors = false;
 

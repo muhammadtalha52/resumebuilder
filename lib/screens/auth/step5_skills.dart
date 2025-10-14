@@ -72,6 +72,14 @@ class _Step5SkillsState extends ConsumerState<Step5Skills> {
     super.dispose();
   }
 
+  @override
+  void deactivate() {
+    // Unfocus any text fields before deactivation to prevent
+    // looking up deactivated widget's ancestor
+    FocusManager.instance.primaryFocus?.unfocus();
+    super.deactivate();
+  }
+
   void _addTag(
     String tag,
     List<String> list,
@@ -100,6 +108,9 @@ class _Step5SkillsState extends ConsumerState<Step5Skills> {
   }
 
   void _handleSubmit() {
+    // Dismiss keyboard before validation
+    FocusScope.of(context).requestFocus(FocusNode());
+
     bool hasErrors = false;
 
     setState(() {

@@ -51,6 +51,13 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
     }
   }
 
+  @override
+  void deactivate() {
+    // Unfocus any active focus nodes before deactivation
+    FocusManager.instance.primaryFocus?.unfocus();
+    super.deactivate();
+  }
+
   Widget _buildDatePicker() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,6 +90,9 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
           onTap: _degreeNotCompleted
               ? null
               : () async {
+                  // Dismiss keyboard before opening date picker
+                  FocusScope.of(context).requestFocus(FocusNode());
+
                   // Ensure initialDate is not in the future
                   final now = DateTime.now();
                   final initialDate =
@@ -181,6 +191,8 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
           child: Checkbox(
             value: _degreeNotCompleted,
             onChanged: (value) {
+              // Dismiss keyboard when checkbox is clicked
+              FocusScope.of(context).requestFocus(FocusNode());
               setState(() {
                 _degreeNotCompleted = value ?? false;
                 if (_degreeNotCompleted) {
@@ -211,6 +223,9 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
   }
 
   void _handleSubmit() {
+    // Dismiss keyboard before validation
+    FocusScope.of(context).requestFocus(FocusNode());
+
     bool hasErrors = false;
 
     // Validate all fields and set error states

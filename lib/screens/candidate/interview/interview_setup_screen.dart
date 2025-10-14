@@ -342,6 +342,7 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
         labelText: 'Job Description',
         maxLines: 6,
         maxLength: 500,
+        textInputAction: TextInputAction.done,
         errorText: _jobDescriptionError,
         onChanged: (value) {
           _clearFieldError('jobDescription');
@@ -360,6 +361,7 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
         labelText: 'Meeting Agenda',
         maxLines: 6,
         maxLength: 300,
+        textInputAction: TextInputAction.done,
         errorText: _meetingAgendaError,
         onChanged: (value) {
           _clearFieldError('meetingAgenda');

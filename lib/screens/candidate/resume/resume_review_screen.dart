@@ -16,6 +16,7 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/salary_ranges.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/resume_provider.dart';
+import '../../../utils/phone_utils.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/custom_button.dart' as button;
@@ -115,8 +116,9 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
   // Education controllers
   final _universityController = TextEditingController();
   final _degreeController = TextEditingController();
-  final _educationStartDateController = TextEditingController();
-  final _educationEndDateController = TextEditingController();
+  DateTime? _graduationDate;
+  bool _degreeNotCompleted = false;
+  String? _graduationDateError;
 
   // Optional info
   List<String> _languages = [];
@@ -233,18 +235,17 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     _fullNameController.text = user.fullName ?? '';
     _emailController.text = user.email ?? '';
 
-    // Handle phone number
+    // Handle phone number using PhoneUtils
     final savedPhone = user.phoneNumber ?? '';
     if (savedPhone.isNotEmpty) {
       _completePhoneNumber = savedPhone;
-      String phoneNumber = savedPhone;
-      if (phoneNumber.startsWith('+')) {
-        phoneNumber = phoneNumber.substring(1);
-      }
-      if (phoneNumber.startsWith('1') && phoneNumber.length > 10) {
-        phoneNumber = phoneNumber.substring(1);
-        _selectedCountryCode = 'US';
-      }
+
+      // Detect country code from saved phone number using PhoneUtils
+      _selectedCountryCode = PhoneUtils.detectCountryCode(savedPhone);
+
+      // Extract phone number without country code using PhoneUtils
+      String phoneNumber = PhoneUtils.extractPhoneNumber(savedPhone);
+
       _phoneController.text = phoneNumber;
     }
 
@@ -353,10 +354,20 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     }
     _degreeController.text = degreeText;
 
-    _educationEndDateController.text = user.graduationDate ?? '';
+    // Parse graduation date
+    if (user.graduationDate != null && user.graduationDate!.isNotEmpty) {
+      try {
+        _graduationDate = DateTime.parse(user.graduationDate!);
+      } catch (e) {
+        debugPrint('⚠️ Error parsing graduation date: ${user.graduationDate}');
+      }
+    }
+
+    // Set degree not completed flag - if no graduation date, assume not completed
+    _degreeNotCompleted = _graduationDate == null;
 
     debugPrint(
-      '✅ Education loaded: university="${_universityController.text}", degree="${_degreeController.text}", graduation="${user.graduationDate}"',
+      '✅ Education loaded: university="${_universityController.text}", degree="${_degreeController.text}", graduation="${user.graduationDate}", degreeNotCompleted=$_degreeNotCompleted',
     );
 
     // Load work experience from user object
@@ -1414,22 +1425,171 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           hintText: 'e.g., Bachelor of Science',
         ),
         const SizedBox(height: 16),
-        Row(
+        // Graduation Date Picker
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: CustomTextField(
-                controller: _educationStartDateController,
-                labelText: 'Start Date',
-                hintText: 'MM/YYYY',
+            Row(
+              children: [
+                Text(
+                  'Graduation Date',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w500,
+                    color: _degreeNotCompleted
+                        ? AppColors.textSecondary
+                        : AppColors.textPrimary,
+                  ),
+                ),
+                if (!_degreeNotCompleted)
+                  const Text(
+                    ' *',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.error,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: _degreeNotCompleted
+                  ? null
+                  : () async {
+                      // Dismiss keyboard before opening date picker
+                      FocusScope.of(context).requestFocus(FocusNode());
+
+                      // Ensure initialDate is not in the future
+                      final now = DateTime.now();
+                      final initialDate =
+                          _graduationDate != null &&
+                              _graduationDate!.isAfter(now)
+                          ? now
+                          : _graduationDate ?? now;
+
+                      final DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: initialDate,
+                        firstDate: DateTime(1950),
+                        lastDate: now, // Prevent future date selection
+                      );
+                      if (picked != null) {
+                        // Additional validation to ensure no future dates
+                        if (picked.isAfter(DateTime.now())) {
+                          setState(() {
+                            _graduationDateError =
+                                'Graduation date cannot be in the future';
+                          });
+                        } else {
+                          setState(() {
+                            _graduationDate = picked;
+                            _graduationDateError = null;
+                          });
+                        }
+                      }
+                    },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 15,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: _degreeNotCompleted
+                        ? AppColors.grey.withValues(alpha: 0.3)
+                        : _graduationDateError != null
+                        ? AppColors.error
+                        : AppColors.inputBorder,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  color: _degreeNotCompleted
+                      ? AppColors.grey.withValues(alpha: 0.1)
+                      : null,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _graduationDate != null && !_degreeNotCompleted
+                            ? '${_graduationDate!.day.toString().padLeft(2, '0')}/${_graduationDate!.month.toString().padLeft(2, '0')}/${_graduationDate!.year}'
+                            : 'DD/MM/YYYY',
+                        style: TextStyle(
+                          color: _degreeNotCompleted
+                              ? AppColors.grey.withValues(alpha: 0.5)
+                              : _graduationDate != null
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.calendar_today,
+                      color: _degreeNotCompleted
+                          ? AppColors.grey.withValues(alpha: 0.5)
+                          : AppColors.textSecondary,
+                      size: 20,
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: CustomTextField(
-                controller: _educationEndDateController,
-                labelText: 'End Date',
-                hintText: 'MM/YYYY',
+            // Error message
+            if (_graduationDateError != null && !_degreeNotCompleted) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 12.0),
+                child: Text(
+                  _graduationDateError!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontSize: 12,
+                  ),
+                ),
               ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 16),
+        // Degree not completed checkbox
+        Row(
+          children: [
+            Transform.scale(
+              scale: 1.2,
+              child: Checkbox(
+                value: _degreeNotCompleted,
+                onChanged: (value) {
+                  // Dismiss keyboard when checkbox is clicked
+                  FocusScope.of(context).requestFocus(FocusNode());
+                  setState(() {
+                    _degreeNotCompleted = value ?? false;
+                    if (_degreeNotCompleted) {
+                      _graduationDate = null;
+                      _graduationDateError = null;
+                    }
+                  });
+                },
+                activeColor: AppColors.primary,
+                checkColor: AppColors.white,
+                side: BorderSide(
+                  color: _degreeNotCompleted
+                      ? AppColors.primary
+                      : AppColors.grey.withValues(alpha: 0.3),
+                  width: 2,
+                ),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: const VisualDensity(
+                  horizontal: -4,
+                  vertical: -4,
+                ),
+              ),
+            ),
+            const SizedBox(width: 5),
+            const Text(
+              'Degree not completed',
+              style: TextStyle(fontSize: 16, color: AppColors.textPrimary),
             ),
           ],
         ),
@@ -1994,8 +2154,8 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     userData['education'] = {
       'university': _universityController.text.trim(),
       'degree': _degreeController.text.trim(),
-      'start_date': _educationStartDateController.text.trim(),
-      'end_date': _educationEndDateController.text.trim(),
+      'graduation_date': _graduationDate?.toIso8601String(),
+      'degree_not_completed': _degreeNotCompleted,
     };
 
     // Work experience

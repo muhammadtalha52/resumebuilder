@@ -157,24 +157,9 @@ class Validators {
     // Remove leading/trailing whitespace
     value = value.trim();
 
-    // Check if it's a valid URL format
-    final urlRegex = RegExp(
-      r'^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&\/\/=]*)$',
-      caseSensitive: false,
-    );
-
-    if (!urlRegex.hasMatch(value)) {
-      return 'Please enter a valid URL';
-    }
-
-    // Check if it's specifically a LinkedIn URL
-    final linkedInRegex = RegExp(
-      r'^https?:\/\/(www\.)?(linkedin\.com|linkedin\.[a-z]{2,3})\/(in|pub|company)\/[\w\-]+\/?$',
-      caseSensitive: false,
-    );
-
-    if (!linkedInRegex.hasMatch(value)) {
-      return 'Please enter a valid LinkedIn profile URL (e.g., https://www.linkedin.com/in/yourprofile)';
+    // Simple check: just verify it contains 'linkedin.com'
+    if (!value.toLowerCase().contains('linkedin.com')) {
+      return 'Please enter a valid LinkedIn URL';
     }
 
     return null;
@@ -190,14 +175,14 @@ class Validators {
     // Remove leading/trailing whitespace
     value = value.trim();
 
-    // Check if it's a valid URL format
+    // Basic URL validation - checks for common URL patterns
     final urlRegex = RegExp(
-      r'^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&\/\/=]*)$',
+      r'^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{2,}\b([-a-zA-Z0-9()@:%_\+.~#?&\/\/=]*)$',
       caseSensitive: false,
     );
 
     if (!urlRegex.hasMatch(value)) {
-      return 'Please enter a valid URL (e.g., https://www.example.com)';
+      return 'Please enter a valid URL';
     }
 
     return null;

@@ -284,7 +284,7 @@ class StudySpaceScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               // Scout fox image
-              Image.asset('assets/icons/interview-fox.png'),
+              Image.asset('assets/icons/interview-fox.png', height: 150),
               const SizedBox(height: 32),
               const Text(
                 'Organize Your Study\nMaterials with Scout',
