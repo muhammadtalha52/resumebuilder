@@ -115,89 +115,102 @@ class LecturesScreen extends ConsumerWidget {
     List<ParentFolder> subfolders,
     int parentFolderId,
   ) {
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      itemCount: subfolders.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final subfolder = subfolders[index];
-        final documentCount = subfolder.itemsCount ?? 0;
-        return Slidable(
-          key: ValueKey(subfolder.id),
-          endActionPane: ActionPane(
-            motion: const DrawerMotion(),
-            children: [
-              SlidableAction(
-                onPressed: (context) async {
-                  final result = await showCreateLectureDialog(
-                    context: context,
-                    initialName: subfolder.name ?? '',
-                    onCreateFolder: (name, emoji) async {
-                      // Call the API to update subfolder
-                      await ref
-                          .read(subfolderProvider(parentFolderId).notifier)
-                          .updateSubfolder(subfolder.id!, name);
-                    },
-                  );
-                  // Show success snackbar if dialog returned result
-                  if (result != null && context.mounted) {
-                    showSuccessSnackBar(
-                      context: context,
-                      message: 'Lecture updated successfully',
-                    );
-                  }
-                },
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                icon: Icons.edit,
-                label: 'Edit',
-              ),
-              SlidableAction(
-                onPressed: (context) async {
-                  final confirmed = await showDeleteConfirmationDialog(
-                    context: context,
-                    itemName: subfolder.name ?? 'Lecture',
-                    itemType: 'Lecture',
-                    onDelete: () async {
-                      // Call the API to delete subfolder
-                      await ref
-                          .read(subfolderProvider(parentFolderId).notifier)
-                          .removeSubfolder(subfolder.id!);
-                    },
-                  );
-                  // Show success snackbar if dialog returned true
-                  if (confirmed && context.mounted) {
-                    showSuccessSnackBar(
-                      context: context,
-                      message: 'Lecture deleted successfully',
-                    );
-                  }
-                },
-                backgroundColor: AppColors.error,
-                foregroundColor: Colors.white,
-                icon: Icons.delete,
-                label: 'Delete',
-              ),
-            ],
-          ),
-          child: _buildLectureCard(
-            emoji: '📁',
-            name: subfolder.name ?? 'Unnamed Lecture',
-            documents: documentCount,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DocumentsScreen(
-                    lectureId: subfolder.id.toString(),
-                    lectureName: subfolder.name ?? 'Lecture',
-                  ),
-                ),
-              );
-            },
-          ),
-        );
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref
+            .read(subfolderProvider(parentFolderId).notifier)
+            .refreshSubfolders();
       },
+      color: AppColors.primary,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        itemCount: subfolders.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final subfolder = subfolders[index];
+          final documentCount = subfolder.itemsCount ?? 0;
+          return Slidable(
+            key: ValueKey(subfolder.id),
+            endActionPane: ActionPane(
+              motion: const DrawerMotion(),
+              children: [
+                SlidableAction(
+                  onPressed: (context) async {
+                    final result = await showCreateLectureDialog(
+                      context: context,
+                      initialName: subfolder.name ?? '',
+                      onCreateFolder: (name, emoji) async {
+                        // Call the API to update subfolder
+                        await ref
+                            .read(subfolderProvider(parentFolderId).notifier)
+                            .updateSubfolder(subfolder.id!, name);
+                      },
+                    );
+                    // Show success snackbar if dialog returned result
+                    if (result != null && context.mounted) {
+                      showSuccessSnackBar(
+                        context: context,
+                        message: 'Lecture updated successfully',
+                      );
+                    }
+                  },
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  icon: Icons.edit,
+                  label: 'Edit',
+                ),
+                SlidableAction(
+                  onPressed: (context) async {
+                    final confirmed = await showDeleteConfirmationDialog(
+                      context: context,
+                      itemName: subfolder.name ?? 'Lecture',
+                      itemType: 'Lecture',
+                      onDelete: () async {
+                        // Call the API to delete subfolder
+                        await ref
+                            .read(subfolderProvider(parentFolderId).notifier)
+                            .removeSubfolder(subfolder.id!);
+                      },
+                    );
+                    // Show success snackbar if dialog returned true
+                    if (confirmed && context.mounted) {
+                      showSuccessSnackBar(
+                        context: context,
+                        message: 'Lecture deleted successfully',
+                      );
+                    }
+                  },
+                  backgroundColor: AppColors.error,
+                  foregroundColor: Colors.white,
+                  icon: Icons.delete,
+                  label: 'Delete',
+                ),
+              ],
+            ),
+            child: _buildLectureCard(
+              emoji: '📁',
+              name: subfolder.name ?? 'Unnamed Lecture',
+              documents: documentCount,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DocumentsScreen(
+                      lectureId: subfolder.id.toString(),
+                      lectureName: subfolder.name ?? 'Lecture',
+                    ),
+                  ),
+                ).then((_) {
+                  // Refresh lectures when coming back from documents screen
+                  ref
+                      .read(subfolderProvider(parentFolderId).notifier)
+                      .refreshSubfolders();
+                });
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -288,7 +301,7 @@ class LecturesScreen extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Scout fox image
-            Image.asset('assets/icons/interview-fox.png'),
+            Image.asset('assets/icons/interview-fox.png', height: 150),
             const SizedBox(height: 32),
             const Text(
               'No Lectures Yet',

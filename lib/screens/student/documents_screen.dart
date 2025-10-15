@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:intl/intl.dart';
 import '../../constants/app_colors.dart';
@@ -8,10 +9,14 @@ import '../../providers/documents_provider.dart';
 import '../../providers/resume_provider.dart';
 import '../../models/documents_response.dart';
 import '../../widgets/common/custom_app_bar.dart';
+import '../../widgets/dialogs/delete_confirmation_dialog.dart';
+import '../../utils/snackbar_utils.dart';
 import '../../utils/s3_utils.dart';
+import '../../providers/quiz_provider.dart';
 import 'document_viewer_screen.dart';
+import 'quiz_screen.dart';
 
-class DocumentsScreen extends ConsumerWidget {
+class DocumentsScreen extends ConsumerStatefulWidget {
   final String lectureId;
   final String lectureName;
 
@@ -22,17 +27,82 @@ class DocumentsScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DocumentsScreen> createState() => _DocumentsScreenState();
+}
+
+class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
+  final Set<String> _selectedDocuments = {}; // Store selected s3Filenames
+  bool _isSelectionMode = false;
+
+  void _toggleDocumentSelection(String s3Filename) {
+    setState(() {
+      if (_selectedDocuments.contains(s3Filename)) {
+        _selectedDocuments.remove(s3Filename);
+        if (_selectedDocuments.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedDocuments.add(s3Filename);
+        _isSelectionMode = true;
+      }
+    });
+  }
+
+  void _cancelSelection() {
+    setState(() {
+      _selectedDocuments.clear();
+      _isSelectionMode = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Parse lectureId to int for API call
-    final folderId = int.tryParse(lectureId) ?? 0;
+    final folderId = int.tryParse(widget.lectureId) ?? 0;
     final documentsAsync = ref.watch(folderDocumentsProvider(folderId));
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
-      appBar: BackNavigationAppBar(
-        title: lectureName,
-        onBackPressed: () => Navigator.pop(context),
-      ),
+      appBar: _isSelectionMode
+          ? AppBar(
+              backgroundColor: AppColors.primary,
+              leading: IconButton(
+                icon: const Icon(Icons.close, color: AppColors.white),
+                onPressed: _cancelSelection,
+              ),
+              title: Text(
+                '${_selectedDocuments.length} selected',
+                style: const TextStyle(
+                  color: AppColors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              actions: [
+                TextButton.icon(
+                  onPressed: _selectedDocuments.length >= 1
+                      ? () => _generateQuiz(context)
+                      : null,
+                  icon: const Icon(
+                    Icons.quiz,
+                    color: AppColors.white,
+                    size: 20,
+                  ),
+                  label: const Text(
+                    'Generate Quiz',
+                    style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : BackNavigationAppBar(
+              title: widget.lectureName,
+              onBackPressed: () => Navigator.pop(context),
+            ),
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -55,11 +125,20 @@ class DocumentsScreen extends ConsumerWidget {
           error: (error, stack) => _buildErrorState(context, error.toString()),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _pickAndUploadFile(context, ref),
-        backgroundColor: AppColors.primary,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: AppColors.white),
+      floatingActionButton: documentsAsync.maybeWhen(
+        data: (documentsResponse) {
+          final documents = documentsResponse.data ?? [];
+          final hasDocuments = documents.isNotEmpty;
+          return hasDocuments
+              ? FloatingActionButton(
+                  onPressed: () => _pickAndUploadFile(context, ref),
+                  backgroundColor: AppColors.primary,
+                  shape: const CircleBorder(),
+                  child: const Icon(Icons.add, color: AppColors.white),
+                )
+              : null;
+        },
+        orElse: () => null,
       ),
     );
   }
@@ -69,6 +148,8 @@ class DocumentsScreen extends ConsumerWidget {
     WidgetRef ref,
     List<Data> documents,
   ) {
+    final folderId = int.tryParse(widget.lectureId) ?? 0;
+
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       itemCount: documents.length,
@@ -83,44 +164,97 @@ class DocumentsScreen extends ConsumerWidget {
               ).format(DateTime.parse(document.createdAt!))
             : '';
 
-        return _buildDocumentCard(
-          context: context,
-          icon: icon,
-          name: document.name ?? 'Untitled',
-          size: size,
-          date: date,
-          onTap: () {
-            if (document.s3Filename != null &&
-                document.s3Filename!.isNotEmpty) {
-              final urlString = S3Utils.constructAssetUrl(document.s3Filename!);
+        return Slidable(
+          key: ValueKey(document.id),
+          endActionPane: ActionPane(
+            motion: const DrawerMotion(),
+            children: [
+              SlidableAction(
+                onPressed: (context) async {
+                  final confirmed = await showDeleteConfirmationDialog(
+                    context: context,
+                    itemName: document.name ?? 'Document',
+                    itemType: 'Document',
+                    onDelete: () async {
+                      // Call the API to delete document
+                      final documentsService = ref.read(
+                        documentsServiceProvider,
+                      );
+                      await documentsService.deleteFolderItem(
+                        itemId: document.id!,
+                      );
+                      // Refresh documents list
+                      ref.invalidate(folderDocumentsProvider(folderId));
+                    },
+                  );
+                  // Show success snackbar if dialog returned true
+                  if (confirmed && context.mounted) {
+                    showSuccessSnackBar(
+                      context: context,
+                      message: 'Document deleted successfully',
+                    );
+                  }
+                },
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+                icon: Icons.delete,
+                label: 'Delete',
+              ),
+            ],
+          ),
+          child: _buildDocumentCard(
+            context: context,
+            icon: icon,
+            name: document.name ?? 'Untitled',
+            size: size,
+            date: date,
+            isSelected: _selectedDocuments.contains(document.s3Filename),
+            onTap: () {
+              // If in selection mode, toggle selection
+              if (_isSelectionMode) {
+                if (document.s3Filename != null) {
+                  _toggleDocumentSelection(document.s3Filename!);
+                }
+                return;
+              }
 
-              // Debug: Log the final URL
-              print('📄 Opening document: ${document.name}');
-              print('🔗 S3 Filename: ${document.s3Filename}');
-              print('🌐 Final URL: $urlString');
+              // Normal tap - open document
+              if (document.s3Filename != null &&
+                  document.s3Filename!.isNotEmpty) {
+                final urlString = S3Utils.constructAssetUrl(
+                  document.s3Filename!,
+                );
 
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DocumentViewerScreen(
-                    documentUrl: urlString,
-                    documentName: document.name ?? 'Document',
+                print('📄 Opening document: ${document.name}');
+                print('🔗 S3 Filename: ${document.s3Filename}');
+                print('🌐 Final URL: $urlString');
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DocumentViewerScreen(
+                      documentUrl: urlString,
+                      documentName: document.name ?? 'Document',
+                    ),
                   ),
-                ),
-              );
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Document URL not available'),
-                  backgroundColor: AppColors.error,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            }
-          },
-          onLongPress: () {
-            // TODO: Show options menu (Rename/Delete)
-          },
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Document URL not available'),
+                    backgroundColor: AppColors.error,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            onLongPress: () {
+              // Long press - enter selection mode
+              if (document.s3Filename != null) {
+                _toggleDocumentSelection(document.s3Filename!);
+              }
+            },
+          ),
         );
       },
     );
@@ -197,6 +331,7 @@ class DocumentsScreen extends ConsumerWidget {
     required String name,
     required String size,
     required String date,
+    required bool isSelected,
     required VoidCallback onTap,
     required VoidCallback onLongPress,
   }) {
@@ -206,8 +341,14 @@ class DocumentsScreen extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : AppColors.white,
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+            width: 2,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
@@ -218,6 +359,27 @@ class DocumentsScreen extends ConsumerWidget {
         ),
         child: Row(
           children: [
+            // Selection checkbox (only show in selection mode)
+            if (_isSelectionMode) ...[
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected ? AppColors.primary : Colors.transparent,
+                  border: Border.all(
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
+                    width: 2,
+                  ),
+                ),
+                child: isSelected
+                    ? const Icon(Icons.check, size: 16, color: AppColors.white)
+                    : null,
+              ),
+              const SizedBox(width: 12),
+            ],
             // File icon
             Text(icon, style: const TextStyle(fontSize: 32)),
             const SizedBox(width: 16),
@@ -274,7 +436,7 @@ class DocumentsScreen extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Scout fox image
-            Image.asset('assets/icons/interview-fox.png'),
+            Image.asset('assets/icons/interview-fox.png', height: 150),
             const SizedBox(height: 32),
             const Text(
               'No Documents Yet',
@@ -364,14 +526,14 @@ class DocumentsScreen extends ConsumerWidget {
                     color: AppColors.white,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Column(
+                  child: const Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const CircularProgressIndicator(color: AppColors.primary),
-                      const SizedBox(height: 16),
+                      CircularProgressIndicator(color: AppColors.primary),
+                      SizedBox(height: 16),
                       Text(
-                        'Uploading $fileName...',
-                        style: const TextStyle(
+                        'Uploading document...',
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                           color: AppColors.textPrimary,
@@ -393,7 +555,7 @@ class DocumentsScreen extends ConsumerWidget {
         final saveDocResponse = await resumeService.uploadDocsToS3(file);
 
         // Step 3: Save document metadata to API
-        final folderId = int.tryParse(lectureId) ?? 0;
+        final folderId = int.tryParse(widget.lectureId) ?? 0;
         await documentsService.saveFolderItem(
           folderId: folderId,
           name: fileName,
@@ -432,6 +594,89 @@ class DocumentsScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to upload file: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Generate quiz from selected documents
+  Future<void> _generateQuiz(BuildContext context) async {
+    if (_selectedDocuments.isEmpty) return;
+
+    try {
+      // Show loading dialog
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: AppColors.primary),
+                    SizedBox(height: 16),
+                    Text(
+                      'Generating quiz...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      }
+
+      // Call the generate quiz provider
+      final quizAsync = await ref.read(
+        generateQuizProvider(_selectedDocuments.toList()).future,
+      );
+
+      // Dismiss loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Clear selection
+      _cancelSelection();
+
+      // Navigate to quiz screen
+      if (context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                QuizScreen(quiz: quizAsync, lectureName: widget.lectureName),
+          ),
+        );
+      }
+    } catch (e) {
+      // Dismiss loading dialog if it's showing
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Show error message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to generate quiz: $e'),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),

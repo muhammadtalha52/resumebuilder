@@ -25,27 +25,18 @@ class StudentDashboardScreen extends ConsumerWidget {
               fit: BoxFit.cover,
             ),
           ),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 10),
-                        _buildWelcomeSection(ref),
-                        const SizedBox(height: 10),
-                        _buildProgressAndMetricsSection(ref),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 10),
+                _buildWelcomeSection(ref),
+                const SizedBox(height: 10),
+                Expanded(child: _buildProgressAndMetricsSection(ref)),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ],
       ),
@@ -73,12 +64,18 @@ class StudentDashboardScreen extends ConsumerWidget {
       children: [
         Row(
           children: [
-            Text(
-              'Keep Learning, $firstName!',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1A1A1A),
+            Expanded(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Keep Learning, $firstName!',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 8),

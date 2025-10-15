@@ -1,0 +1,198 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../constants/app_colors.dart';
+import '../../models/quize_model.dart';
+import '../../providers/quiz_provider.dart';
+import 'quiz_option_tile.dart';
+
+class QuizQuestionCard extends ConsumerWidget {
+  final Items question;
+
+  const QuizQuestionCard({super.key, required this.question});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final options = question.getOptionsMap();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Question text
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Q.',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    question.question ?? '',
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Options
+          ...options.entries.map((entry) {
+            final label = entry.key;
+            final text = entry.value;
+
+            // Determine option state
+            final state = _getOptionState(label);
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: QuizOptionTile(
+                label: label,
+                text: text,
+                state: state,
+                onTap: question.isAnswered
+                    ? null
+                    : () {
+                        ref.read(quizProvider.notifier).selectAnswer(label);
+                      },
+              ),
+            );
+          }),
+          const SizedBox(height: 20),
+          // Action button
+          if (!question.isAnswered)
+            _buildCheckAnswerButton(context, ref)
+          else
+            _buildAnswerFeedback(),
+        ],
+      ),
+    );
+  }
+
+  QuizOptionState _getOptionState(String label) {
+    // If not answered yet
+    if (!question.isAnswered) {
+      // Show selected state if this option is selected
+      return question.selectedLabel == label
+          ? QuizOptionState.selected
+          : QuizOptionState.normal;
+    }
+
+    // If answered, show correct/incorrect states
+    final isThisCorrect = label == question.correctLabel;
+    final isThisSelected = label == question.selectedLabel;
+
+    if (isThisSelected && isThisCorrect) {
+      return QuizOptionState.correct;
+    } else if (isThisSelected && !isThisCorrect) {
+      return QuizOptionState.incorrect;
+    } else if (!isThisSelected && isThisCorrect) {
+      return QuizOptionState.showCorrect;
+    } else {
+      return QuizOptionState.normal;
+    }
+  }
+
+  Widget _buildCheckAnswerButton(BuildContext context, WidgetRef ref) {
+    final hasSelected = question.selectedLabel != null;
+
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: hasSelected
+            ? () {
+                ref.read(quizProvider.notifier).checkAnswer();
+              }
+            : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          disabledBackgroundColor: AppColors.textSecondary.withValues(
+            alpha: 0.3,
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: hasSelected ? 2 : 0,
+        ),
+        child: Text(
+          hasSelected ? 'Check Answer' : 'Select an option',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: hasSelected ? AppColors.white : AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnswerFeedback() {
+    final isCorrect = question.isCorrect;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isCorrect
+            ? Colors.green.withValues(alpha: 0.1)
+            : Colors.red.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isCorrect ? Colors.green : Colors.red,
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isCorrect ? Icons.check_circle : Icons.cancel,
+            color: isCorrect ? Colors.green : Colors.red,
+            size: 28,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              isCorrect
+                  ? 'Correct! Well done!'
+                  : 'Incorrect. The correct answer is highlighted.',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: isCorrect ? Colors.green.shade900 : Colors.red.shade900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

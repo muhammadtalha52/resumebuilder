@@ -190,7 +190,10 @@ class StudySpaceScreen extends ConsumerWidget {
                       subjectName: folder.name ?? 'Folder',
                     ),
                   ),
-                );
+                ).then((_) {
+                  // Refresh folders when coming back from lectures screen
+                  ref.read(studySpaceProvider.notifier).refreshFolders();
+                });
               },
             ),
           );
@@ -263,78 +266,77 @@ class StudySpaceScreen extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(40),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      child: Container(
+        width: double.infinity,
+        height: double.infinity,
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Scout fox image
+            Image.asset('assets/icons/interview-fox.png', height: 150),
+            const SizedBox(height: 32),
+            const Text(
+              'Organize Your Study\nMaterials with Scout',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+                height: 1.2,
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Scout fox image
-              Image.asset('assets/icons/interview-fox.png', height: 150),
-              const SizedBox(height: 32),
-              const Text(
-                'Organize Your Study\nMaterials with Scout',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                  height: 1.2,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Create subjects, add lectures, and upload\nyour documents for easy access.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 40),
+            GestureDetector(
+              onTap: () => _showCreateSubjectDialog(context, ref),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.accent, width: 1.5),
                 ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Create subjects, add lectures, and upload\nyour documents for easy access.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 40),
-              GestureDetector(
-                onTap: () => _showCreateSubjectDialog(context, ref),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.accent, width: 1.5),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add, color: AppColors.accent, size: 22),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Create Your First Subject',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.accent,
-                        ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.add, color: AppColors.accent, size: 22),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Create Your First Subject',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.accent,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
