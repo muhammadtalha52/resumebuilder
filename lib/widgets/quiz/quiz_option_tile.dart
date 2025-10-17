@@ -55,7 +55,7 @@ class QuizOptionTile extends StatelessWidget {
               decoration: BoxDecoration(
                 color: _getLabelBackgroundColor(),
                 shape: BoxShape.circle,
-                border: Border.all(color: _getLabelBorderColor(), width: 1.5),
+                border: Border.all(color: _getLabelBorderColor(), width: 2),
               ),
               child: Center(
                 child: Text(
@@ -86,7 +86,7 @@ class QuizOptionTile extends StatelessWidget {
                 state == QuizOptionState.showCorrect)
               const Icon(Icons.check_circle, color: Colors.green, size: 24)
             else if (state == QuizOptionState.incorrect)
-              const Icon(Icons.cancel, color: Colors.red, size: 24),
+              Icon(Icons.cancel, color: Colors.red.shade400, size: 24),
           ],
         ),
       ),
@@ -94,18 +94,8 @@ class QuizOptionTile extends StatelessWidget {
   }
 
   Color _getBackgroundColor() {
-    switch (state) {
-      case QuizOptionState.normal:
-        return AppColors.white;
-      case QuizOptionState.selected:
-        return AppColors.primary.withValues(alpha: 0.05);
-      case QuizOptionState.correct:
-        return Colors.green.withValues(alpha: 0.1);
-      case QuizOptionState.incorrect:
-        return Colors.red.withValues(alpha: 0.1);
-      case QuizOptionState.showCorrect:
-        return Colors.green.withValues(alpha: 0.05);
-    }
+    // Always return white background - no color fill
+    return AppColors.white;
   }
 
   Color _getBorderColor() {
@@ -117,7 +107,7 @@ class QuizOptionTile extends StatelessWidget {
       case QuizOptionState.correct:
         return Colors.green;
       case QuizOptionState.incorrect:
-        return Colors.red;
+        return Colors.red.shade300;
       case QuizOptionState.showCorrect:
         return Colors.green;
     }
@@ -128,26 +118,26 @@ class QuizOptionTile extends StatelessWidget {
       case QuizOptionState.normal:
         return AppColors.white;
       case QuizOptionState.selected:
-        return AppColors.primary;
+        return AppColors.primary.withValues(alpha: 0.15);
       case QuizOptionState.correct:
-        return Colors.green;
+        return Colors.green.withValues(alpha: 0.15);
       case QuizOptionState.incorrect:
-        return Colors.red;
+        return Colors.red.shade100;
       case QuizOptionState.showCorrect:
-        return Colors.green.withValues(alpha: 0.1);
+        return Colors.green.withValues(alpha: 0.15);
     }
   }
 
   Color _getLabelBorderColor() {
     switch (state) {
       case QuizOptionState.normal:
-        return AppColors.textSecondary.withValues(alpha: 0.5);
+        return AppColors.textSecondary.withValues(alpha: 0.3);
       case QuizOptionState.selected:
         return AppColors.primary;
       case QuizOptionState.correct:
         return Colors.green;
       case QuizOptionState.incorrect:
-        return Colors.red;
+        return Colors.red.shade300;
       case QuizOptionState.showCorrect:
         return Colors.green;
     }
@@ -158,13 +148,13 @@ class QuizOptionTile extends StatelessWidget {
       case QuizOptionState.normal:
         return AppColors.textPrimary;
       case QuizOptionState.selected:
-        return AppColors.white;
+        return AppColors.primary;
       case QuizOptionState.correct:
-        return AppColors.white;
+        return Colors.green.shade700;
       case QuizOptionState.incorrect:
-        return AppColors.white;
+        return Colors.red.shade600;
       case QuizOptionState.showCorrect:
-        return Colors.green;
+        return Colors.green.shade700;
     }
   }
 
@@ -176,7 +166,7 @@ class QuizOptionTile extends StatelessWidget {
       case QuizOptionState.correct:
         return Colors.green.shade900;
       case QuizOptionState.incorrect:
-        return Colors.red.shade900;
+        return Colors.red.shade700;
       case QuizOptionState.showCorrect:
         return Colors.green.shade900;
     }

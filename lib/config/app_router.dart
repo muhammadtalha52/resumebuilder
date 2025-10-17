@@ -22,6 +22,12 @@ import '../screens/common/legal_screen.dart';
 import '../screens/common/main_screen.dart';
 
 import '../screens/common/welcome_screen.dart';
+import '../screens/student/quiz_generation_loading_screen.dart';
+import '../screens/student/quiz_screen.dart';
+import '../screens/student/quiz_review_screen.dart';
+import '../screens/student/quiz_summary_screen.dart';
+import '../screens/student/quiz_history_screen.dart';
+import '../models/quize_model.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -140,6 +146,41 @@ final GoRouter appRouter = GoRouter(
           duration: Duration(seconds: durationSeconds),
         );
       },
+    ),
+    GoRoute(
+      path: '/quiz/loading',
+      builder: (context, state) {
+        final params = state.uri.queryParameters;
+        final documentCount = int.tryParse(params['count'] ?? '1') ?? 1;
+        return QuizGenerationLoadingScreen(documentCount: documentCount);
+      },
+    ),
+    GoRoute(
+      path: '/quiz/start',
+      builder: (context, state) {
+        final quiz = state.extra as QuizModel;
+        final lectureName = state.uri.queryParameters['lectureName'] ?? 'Quiz';
+        return QuizScreen(quiz: quiz, lectureName: lectureName);
+      },
+    ),
+    GoRoute(
+      path: '/quiz/summary',
+      builder: (context, state) {
+        final lectureName = state.uri.queryParameters['lectureName'] ?? 'Quiz';
+        return QuizSummaryScreen(lectureName: lectureName);
+      },
+    ),
+    GoRoute(
+      path: '/quiz/review',
+      builder: (context, state) {
+        final quiz = state.extra as QuizModel;
+        final lectureName = state.uri.queryParameters['lectureName'] ?? 'Quiz';
+        return QuizReviewScreen(quiz: quiz, lectureName: lectureName);
+      },
+    ),
+    GoRoute(
+      path: '/quiz/history',
+      builder: (context, state) => const QuizHistoryScreen(),
     ),
   ],
 );

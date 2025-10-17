@@ -4,8 +4,7 @@ import '../../constants/app_colors.dart';
 class QuizProgressIndicator extends StatelessWidget {
   final int totalQuestions;
   final int currentIndex;
-  final List<bool>
-  answeredStatus; // List indicating which questions are answered
+  final List<bool> answeredStatus;
 
   const QuizProgressIndicator({
     super.key,
@@ -59,81 +58,8 @@ class QuizProgressIndicator extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        // Question dots
-        _buildQuestionDots(),
       ],
     );
-  }
-
-  Widget _buildQuestionDots() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: List.generate(totalQuestions, (index) {
-        final isCurrent = index == currentIndex;
-        final isAnswered =
-            index < answeredStatus.length && answeredStatus[index];
-
-        return GestureDetector(
-          onTap: () {
-            // This will be handled by the parent screen
-          },
-          child: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: _getDotColor(isCurrent, isAnswered),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: _getDotBorderColor(isCurrent, isAnswered),
-                width: isCurrent ? 2 : 1,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                '${index + 1}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
-                  color: _getDotTextColor(isCurrent, isAnswered),
-                ),
-              ),
-            ),
-          ),
-        );
-      }),
-    );
-  }
-
-  Color _getDotColor(bool isCurrent, bool isAnswered) {
-    if (isCurrent) {
-      return AppColors.primary;
-    } else if (isAnswered) {
-      return AppColors.primary.withValues(alpha: 0.2);
-    } else {
-      return AppColors.white;
-    }
-  }
-
-  Color _getDotBorderColor(bool isCurrent, bool isAnswered) {
-    if (isCurrent) {
-      return AppColors.primary;
-    } else if (isAnswered) {
-      return AppColors.primary.withValues(alpha: 0.5);
-    } else {
-      return AppColors.textSecondary.withValues(alpha: 0.3);
-    }
-  }
-
-  Color _getDotTextColor(bool isCurrent, bool isAnswered) {
-    if (isCurrent) {
-      return AppColors.white;
-    } else if (isAnswered) {
-      return AppColors.primary;
-    } else {
-      return AppColors.textSecondary;
-    }
   }
 
   int _getAnsweredCount() {

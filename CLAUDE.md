@@ -81,9 +81,11 @@ lib/
    - Show user-friendly error messages
 
 6. **Navigation**
-   - Use go_router for navigation
-   - Define routes in centralized location
+   - **ALWAYS use go_router for navigation - NEVER use MaterialPageRoute, Navigator.push, or Navigator.pushReplacement**
+   - Use `context.push()`, `context.go()`, or `context.pushReplacement()` from go_router
+   - Define routes in centralized location (app_router.dart)
    - Use type-safe route parameters
+   - Pass data via route parameters or query parameters
 
 7. **Responsive Design**
    - Support both mobile and tablet layouts
@@ -94,6 +96,42 @@ lib/
    - Write unit tests for business logic
    - Write widget tests for UI components
    - Maintain at least 80% code coverage
+
+9. **Dialogs**
+   - **ALWAYS use the custom ConfirmationDialog widget from `widgets/dialogs/confirmation_dialog.dart`**
+   - **NEVER use AlertDialog or Material's default dialog**
+   - Use the helper function `showConfirmationDialog()` for consistency
+   - Standard dialog pattern:
+     ```dart
+     final confirmed = await showConfirmationDialog(
+       context: context,
+       title: 'Dialog Title',
+       subtitle: 'Optional description text',
+       icon: Icons.icon_name, // Optional icon
+       iconBackgroundColor: AppColors.primary, // or AppColors.error
+       confirmText: 'Confirm',
+       cancelText: 'Cancel',
+       confirmButtonColor: AppColors.primary, // or AppColors.error
+       confirmTextColor: Colors.white,
+     );
+
+     if (confirmed == true && context.mounted) {
+       // Handle confirmation
+     }
+     ```
+   - Dialog design specs:
+     - Dialog container: white background, 24px padding, 16px border radius
+     - Icon (optional): 64x64px, 12px border radius, white icon 32px
+     - Title: 20px, bold (w600), center aligned
+     - Subtitle (optional): 14px, grey color, center aligned
+     - Buttons: 48px height, 8px border radius, equal width
+     - Cancel button: light grey background (#E5E7EB), grey text
+     - Confirm button: primary/error color, white text
+   - Available custom dialogs:
+     - `ConfirmationDialog` - generic confirmation
+     - `DeleteConfirmationDialog` - delete operations
+     - `CreateLectureDialog` - form-based creation
+   - Always import: `import '../../widgets/dialogs/confirmation_dialog.dart';`
 
 ### Code Style
 - Maximum line length: 80 characters

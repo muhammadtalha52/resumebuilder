@@ -14,87 +14,71 @@ class QuizQuestionCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final options = question.getOptionsMap();
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Question text
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Question text
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Q.',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Q.',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    question.question ?? '',
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                      height: 1.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          // Options
-          ...options.entries.map((entry) {
-            final label = entry.key;
-            final text = entry.value;
-
-            // Determine option state
-            final state = _getOptionState(label);
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: QuizOptionTile(
-                label: label,
-                text: text,
-                state: state,
-                onTap: question.isAnswered
-                    ? null
-                    : () {
-                        ref.read(quizProvider.notifier).selectAnswer(label);
-                      },
               ),
-            );
-          }),
-          const SizedBox(height: 20),
-          // Action button
-          if (!question.isAnswered)
-            _buildCheckAnswerButton(context, ref)
-          else
-            _buildAnswerFeedback(),
-        ],
-      ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  question.question ?? '',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        // Options
+        ...options.entries.map((entry) {
+          final label = entry.key;
+          final text = entry.value;
+
+          // Determine option state
+          final state = _getOptionState(label);
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: QuizOptionTile(
+              label: label,
+              text: text,
+              state: state,
+              onTap: question.isAnswered
+                  ? null
+                  : () {
+                      ref.read(quizProvider.notifier).selectAnswer(label);
+                    },
+            ),
+          );
+        }),
+        const SizedBox(height: 20),
+        // Action button
+        if (!question.isAnswered)
+          _buildCheckAnswerButton(context, ref)
+        else
+          _buildAnswerFeedback(),
+      ],
     );
   }
 
@@ -107,7 +91,7 @@ class QuizQuestionCard extends ConsumerWidget {
           : QuizOptionState.normal;
     }
 
-    // If answered, show correct/incorrect states
+    // If answered, only highlight the user's selected answer
     final isThisCorrect = label == question.correctLabel;
     final isThisSelected = label == question.selectedLabel;
 
@@ -115,9 +99,8 @@ class QuizQuestionCard extends ConsumerWidget {
       return QuizOptionState.correct;
     } else if (isThisSelected && !isThisCorrect) {
       return QuizOptionState.incorrect;
-    } else if (!isThisSelected && isThisCorrect) {
-      return QuizOptionState.showCorrect;
     } else {
+      // Don't highlight the correct answer if user didn't select it
       return QuizOptionState.normal;
     }
   }
@@ -183,7 +166,7 @@ class QuizQuestionCard extends ConsumerWidget {
             child: Text(
               isCorrect
                   ? 'Correct! Well done!'
-                  : 'Incorrect. The correct answer is highlighted.',
+                  : 'Incorrect. Correct answer is ${question.correctLabel}.',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,

@@ -1,16 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/quiz_provider.dart';
+import '../../providers/quiz_history_provider.dart';
+import '../../services/quiz_history_service.dart';
 import '../../widgets/common/custom_app_bar.dart';
 
-class QuizSummaryScreen extends ConsumerWidget {
+class QuizSummaryScreen extends ConsumerStatefulWidget {
   final String lectureName;
 
   const QuizSummaryScreen({super.key, required this.lectureName});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<QuizSummaryScreen> createState() => _QuizSummaryScreenState();
+}
+
+class _QuizSummaryScreenState extends ConsumerState<QuizSummaryScreen> {
+  bool _savedToHistory = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _saveQuizToHistory();
+    });
+  }
+
+  Future<void> _saveQuizToHistory() async {
+    if (_savedToHistory) return;
+
+    final quizState = ref.read(quizProvider);
+    final summary = ref.read(quizProvider.notifier).getSummary();
+
+    if (quizState.quiz != null) {
+      final service = ref.read(quizHistoryServiceProvider);
+      await service.saveQuiz(
+        lectureName: widget.lectureName,
+        quiz: quizState.quiz!,
+        correctAnswers: summary.correctAnswers,
+        totalQuestions: summary.totalQuestions,
+      );
+      // Refresh history
+      ref.read(quizHistoryProvider.notifier).loadHistory();
+      _savedToHistory = true;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final quizState = ref.watch(quizProvider);
     final summary = ref.read(quizProvider.notifier).getSummary();
 
@@ -34,147 +72,103 @@ class QuizSummaryScreen extends ConsumerWidget {
         ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              // Results card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
                 ),
-                child: Column(
+              ],
+            ),
+            child: Column(
+              children: [
+                // Fox mascot image
+                Image.asset(_getResultImage(summary.percentage), height: 100),
+                const SizedBox(height: 24),
+                // Encouraging title
+                Text(
+                  _getEncouragingTitle(summary.percentage),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Encouraging message
+                Text(
+                  _getEncouragingMessage(summary.percentage),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: AppColors.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                // Stats
+                Row(
                   children: [
-                    // Trophy/Medal image
-                    Image.asset(
-                      _getResultImage(summary.percentage),
-                      height: 120,
-                    ),
-                    const SizedBox(height: 24),
-                    // Title
-                    Text(
-                      _getResultTitle(summary.percentage),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                    Expanded(
+                      child: _buildStatCard(
+                        icon: Icons.check_circle,
+                        color: Colors.green,
+                        label: 'Correct',
+                        value:
+                            '${summary.correctAnswers}/${summary.totalQuestions}',
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    // Subtitle
-                    Text(
-                      lectureName,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textSecondary,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildStatCard(
+                        icon: Icons.cancel,
+                        color: Colors.red.shade400,
+                        label: 'Incorrect',
+                        value:
+                            '${summary.incorrectAnswers}/${summary.totalQuestions}',
                       ),
-                    ),
-                    const SizedBox(height: 32),
-                    // Score circle
-                    Container(
-                      width: 160,
-                      height: 160,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: _getGradeColor(summary.grade),
-                          width: 8,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            '${summary.percentage.toStringAsFixed(0)}%',
-                            style: TextStyle(
-                              fontSize: 40,
-                              fontWeight: FontWeight.bold,
-                              color: _getGradeColor(summary.grade),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Grade ${summary.grade}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: _getGradeColor(summary.grade),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    // Stats
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildStatCard(
-                            icon: Icons.check_circle,
-                            color: Colors.green,
-                            label: 'Correct',
-                            value: summary.correctAnswers.toString(),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildStatCard(
-                            icon: Icons.cancel,
-                            color: Colors.red,
-                            label: 'Incorrect',
-                            value: summary.incorrectAnswers.toString(),
-                          ),
-                        ),
-                        if (summary.unanswered > 0) const SizedBox(width: 12),
-                        if (summary.unanswered > 0)
-                          Expanded(
-                            child: _buildStatCard(
-                              icon: Icons.help_outline,
-                              color: Colors.orange,
-                              label: 'Skipped',
-                              value: summary.unanswered.toString(),
-                            ),
-                          ),
-                      ],
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 20),
-              // Action buttons
-              _buildActionButton(
-                context: context,
-                label: 'Review Answers',
-                icon: Icons.rate_review,
-                isPrimary: false,
-                onTap: () {
-                  // Go back to quiz screen in review mode
-                  Navigator.pop(context);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildActionButton(
-                context: context,
-                label: 'Done',
-                icon: Icons.home,
-                isPrimary: true,
-                onTap: () {
-                  ref.read(quizProvider.notifier).reset();
-                  // Go back to documents/lectures screen
-                  Navigator.popUntil(context, (route) => route.isFirst);
-                },
-              ),
-            ],
+                const SizedBox(height: 32),
+                // Action buttons
+                _buildActionButton(
+                  context: context,
+                  ref: ref,
+                  label: 'Review Answers',
+                  icon: Icons.rate_review,
+                  isPrimary: false,
+                  onTap: () {
+                    final quiz = ref.read(quizProvider).quiz;
+                    if (quiz != null) {
+                      context.push(
+                        '/quiz/review?lectureName=${Uri.encodeComponent(widget.lectureName)}',
+                        extra: quiz,
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                _buildActionButton(
+                  context: context,
+                  label: 'Done',
+                  icon: Icons.home,
+                  isPrimary: true,
+                  onTap: () {
+                    ref.read(quizProvider.notifier).reset();
+                    // Go back to documents/lectures screen
+                    Navigator.popUntil(context, (route) => route.isFirst);
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -222,6 +216,7 @@ class QuizSummaryScreen extends ConsumerWidget {
 
   Widget _buildActionButton({
     required BuildContext context,
+    WidgetRef? ref,
     required String label,
     required IconData icon,
     required bool isPrimary,
@@ -279,32 +274,35 @@ class QuizSummaryScreen extends ConsumerWidget {
     }
   }
 
-  String _getResultTitle(double percentage) {
+  String _getEncouragingTitle(double percentage) {
     if (percentage >= 90) {
-      return 'Outstanding! 🎉';
+      return "You're a Quiz Master! 🌟";
     } else if (percentage >= 80) {
-      return 'Great Job! 👏';
+      return 'Almost Perfect! 🎯';
     } else if (percentage >= 70) {
-      return 'Good Work! 👍';
+      return 'Great Progress! 💪';
     } else if (percentage >= 60) {
-      return 'Keep Practicing! 💪';
+      return 'Keep Going! 📚';
+    } else if (percentage >= 50) {
+      return 'Nice Try! 🔥';
     } else {
-      return 'Keep Learning! 📚';
+      return 'Keep Learning! 🚀';
     }
   }
 
-  Color _getGradeColor(String grade) {
-    switch (grade) {
-      case 'A':
-        return Colors.green;
-      case 'B':
-        return Colors.blue;
-      case 'C':
-        return Colors.orange;
-      case 'D':
-        return Colors.deepOrange;
-      default:
-        return Colors.red;
+  String _getEncouragingMessage(double percentage) {
+    if (percentage >= 90) {
+      return 'Excellent performance. You’ve demonstrated strong understanding of the material.';
+    } else if (percentage >= 80) {
+      return 'Great work. You’re showing solid progress and a clear grasp of the concepts.';
+    } else if (percentage >= 70) {
+      return 'Good effort. Review the areas you missed to strengthen your understanding.';
+    } else if (percentage >= 60) {
+      return 'You’re improving. Revisit key topics to build more confidence.';
+    } else if (percentage >= 50) {
+      return 'Keep going. Focused revision will help you perform better next time.';
+    } else {
+      return 'Don’t be discouraged. Consistent practice and review will lead to steady improvement.';
     }
   }
 }

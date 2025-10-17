@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
 import '../../models/quize_model.dart';
 import '../../providers/quiz_provider.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/quiz/quiz_question_card.dart';
 import '../../widgets/quiz/quiz_progress_indicator.dart';
-import 'quiz_summary_screen.dart';
+import '../../widgets/dialogs/confirmation_dialog.dart';
 
 class QuizScreen extends ConsumerStatefulWidget {
   final QuizModel quiz;
@@ -63,52 +64,86 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
             fit: BoxFit.cover,
           ),
         ),
-        child: Column(
-          children: [
-            // Progress indicator
-            Container(
-              padding: const EdgeInsets.all(20),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
               color: AppColors.white,
-              child: QuizProgressIndicator(
-                totalQuestions: totalQuestions,
-                currentIndex: quizState.currentQuestionIndex,
-                answeredStatus: answeredStatus,
-              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            // Question card
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: QuizQuestionCard(question: currentQuestion),
-              ),
-            ),
-            // Navigation buttons
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  // Previous button
-                  if (quizState.canGoPrevious())
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Progress indicator
+                QuizProgressIndicator(
+                  totalQuestions: totalQuestions,
+                  currentIndex: quizState.currentQuestionIndex,
+                  answeredStatus: answeredStatus,
+                ),
+                const SizedBox(height: 24),
+                // Question card
+                QuizQuestionCard(question: currentQuestion),
+                const SizedBox(height: 24),
+                // Navigation buttons
+                Row(
+                  children: [
+                    // Previous button
+                    if (quizState.canGoPrevious())
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            ref.read(quizProvider.notifier).previousQuestion();
+                          },
+                          icon: const Icon(Icons.arrow_back, size: 20),
+                          label: const Text('Previous'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            side: const BorderSide(color: AppColors.primary),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (quizState.canGoPrevious()) const SizedBox(width: 12),
+                    // Next/Finish button
                     Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          ref.read(quizProvider.notifier).previousQuestion();
-                        },
-                        icon: const Icon(Icons.arrow_back, size: 20),
-                        label: const Text('Previous'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                          side: const BorderSide(color: AppColors.primary),
+                      flex: quizState.canGoPrevious() ? 1 : 2,
+                      child: ElevatedButton.icon(
+                        onPressed: currentQuestion.isAnswered
+                            ? () {
+                                if (quizState.isLastQuestion()) {
+                                  _navigateToSummary(context);
+                                } else {
+                                  ref
+                                      .read(quizProvider.notifier)
+                                      .nextQuestion();
+                                }
+                              }
+                            : null,
+                        icon: Icon(
+                          quizState.isLastQuestion()
+                              ? Icons.check_circle
+                              : Icons.arrow_forward,
+                          size: 20,
+                        ),
+                        label: Text(
+                          quizState.isLastQuestion() ? 'Finish Quiz' : 'Next',
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          disabledBackgroundColor: AppColors.textSecondary
+                              .withValues(alpha: 0.3),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -116,78 +151,38 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                         ),
                       ),
                     ),
-                  if (quizState.canGoPrevious()) const SizedBox(width: 12),
-                  // Next/Finish button
-                  Expanded(
-                    flex: quizState.canGoPrevious() ? 1 : 2,
-                    child: ElevatedButton.icon(
-                      onPressed: currentQuestion.isAnswered
-                          ? () {
-                              if (quizState.isLastQuestion()) {
-                                _navigateToSummary(context);
-                              } else {
-                                ref.read(quizProvider.notifier).nextQuestion();
-                              }
-                            }
-                          : null,
-                      icon: Icon(
-                        quizState.isLastQuestion()
-                            ? Icons.check_circle
-                            : Icons.arrow_forward,
-                        size: 20,
-                      ),
-                      label: Text(
-                        quizState.isLastQuestion() ? 'Finish Quiz' : 'Next',
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        disabledBackgroundColor: AppColors.textSecondary
-                            .withValues(alpha: 0.3),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  void _handleBackPress(BuildContext context) {
+  Future<void> _handleBackPress(BuildContext context) async {
     final quizState = ref.read(quizProvider);
 
     // If quiz is not completed, show confirmation dialog
     if (!quizState.isQuizCompleted()) {
-      showDialog(
+      final confirmed = await showConfirmationDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Exit Quiz?'),
-          content: const Text(
+        title: 'Exit Quiz?',
+        subtitle:
             'Your progress will be lost if you exit now. Are you sure you want to leave?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close dialog
-                ref.read(quizProvider.notifier).reset();
-                Navigator.pop(context); // Close quiz screen
-              },
-              style: TextButton.styleFrom(foregroundColor: AppColors.error),
-              child: const Text('Exit'),
-            ),
-          ],
-        ),
+        icon: Icons.exit_to_app,
+        iconBackgroundColor: AppColors.error,
+        confirmText: 'Exit',
+        cancelText: 'Cancel',
+        confirmButtonColor: AppColors.error,
+        confirmTextColor: Colors.white,
       );
+
+      if (confirmed == true && context.mounted) {
+        ref.read(quizProvider.notifier).reset();
+        Navigator.pop(context);
+      }
     } else {
       ref.read(quizProvider.notifier).reset();
       Navigator.pop(context);
@@ -195,12 +190,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   }
 
   void _navigateToSummary(BuildContext context) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            QuizSummaryScreen(lectureName: widget.lectureName),
-      ),
+    context.pushReplacement(
+      '/quiz/summary?lectureName=${Uri.encodeComponent(widget.lectureName)}',
     );
   }
 }

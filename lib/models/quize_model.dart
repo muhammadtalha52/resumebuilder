@@ -55,8 +55,8 @@ class Items {
         ? Options.fromJson(json['options'])
         : null;
     _correctLabel = json['correct_label'];
-    _selectedLabel = null;
-    _isAnswered = false;
+    _selectedLabel = json['selected_label'];
+    _isAnswered = json['selected_label'] != null;
   }
 
   int? _id;
@@ -108,6 +108,7 @@ class Items {
       map['options'] = _options?.toJson();
     }
     map['correct_label'] = _correctLabel;
+    map['selected_label'] = _selectedLabel;
     return map;
   }
 }

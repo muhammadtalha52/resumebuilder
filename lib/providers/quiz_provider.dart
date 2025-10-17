@@ -154,6 +154,40 @@ final quizProvider = StateNotifierProvider<QuizNotifier, QuizState>((ref) {
   return QuizNotifier();
 });
 
+/// Quiz generation progress notifier
+class QuizGenerationProgress {
+  final double progress; // 0.0 to 1.0
+  final String message;
+
+  QuizGenerationProgress({required this.progress, required this.message});
+
+  factory QuizGenerationProgress.initial() {
+    return QuizGenerationProgress(progress: 0.0, message: 'Starting...');
+  }
+}
+
+class QuizGenerationProgressNotifier
+    extends StateNotifier<QuizGenerationProgress> {
+  QuizGenerationProgressNotifier() : super(QuizGenerationProgress.initial());
+
+  void updateProgress(double progress, String message) {
+    state = QuizGenerationProgress(progress: progress, message: message);
+  }
+
+  void reset() {
+    state = QuizGenerationProgress.initial();
+  }
+}
+
+/// Provider for quiz generation progress
+final quizGenerationProgressProvider =
+    StateNotifierProvider<
+      QuizGenerationProgressNotifier,
+      QuizGenerationProgress
+    >((ref) {
+      return QuizGenerationProgressNotifier();
+    });
+
 /// Provider to generate quiz from documents
 final generateQuizProvider = FutureProvider.family<QuizModel, List<String>>((
   ref,

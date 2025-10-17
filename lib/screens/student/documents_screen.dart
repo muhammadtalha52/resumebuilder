@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/documents_provider.dart';
 import '../../providers/resume_provider.dart';
@@ -14,7 +15,6 @@ import '../../utils/snackbar_utils.dart';
 import '../../utils/s3_utils.dart';
 import '../../providers/quiz_provider.dart';
 import 'document_viewer_screen.dart';
-import 'quiz_screen.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
   final String lectureId;
@@ -152,10 +152,17 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
 
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      itemCount: documents.length,
+      itemCount: _isSelectionMode ? documents.length : documents.length + 1,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final document = documents[index];
+        // First item is the Create Quiz button (only when NOT in selection mode)
+        if (index == 0 && !_isSelectionMode) {
+          return _buildCreateQuizButton();
+        }
+
+        // Adjust index for documents (skip the button when not in selection mode)
+        final documentIndex = _isSelectionMode ? index : index - 1;
+        final document = documents[documentIndex];
         final icon = _getFileIcon(document.fileType ?? '');
         final size = _formatFileSize(document.fileSize ?? 0);
         final date = document.createdAt != null
@@ -415,6 +422,79 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     );
   }
 
+  Widget _buildCreateQuizButton() {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _isSelectionMode = true;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary,
+              AppColors.primary.withValues(alpha: 0.8),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.quiz, color: AppColors.white, size: 28),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Create Quiz',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Select documents to generate quiz',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: AppColors.white,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -607,69 +687,43 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     if (_selectedDocuments.isEmpty) return;
 
     try {
-      // Show loading dialog
+      // Reset progress
+      ref.read(quizGenerationProgressProvider.notifier).reset();
+
+      // Navigate to full-screen loading animation
       if (context.mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return Dialog(
-              backgroundColor: Colors.transparent,
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(color: AppColors.primary),
-                    SizedBox(height: 16),
-                    Text(
-                      'Generating quiz...',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimary,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
+        context.push('/quiz/loading?count=${_selectedDocuments.length}');
       }
 
-      // Call the generate quiz provider
-      final quizAsync = await ref.read(
-        generateQuizProvider(_selectedDocuments.toList()).future,
+      // Call the generate quiz service with progress callback
+      final service = ref.read(documentsServiceProvider);
+      final quizAsync = await service.generateQuiz(
+        s3Filenames: _selectedDocuments.toList(),
+        onProgress: (progress, message) {
+          // Update progress provider with backend data
+          print(
+            '📊 [UI] Progress update: ${(progress * 100).toInt()}% - $message',
+          );
+          ref
+              .read(quizGenerationProgressProvider.notifier)
+              .updateProgress(progress, message);
+        },
       );
-
-      // Dismiss loading dialog
-      if (context.mounted) {
-        Navigator.of(context).pop();
-      }
 
       // Clear selection
       _cancelSelection();
 
-      // Navigate to quiz screen
+      // Navigate to quiz screen (replacing the loading screen)
       if (context.mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                QuizScreen(quiz: quizAsync, lectureName: widget.lectureName),
-          ),
+        context.pushReplacement(
+          '/quiz/start?lectureName=${Uri.encodeComponent(widget.lectureName)}',
+          extra: quizAsync,
         );
       }
     } catch (e) {
-      // Dismiss loading dialog if it's showing
+      // Go back from loading screen if it's showing
       if (context.mounted) {
-        Navigator.of(context).pop();
+        context.pop();
       }
 
       // Show error message
