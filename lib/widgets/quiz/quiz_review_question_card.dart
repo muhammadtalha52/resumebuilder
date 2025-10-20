@@ -142,13 +142,14 @@ class QuizReviewQuestionCard extends StatelessWidget {
     final isThisSelected = label == question.selectedLabel;
 
     if (isThisSelected && isThisCorrect) {
+      // User selected correct answer - show green
       return QuizOptionState.correct;
     } else if (isThisSelected && !isThisCorrect) {
+      // User selected wrong answer - show red
       return QuizOptionState.incorrect;
-    } else if (!isThisSelected && isThisCorrect) {
-      // Show the correct answer even if user didn't select it (for review purposes)
-      return QuizOptionState.showCorrect;
     } else {
+      // Don't highlight other options
+      // User can see correct answer from the text below
       return QuizOptionState.normal;
     }
   }

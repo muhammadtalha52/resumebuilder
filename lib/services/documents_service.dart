@@ -1,13 +1,14 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:skillresy/main.dart';
-import '../models/documents_response.dart';
+import '../models/documents_response.dart' as doc;
+import '../models/quiz_history_response.dart';
 import '../models/quize_model.dart' as quiz;
 import '../utils/endpoint_headers.dart';
 import '../utils/s3_utils.dart';
 
 class DocumentsService {
-  Future<DocumentsResponse> getFolderItems({required int folderId}) async {
+  Future<doc.DocumentsResponse> getFolderItems({required int folderId}) async {
     try {
       final response = await apiClient.dio.get(
         ApiEndpoints.folderItems,
@@ -16,7 +17,7 @@ class DocumentsService {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        return DocumentsResponse.fromJson(response.data);
+        return doc.DocumentsResponse.fromJson(response.data);
       } else {
         throw Exception(
           response.data?['message'] ?? 'Failed to fetch documents',
@@ -52,7 +53,7 @@ class DocumentsService {
   }
 
   /// Save folder item after S3 upload
-  Future<Data> saveFolderItem({
+  Future<doc.Data> saveFolderItem({
     required int folderId,
     required String name,
     required String s3Filename,
@@ -84,7 +85,7 @@ class DocumentsService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return Data.fromJson(response.data);
+        return doc.Data.fromJson(response.data);
       } else {
         throw Exception('Failed to save document');
       }
@@ -167,9 +168,6 @@ class DocumentsService {
           .map((filename) => S3Utils.constructAssetUrl(filename))
           .join(',');
 
-      print('🎯 [QUIZ] Starting quiz generation with SSE');
-      print('📁 [QUIZ] Number of documents: ${s3Filenames.length}');
-
       // Report initial progress
       onProgress?.call(0.0, 'Connecting to server...');
 
@@ -181,8 +179,6 @@ class DocumentsService {
           receiveTimeout: const Duration(seconds: 120),
         ),
       );
-
-      print('🌐 [QUIZ] Sending SSE request to: ${ApiEndpoints.generateQuiz}');
 
       // Use ResponseType.stream to receive SSE events
       final response = await quizDio.post(
@@ -196,8 +192,6 @@ class DocumentsService {
           responseType: ResponseType.stream,
         ),
       );
-
-      print('✅ [QUIZ] SSE connection established');
 
       // Buffer to accumulate incomplete SSE messages
       String buffer = '';
@@ -230,16 +224,13 @@ class DocumentsService {
                   final msg = data['message'] as String;
                   final progressValue = percent / 100.0;
 
-                  print('📊 [QUIZ] SSE Progress: $percent% - $msg');
                   onProgress?.call(progressValue, msg);
                 } else if (type == 'result') {
                   final result = data['result'] as Map<String, dynamic>;
-                  print('🎉 [QUIZ] SSE Result received');
                   finalQuiz = quiz.QuizModel.fromJson(result);
                   onProgress?.call(1.0, 'Quiz generated successfully!');
                 }
               } catch (e) {
-                print('⚠️  [QUIZ] Failed to parse SSE data: $jsonStr');
                 print('⚠️  [QUIZ] Parse error: $e');
               }
             }
@@ -251,15 +242,9 @@ class DocumentsService {
         throw Exception('Quiz generation completed but no result received');
       }
 
-      print('🎉 [QUIZ] Quiz generation complete');
       return finalQuiz;
     } on DioException catch (e) {
-      print('❌ [QUIZ] Dio error: ${e.type}');
-      print('❌ [QUIZ] Error message: ${e.message}');
-
       if (e.response != null) {
-        print('❌ [QUIZ] Response status: ${e.response!.statusCode}');
-
         final responseData = e.response!.data;
         String errorMessage = 'Failed to generate quiz';
 
@@ -281,12 +266,149 @@ class DocumentsService {
       }
     } catch (e) {
       print('❌ [QUIZ] Unexpected error: $e');
-      print('❌ [QUIZ] Error type: ${e.runtimeType}');
 
       if (e is Exception) {
         rethrow;
       }
       throw Exception('Failed to generate quiz: $e');
+    }
+  }
+
+  /// Save quiz attempt to backend
+  Future<void> saveQuizAttempt({required quiz.QuizModel quizModel}) async {
+    try {
+      // Transform quiz items to match API format
+      final items = quizModel.items?.map((item) {
+        return {
+          'id': item.id,
+          'question': item.question,
+          'options': {
+            'A': item.options?.a,
+            'B': item.options?.b,
+            'C': item.options?.c,
+            'D': item.options?.d,
+          },
+          'correct_label': item.correctLabel,
+          'user_answer': item.selectedLabel,
+        };
+      }).toList();
+
+      final requestBody = {'items': items};
+
+      print('🎯 [QUIZ] Saving quiz attempt to backend');
+      print('📝 [QUIZ] Items count: ${items?.length ?? 0}');
+
+      final response = await apiClient.dio.post(
+        ApiEndpoints.quizAttempts,
+        data: requestBody,
+        options: Options(
+          headers: {
+            WAInterceptorHeaders.requiresToken: true,
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('✅ [QUIZ] Quiz attempt saved successfully');
+      } else {
+        throw Exception('Failed to save quiz attempt');
+      }
+    } on DioException catch (e) {
+      print('❌ [QUIZ] Failed to save quiz attempt: ${e.message}');
+
+      if (e.response != null) {
+        final responseData = e.response!.data;
+        String errorMessage = 'Failed to save quiz attempt';
+
+        if (responseData is Map) {
+          if (responseData.containsKey('error')) {
+            errorMessage = responseData['error'].toString();
+          } else if (responseData.containsKey('message')) {
+            errorMessage = responseData['message'].toString();
+          } else if (responseData.containsKey('detail')) {
+            errorMessage = responseData['detail'].toString();
+          }
+        } else if (responseData is String) {
+          errorMessage = responseData;
+        }
+
+        throw Exception(errorMessage);
+      } else {
+        throw Exception('Network error: ${e.message}');
+      }
+    } catch (e) {
+      print('❌ [QUIZ] Unexpected error while saving quiz attempt: $e');
+
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Failed to save quiz attempt: $e');
+    }
+  }
+
+  /// Fetch quiz attempts list from backend
+  Future<List<QuizAttempts>> getQuizAttemptsList({
+    int limit = 10,
+    int offset = 0,
+  }) async {
+    try {
+      print('🎯 [QUIZ] Fetching quiz attempts list');
+      print('📊 [QUIZ] Limit: $limit, Offset: $offset');
+
+      final response = await apiClient.dio.get(
+        ApiEndpoints.quizAttemptsList,
+        queryParameters: {'limit': limit, 'offset': offset},
+        options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
+      );
+
+      if (response.statusCode == 200) {
+        print('✅ [QUIZ] Quiz attempts fetched successfully');
+
+        final quizHistoryResponse = QuizHistoryResponse.fromJson(response.data);
+
+        final quizAttempts = quizHistoryResponse.data?.quizAttempts ?? [];
+
+        if (quizAttempts.isEmpty) {
+          print('📝 [QUIZ] No quiz attempts found');
+          return [];
+        }
+
+        print('📝 [QUIZ] Found ${quizAttempts.length} quiz attempts');
+        return quizAttempts;
+      } else {
+        throw Exception('Failed to fetch quiz attempts');
+      }
+    } on DioException catch (e) {
+      print('❌ [QUIZ] Failed to fetch quiz attempts: ${e.message}');
+
+      if (e.response != null) {
+        final responseData = e.response!.data;
+        String errorMessage = 'Failed to fetch quiz attempts';
+
+        if (responseData is Map) {
+          if (responseData.containsKey('error')) {
+            errorMessage = responseData['error'].toString();
+          } else if (responseData.containsKey('message')) {
+            errorMessage = responseData['message'].toString();
+          } else if (responseData.containsKey('detail')) {
+            errorMessage = responseData['detail'].toString();
+          }
+        } else if (responseData is String) {
+          errorMessage = responseData;
+        }
+
+        throw Exception(errorMessage);
+      } else {
+        throw Exception('Network error: ${e.message}');
+      }
+    } catch (e) {
+      print('❌ [QUIZ] Unexpected error while fetching quiz attempts: $e');
+
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Failed to fetch quiz attempts: $e');
     }
   }
 }

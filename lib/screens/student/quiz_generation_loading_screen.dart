@@ -27,41 +27,32 @@ class QuizGenerationLoadingScreenState
   late Animation<double> _completionAnimation;
   bool _shouldComplete = false;
   double _currentProgress = 0.0;
+  bool _apiCompleted = false;
 
   @override
   void initState() {
     super.initState();
 
-    // Controller for the main progress animation (0-95%)
+    // Calculate duration: 12 seconds per document
+    // 1 doc = 15s, 2 docs = 30s, 3 docs = 45s, etc.
+    final durationSeconds = 15 * widget.documentCount;
+
+    // Controller for the main progress animation (0-95% over dynamic duration)
     _progressController = AnimationController(
-      duration: const Duration(seconds: 10), // Total time to reach 95%
+      duration: Duration(seconds: durationSeconds),
       vsync: this,
     );
 
     // Controller for completion animation (95-100%)
     _completionController = AnimationController(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 500),
       vsync: this,
     );
 
-    // Create a custom curved animation for smart progress
-    // Fast from 0-80%, then slow from 80-95%
-    _progressAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 0.0,
-          end: 0.80,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 30, // 30% of time to reach 80% progress
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 0.80,
-          end: 0.95,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 70, // 70% of time for remaining 15% progress
-      ),
-    ]).animate(_progressController);
+    // Smooth linear progress from 0-95% over calculated duration
+    _progressAnimation = Tween<double>(begin: 0.0, end: 0.95).animate(
+      CurvedAnimation(parent: _progressController, curve: Curves.linear),
+    );
 
     // Completion animation from current progress to 100%
     _completionAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
@@ -73,9 +64,11 @@ class QuizGenerationLoadingScreenState
 
     // Listen to progress animation
     _progressAnimation.addListener(() {
-      setState(() {
-        _currentProgress = _progressAnimation.value;
-      });
+      if (!_apiCompleted) {
+        setState(() {
+          _currentProgress = _progressAnimation.value;
+        });
+      }
     });
 
     // Listen to completion animation
@@ -103,16 +96,20 @@ class QuizGenerationLoadingScreenState
       _progressController.stop();
 
       // Update the completion animation to start from current progress
-      _completionAnimation = Tween<double>(begin: _currentProgress, end: 1.0)
-          .animate(
+      _completionAnimation =
+          Tween<double>(begin: _currentProgress, end: 1.0).animate(
             CurvedAnimation(
               parent: _completionController,
               curve: Curves.easeInOut,
             ),
-          );
+          )..addListener(() {
+            setState(() {
+              _currentProgress = _completionAnimation.value;
+            });
+          });
 
       // Start the completion animation
-      _completionController.forward();
+      _completionController.forward(from: 0);
     }
   }
 
@@ -123,14 +120,38 @@ class QuizGenerationLoadingScreenState
     super.dispose();
   }
 
+  /// Get user-friendly message based on progress
+  String _getProgressMessage(double progress) {
+    final percentage = (progress * 100).toInt();
+
+    if (percentage < 25) {
+      return 'Scout is processing documents...';
+    } else if (percentage < 50) {
+      return 'Scout is analyzing content...';
+    } else if (percentage < 75) {
+      return 'Scout is creating questions...';
+    } else if (percentage < 100) {
+      return 'Scout is finalizing your quiz...';
+    } else {
+      return 'Scout has generated your quiz!';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final progressState = ref.watch(quizGenerationProgressProvider);
 
-    // Always use real progress from backend (starts at 0.05 from service)
-    final displayProgress = progressState.progress > 0
-        ? progressState.progress
-        : _currentProgress; // Fallback to animated for first frame only
+    // Check if API completed (progress reaches 100%)
+    if (progressState.progress >= 1.0 && !_apiCompleted) {
+      _apiCompleted = true;
+      // Trigger completion animation
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        completeAnimation();
+      });
+    }
+
+    // Use animated progress for smooth display
+    final displayProgress = _currentProgress;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -188,15 +209,11 @@ class QuizGenerationLoadingScreenState
                 ),
                 const SizedBox(height: 12),
 
-                // Subtitle with progress message from backend
+                // Subtitle with dynamic message based on progress
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
-                    progressState.message.isNotEmpty
-                        ? progressState.message
-                        : (widget.documentCount == 1
-                              ? 'Analyzing 1 document...'
-                              : 'Analyzing ${widget.documentCount} documents...'),
+                    _getProgressMessage(displayProgress),
                     style: const TextStyle(
                       fontSize: 16,
                       color: AppColors.textSecondary,

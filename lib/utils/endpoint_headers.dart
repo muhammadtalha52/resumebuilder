@@ -22,4 +22,6 @@ class ApiEndpoints {
   static const String folderItems = '/auth/folder-items/';
   static const String generateQuiz = '/generate-quiz-from-urls';
   static const String viewS3Assets = '/auth/view-s3-assets/';
+  static const String quizAttempts = '/auth/quiz-attempts/';
+  static const String quizAttemptsList = '/auth/quiz-attempts/list/';
 }

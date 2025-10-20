@@ -34,7 +34,36 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     super.dispose();
   }
 
+  /// Get the appropriate viewer URL based on file type
+  String _getViewerUrl() {
+    final url = widget.documentUrl;
+    final lowerUrl = url.toLowerCase();
+
+    // Check file extension
+    if (lowerUrl.endsWith('.pdf')) {
+      // PDF can be loaded directly
+      return url;
+    } else if (lowerUrl.endsWith('.pptx') ||
+        lowerUrl.endsWith('.ppt') ||
+        lowerUrl.endsWith('.docx') ||
+        lowerUrl.endsWith('.doc') ||
+        lowerUrl.endsWith('.xlsx') ||
+        lowerUrl.endsWith('.xls')) {
+      // Use Google Docs Viewer for Office documents
+      final encodedUrl = Uri.encodeComponent(url);
+      return 'https://docs.google.com/viewer?url=$encodedUrl&embedded=true';
+    } else {
+      // For other file types, try to load directly
+      return url;
+    }
+  }
+
   void _initializeWebView() {
+    final viewerUrl = _getViewerUrl();
+
+    print('📄 [VIEWER] Document URL: ${widget.documentUrl}');
+    print('🔗 [VIEWER] Viewer URL: $viewerUrl');
+
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(AppColors.white)
@@ -52,6 +81,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
             });
           },
           onWebResourceError: (WebResourceError error) {
+            print('❌ [VIEWER] Error: ${error.description}');
             setState(() {
               _isLoading = false;
               _hasError = true;
@@ -60,7 +90,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
           },
         ),
       )
-      ..loadRequest(Uri.parse(widget.documentUrl));
+      ..loadRequest(Uri.parse(viewerUrl));
   }
 
   @override

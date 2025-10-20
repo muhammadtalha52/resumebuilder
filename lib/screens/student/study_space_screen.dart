@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
 import '../../models/all_folders_response.dart';
 import '../../providers/study_space_provider.dart';
@@ -21,6 +22,15 @@ class StudySpaceScreen extends ConsumerWidget {
       backgroundColor: AppColors.scaffold,
       appBar: CustomAppBar(
         title: AppBarWidgets.foxWithTitle(title: 'Study Space'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history, color: AppColors.textPrimary),
+            onPressed: () {
+              context.push('/quiz/history');
+            },
+            tooltip: 'Quiz History',
+          ),
+        ],
       ),
       body: Stack(
         children: [

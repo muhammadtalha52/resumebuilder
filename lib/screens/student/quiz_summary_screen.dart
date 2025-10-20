@@ -4,8 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/quiz_provider.dart';
 import '../../providers/quiz_history_provider.dart';
-import '../../services/quiz_history_service.dart';
+import '../../providers/documents_provider.dart';
 import '../../widgets/common/custom_app_bar.dart';
+import '../../utils/snackbar_utils.dart' as snackbar;
 
 class QuizSummaryScreen extends ConsumerStatefulWidget {
   final String lectureName;
@@ -17,49 +18,117 @@ class QuizSummaryScreen extends ConsumerStatefulWidget {
 }
 
 class _QuizSummaryScreenState extends ConsumerState<QuizSummaryScreen> {
-  bool _savedToHistory = false;
+  bool _isSaving = false;
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _saveQuizToHistory();
+  Future<bool> _saveQuizToBackend() async {
+    if (_isSaving) return false;
+
+    setState(() {
+      _isSaving = true;
     });
-  }
-
-  Future<void> _saveQuizToHistory() async {
-    if (_savedToHistory) return;
 
     final quizState = ref.read(quizProvider);
-    final summary = ref.read(quizProvider.notifier).getSummary();
 
     if (quizState.quiz != null) {
-      final service = ref.read(quizHistoryServiceProvider);
-      await service.saveQuiz(
-        lectureName: widget.lectureName,
-        quiz: quizState.quiz!,
-        correctAnswers: summary.correctAnswers,
-        totalQuestions: summary.totalQuestions,
-      );
-      // Refresh history
-      ref.read(quizHistoryProvider.notifier).loadHistory();
-      _savedToHistory = true;
+      try {
+        // Save to backend
+        final documentsService = ref.read(documentsServiceProvider);
+        await documentsService.saveQuizAttempt(quizModel: quizState.quiz!);
+
+        // Refresh history
+        ref.read(quizHistoryProvider.notifier).loadHistory();
+
+        if (mounted) {
+          snackbar.showSuccessSnackBar(
+            context: context,
+            message: 'Quiz saved successfully!',
+          );
+        }
+
+        setState(() {
+          _isSaving = false;
+        });
+
+        return true;
+      } catch (e) {
+        print('❌ Error saving quiz: $e');
+        if (mounted) {
+          snackbar.showErrorSnackBar(
+            context: context,
+            message: 'Failed to save quiz: ${e.toString()}',
+          );
+        }
+
+        setState(() {
+          _isSaving = false;
+        });
+
+        return false;
+      }
     }
+
+    setState(() {
+      _isSaving = false;
+    });
+
+    return false;
+  }
+
+  Future<void> _handleBackPress() async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => _SaveQuizDialog(
+        title: 'Save Your Results',
+        subtitle:
+            'Your quiz results will be saved to your history. You can review them anytime!',
+        icon: Icons.bookmark_added,
+        confirmText: 'Save & Exit',
+        onSave: () async {
+          final saved = await _saveQuizToBackend();
+          if (saved && mounted) {
+            Navigator.of(dialogContext).pop();
+            ref.read(quizProvider.notifier).reset();
+            Navigator.of(context).pop();
+          }
+          return saved;
+        },
+      ),
+    );
+  }
+
+  Future<void> _handleDonePress() async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => _SaveQuizDialog(
+        title: 'Great Job!',
+        subtitle:
+            'Let\'s save your quiz results to your history so you can track your progress and review them anytime!',
+        icon: Icons.workspace_premium,
+        confirmText: 'Save',
+        onSave: () async {
+          final saved = await _saveQuizToBackend();
+          if (saved && mounted) {
+            Navigator.of(dialogContext).pop();
+            ref.read(quizProvider.notifier).reset();
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          }
+          return saved;
+        },
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final quizState = ref.watch(quizProvider);
     final summary = ref.read(quizProvider.notifier).getSummary();
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       appBar: BackNavigationAppBar(
         title: 'Quiz Results',
-        onBackPressed: () {
-          ref.read(quizProvider.notifier).reset();
-          Navigator.pop(context);
-        },
+        onBackPressed: _handleBackPress,
       ),
       body: Container(
         width: double.infinity,
@@ -161,11 +230,7 @@ class _QuizSummaryScreenState extends ConsumerState<QuizSummaryScreen> {
                   label: 'Done',
                   icon: Icons.home,
                   isPrimary: true,
-                  onTap: () {
-                    ref.read(quizProvider.notifier).reset();
-                    // Go back to documents/lectures screen
-                    Navigator.popUntil(context, (route) => route.isFirst);
-                  },
+                  onTap: _handleDonePress,
                 ),
               ],
             ),
@@ -302,7 +367,175 @@ class _QuizSummaryScreenState extends ConsumerState<QuizSummaryScreen> {
     } else if (percentage >= 50) {
       return 'Keep going. Focused revision will help you perform better next time.';
     } else {
-      return 'Don’t be discouraged. Consistent practice and review will lead to steady improvement.';
+      return 'Don\'t be discouraged.Consistent practice and review will lead to steady improvement';
     }
+  }
+}
+
+// Custom Save Quiz Dialog with loading state
+class _SaveQuizDialog extends StatefulWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final String confirmText;
+  final Future<bool> Function() onSave;
+
+  const _SaveQuizDialog({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.confirmText,
+    required this.onSave,
+  });
+
+  @override
+  State<_SaveQuizDialog> createState() => _SaveQuizDialogState();
+}
+
+class _SaveQuizDialogState extends State<_SaveQuizDialog> {
+  bool _isLoading = false;
+
+  Future<void> _handleSave() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    await widget.onSave();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icon
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(widget.icon, color: AppColors.primary, size: 32),
+            ),
+            const SizedBox(height: 20),
+
+            // Title
+            Text(
+              widget.title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Subtitle
+            Text(
+              widget.subtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Buttons
+            Row(
+              children: [
+                // Cancel button
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _isLoading
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: _isLoading
+                            ? const Color(0xFFE5E7EB).withValues(alpha: 0.5)
+                            : const Color(0xFFE5E7EB),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: _isLoading
+                                ? const Color(0xFF6B7280).withValues(alpha: 0.5)
+                                : const Color(0xFF6B7280),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+
+                // Save button
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _isLoading ? null : _handleSave,
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: _isLoading
+                            ? AppColors.primary.withValues(alpha: 0.6)
+                            : AppColors.primary,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : Text(
+                                widget.confirmText,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

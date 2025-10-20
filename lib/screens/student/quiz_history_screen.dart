@@ -3,15 +3,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../constants/app_colors.dart';
+import '../../models/quiz_history_response.dart';
+import '../../models/quize_model.dart';
 import '../../providers/quiz_history_provider.dart';
-import '../../services/quiz_history_service.dart';
 import '../../widgets/common/custom_app_bar.dart';
 
-class QuizHistoryScreen extends ConsumerWidget {
+class QuizHistoryScreen extends ConsumerStatefulWidget {
   const QuizHistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<QuizHistoryScreen> createState() => _QuizHistoryScreenState();
+}
+
+class _QuizHistoryScreenState extends ConsumerState<QuizHistoryScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Load fresh data when screen opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(quizHistoryProvider.notifier).loadHistory();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final historyAsync = ref.watch(quizHistoryProvider);
 
     return Scaffold(
@@ -69,10 +84,12 @@ class QuizHistoryScreen extends ConsumerWidget {
   }
 
   Widget _buildEmptyState() {
-    return Center(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       child: Container(
-        margin: const EdgeInsets.all(20),
-        padding: const EdgeInsets.all(32),
+        width: double.infinity,
+        height: double.infinity,
+        padding: const EdgeInsets.all(40),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
@@ -85,25 +102,28 @@ class QuizHistoryScreen extends ConsumerWidget {
           ],
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset('assets/icons/interview-fox.png', height: 100),
-            const SizedBox(height: 24),
+            Image.asset('assets/icons/interview-fox.png', height: 150),
+            const SizedBox(height: 32),
             const Text(
               'No Quiz History Yet',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Complete your first quiz to see it here',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 15,
-                color: AppColors.textSecondary.withValues(alpha: 0.8),
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+                height: 1.2,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Complete your first quiz to see it here.\nYour quiz history will be saved and you can review them anytime.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+                height: 1.5,
               ),
             ),
           ],
@@ -115,14 +135,14 @@ class QuizHistoryScreen extends ConsumerWidget {
   Widget _buildHistoryList(
     BuildContext context,
     WidgetRef ref,
-    List<QuizHistoryItem> history,
+    List<QuizAttempts> history,
   ) {
     return ListView.builder(
       padding: const EdgeInsets.all(20),
       itemCount: history.length,
       itemBuilder: (context, index) {
-        final item = history[index];
-        return _buildHistoryCard(context, ref, item);
+        final attempt = history[index];
+        return _buildHistoryCard(context, ref, attempt, index);
       },
     );
   }
@@ -130,12 +150,39 @@ class QuizHistoryScreen extends ConsumerWidget {
   Widget _buildHistoryCard(
     BuildContext context,
     WidgetRef ref,
-    QuizHistoryItem item,
+    QuizAttempts attempt,
+    int index,
   ) {
-    final percentage = item.percentage;
-    final formattedDate = DateFormat(
-      'MMM dd, yyyy • hh:mm a',
-    ).format(item.completedAt);
+    // Get stats from API response
+    final totalQuestions = attempt.totalQuestions ?? 0;
+    final correctAnswers = attempt.correctAnswers ?? 0;
+    final percentage = double.tryParse(attempt.scorePercentage ?? '0') ?? 0.0;
+
+    // Format date
+    String formattedDate = 'Recently';
+    if (attempt.completedAt != null) {
+      try {
+        final date = DateTime.parse(attempt.completedAt!);
+        formattedDate = DateFormat('MMM dd, yyyy • hh:mm a').format(date);
+      } catch (e) {
+        // Use default if parsing fails
+      }
+    }
+
+    // Convert QuizSnapshot to QuizModel for review screen
+    QuizModel? quizModel;
+    if (attempt.quizSnapshot != null && attempt.quizSnapshot!.isNotEmpty) {
+      final items = attempt.quizSnapshot!.map((snapshot) {
+        return Items(
+          id: snapshot.id,
+          question: snapshot.question,
+          options: snapshot.options,
+          correctLabel: snapshot.correctLabel,
+          selectedLabel: snapshot.userAnswer,
+        );
+      }).toList();
+      quizModel = QuizModel(items: items);
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -153,24 +200,26 @@ class QuizHistoryScreen extends ConsumerWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {
-            context.push(
-              '/quiz/review?lectureName=${Uri.encodeComponent(item.lectureName)}',
-              extra: item.quiz,
-            );
-          },
+          onTap: quizModel != null
+              ? () {
+                  context.push(
+                    '/quiz/review?lectureName=Quiz Attempt ${index + 1}',
+                    extra: quizModel,
+                  );
+                }
+              : null,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Lecture name
+                // Quiz title
                 Row(
                   children: [
                     Expanded(
                       child: Text(
-                        item.lectureName,
+                        'Quiz ${index + 1}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -178,11 +227,12 @@ class QuizHistoryScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: AppColors.textSecondary.withValues(alpha: 0.5),
-                    ),
+                    if (quizModel != null)
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        size: 16,
+                        color: AppColors.textSecondary.withValues(alpha: 0.5),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -258,7 +308,7 @@ class QuizHistoryScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        '${item.correctAnswers}/${item.totalQuestions} correct',
+                        '$correctAnswers/$totalQuestions correct',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,

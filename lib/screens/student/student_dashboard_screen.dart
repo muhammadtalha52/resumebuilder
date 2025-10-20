@@ -94,104 +94,137 @@ class StudentDashboardScreen extends ConsumerWidget {
   Widget _buildProgressAndMetricsSection(WidgetRef ref) {
     final dashboardStatsAsync = ref.watch(dashboardStatsProvider(null));
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+    return dashboardStatsAsync.when(
+      data: (stats) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Track Progress',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildMetricCard(
+              icon: Icons.quiz_outlined,
+              title: 'Total Quizzes',
+              value: '0',
+              color: const Color(0xFF6366F1),
+            ),
+            const SizedBox(height: 12),
+            _buildMetricCard(
+              icon: Icons.book_outlined,
+              title: 'Total Subjects',
+              value: '0',
+              color: const Color(0xFF8B5CF6),
+            ),
+            const SizedBox(height: 12),
+            _buildMetricCard(
+              icon: Icons.school_outlined,
+              title: 'Total Lectures',
+              value: '0',
+              color: const Color(0xFFEC4899),
+            ),
+            const SizedBox(height: 12),
+            _buildMetricCard(
+              icon: Icons.description_outlined,
+              title: 'Total Documents',
+              value: '0',
+              color: const Color(0xFF14B8A6),
+            ),
+          ],
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Track Progress',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1A1A1A),
+      loading: () => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
             ),
-          ),
-          const SizedBox(height: 20),
-          dashboardStatsAsync.when(
-            data: (stats) => GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.6,
-              children: [
-                _buildMetricCard(
-                  icon: Icons.quiz_outlined,
-                  title: 'Total Quizzes',
-                  value: '0',
-                ),
-                _buildMetricCard(
-                  icon: Icons.book_outlined,
-                  title: 'Total Subjects',
-                  value: '0',
-                ),
-                _buildMetricCard(
-                  icon: Icons.school_outlined,
-                  title: 'Total Lectures',
-                  value: '0',
-                ),
-                _buildMetricCard(
-                  icon: Icons.description_outlined,
-                  title: 'Total Documents',
-                  value: '0',
-                ),
-              ],
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Track Progress',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A1A1A),
+              ),
             ),
-            loading: () => GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.6,
-              children: List.generate(4, (index) => _buildMetricCardShimmer()),
+            const SizedBox(height: 20),
+            ...List.generate(
+              4,
+              (index) => Padding(
+                padding: EdgeInsets.only(bottom: index < 3 ? 12 : 0),
+                child: _buildMetricCardShimmer(),
+              ),
             ),
-            error: (error, _) => GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.6,
-              children: List.generate(
-                4,
-                (index) => Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: const Color(0xFFE5E7EB),
-                      width: 1,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '--',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
+          ],
+        ),
+      ),
+      error: (error, _) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Track Progress',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Center(
+              child: Text(
+                '--',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -200,88 +233,84 @@ class StudentDashboardScreen extends ConsumerWidget {
     required IconData icon,
     required String title,
     required String value,
+    required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
       ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.topLeft,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, size: 18, color: AppColors.textSecondary),
+      child: Row(
+        children: [
+          // Icon container with color
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(height: 8),
-            Column(
+            child: Icon(icon, size: 28, color: color),
+          ),
+          const SizedBox(width: 16),
+          // Title and value
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 14,
                     color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 4),
                 Text(
                   value,
                   style: const TextStyle(
-                    fontSize: 24,
+                    fontSize: 28,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF1A1A1A),
                   ),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildMetricCardShimmer() {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
       ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.topLeft,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
+      child: Row(
+        children: [
+          // Icon shimmer
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.grey.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(height: 8),
-            Column(
+          ),
+          const SizedBox(width: 16),
+          // Title and value shimmer
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 80,
-                  height: 10,
+                  width: 100,
+                  height: 14,
                   decoration: BoxDecoration(
                     color: Colors.grey.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
@@ -289,8 +318,8 @@ class StudentDashboardScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  width: 40,
-                  height: 24,
+                  width: 60,
+                  height: 28,
                   decoration: BoxDecoration(
                     color: Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(4),
@@ -298,8 +327,8 @@ class StudentDashboardScreen extends ConsumerWidget {
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

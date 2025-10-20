@@ -125,21 +125,23 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
           error: (error, stack) => _buildErrorState(context, error.toString()),
         ),
       ),
-      floatingActionButton: documentsAsync.maybeWhen(
-        data: (documentsResponse) {
-          final documents = documentsResponse.data ?? [];
-          final hasDocuments = documents.isNotEmpty;
-          return hasDocuments
-              ? FloatingActionButton(
-                  onPressed: () => _pickAndUploadFile(context, ref),
-                  backgroundColor: AppColors.primary,
-                  shape: const CircleBorder(),
-                  child: const Icon(Icons.add, color: AppColors.white),
-                )
-              : null;
-        },
-        orElse: () => null,
-      ),
+      floatingActionButton: _isSelectionMode
+          ? null
+          : documentsAsync.maybeWhen(
+              data: (documentsResponse) {
+                final documents = documentsResponse.data ?? [];
+                final hasDocuments = documents.isNotEmpty;
+                return hasDocuments
+                    ? FloatingActionButton(
+                        onPressed: () => _pickAndUploadFile(context, ref),
+                        backgroundColor: AppColors.primary,
+                        shape: const CircleBorder(),
+                        child: const Icon(Icons.add, color: AppColors.white),
+                      )
+                    : null;
+              },
+              orElse: () => null,
+            ),
     );
   }
 
@@ -348,9 +350,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.1)
-              : AppColors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppColors.primary : Colors.transparent,
