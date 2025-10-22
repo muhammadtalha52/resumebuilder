@@ -105,12 +105,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 children: [
                                   // SkillResy Logo
                                   Image.asset(
-                                    'assets/icons/logo-fox-on-top.png',
+                                    'assets/icons/logo-fox-on-left.png',
                                     height: isTablet ? 150 : 120,
+                                    width: isTablet ? 350 : 300,
                                   ),
 
                                   const SizedBox(height: AppSizes.spaceS),
-
                                   // Subtitle
                                   Text(
                                     'Welcome back! Sign in to be guided by instinct, enhanced by AI.',

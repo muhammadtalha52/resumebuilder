@@ -174,6 +174,24 @@ class QuizQuestionCard extends ConsumerWidget {
               ),
             ),
           ),
+          if (isCorrect) ...[
+            const SizedBox(width: 8),
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 1.0, end: 1.15),
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeInOut,
+              builder: (context, scale, child) {
+                return Transform.scale(scale: scale, child: child);
+              },
+              onEnd: () {},
+              child: Image.asset(
+                'assets/icons/fox-mascot.png',
+                width: 60,
+                height: 60,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -49,7 +49,7 @@ class AppBarWidgets {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Image.asset('assets/icons/logo-fox-on-left.png', height: 32),
+        Image.asset('assets/icons/logo-fox-on-left.png', height: 35),
         const SizedBox(width: 8),
       ],
     );

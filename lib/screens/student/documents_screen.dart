@@ -699,15 +699,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       final service = ref.read(documentsServiceProvider);
       final quizAsync = await service.generateQuiz(
         s3Filenames: _selectedDocuments.toList(),
-        onProgress: (progress, message) {
-          // Update progress provider with backend data
-          print(
-            '📊 [UI] Progress update: ${(progress * 100).toInt()}% - $message',
-          );
-          ref
-              .read(quizGenerationProgressProvider.notifier)
-              .updateProgress(progress, message);
-        },
       );
 
       // Clear selection

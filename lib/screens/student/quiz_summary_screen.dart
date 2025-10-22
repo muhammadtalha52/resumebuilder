@@ -367,7 +367,7 @@ class _QuizSummaryScreenState extends ConsumerState<QuizSummaryScreen> {
     } else if (percentage >= 50) {
       return 'Keep going. Focused revision will help you perform better next time.';
     } else {
-      return 'Don\'t be discouraged.Consistent practice and review will lead to steady improvement';
+      return 'Don\'t be discouraged. Consistent practice and review will lead to steady improvement.';
     }
   }
 }

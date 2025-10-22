@@ -5,7 +5,9 @@ class QuizModel {
   }
 
   QuizModel.fromJson(dynamic json) {
-    _count = json['count'];
+    _count = json['count'] is String
+        ? int.tryParse(json['count'])
+        : json['count'];
     if (json['items'] != null) {
       _items = [];
       json['items'].forEach((v) {
@@ -49,7 +51,7 @@ class Items {
   }
 
   Items.fromJson(dynamic json) {
-    _id = json['id'];
+    _id = json['id'] is String ? int.tryParse(json['id']) : json['id'];
     _question = json['question'];
     _options = json['options'] != null
         ? Options.fromJson(json['options'])

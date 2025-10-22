@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:skillresy/main.dart';
 import '../models/documents_response.dart' as doc;
@@ -156,11 +155,10 @@ class DocumentsService {
     }
   }
 
-  /// Generate quiz from selected documents with SSE real-time progress tracking
+  /// Generate quiz from selected documents
   Future<quiz.QuizModel> generateQuiz({
     required List<String> s3Filenames,
     int questionCount = 15,
-    void Function(double progress, String message)? onProgress,
   }) async {
     try {
       // Convert S3 filenames to full URLs
@@ -168,8 +166,7 @@ class DocumentsService {
           .map((filename) => S3Utils.constructAssetUrl(filename))
           .join(',');
 
-      // Report initial progress
-      onProgress?.call(0.0, 'Connecting to server...');
+      print('🎯 [QUIZ] Generating quiz from URLs: $urls');
 
       // Create separate Dio instance for quiz service
       final quizDio = Dio(
@@ -180,70 +177,37 @@ class DocumentsService {
         ),
       );
 
-      // Use ResponseType.stream to receive SSE events
+      // Make regular POST request
       final response = await quizDio.post(
         ApiEndpoints.generateQuiz,
         data: {'urls': urls},
         options: Options(
-          headers: {
-            'Accept': 'text/event-stream',
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          responseType: ResponseType.stream,
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         ),
       );
 
-      // Buffer to accumulate incomplete SSE messages
-      String buffer = '';
-      quiz.QuizModel? finalQuiz;
+      print('🎯 [QUIZ] Response status: ${response.statusCode}');
+      print('🎯 [QUIZ] Response data type: ${response.data.runtimeType}');
+      print('🎯 [QUIZ] Response data: ${response.data}');
 
-      // Listen to SSE stream
-      await for (final chunk in response.data.stream) {
-        final text = String.fromCharCodes(chunk);
-        buffer += text;
+      if (response.statusCode == 200 && response.data != null) {
+        print('🎯 [QUIZ] Parsing response...');
 
-        // Process complete SSE messages (split by double newline)
-        final messages = buffer.split('\n\n');
-        buffer = messages.removeLast(); // Keep incomplete message in buffer
-
-        for (final message in messages) {
-          if (message.trim().isEmpty) continue;
-
-          // Parse SSE data line
-          final lines = message.split('\n');
-          for (final line in lines) {
-            if (line.startsWith('data: ')) {
-              final jsonStr = line.substring(6); // Remove 'data: ' prefix
-
-              try {
-                final data = jsonDecode(jsonStr) as Map<String, dynamic>;
-                final type = data['type'] as String?;
-
-                if (type == 'progress') {
-                  final percent = data['percent'] as int;
-                  final msg = data['message'] as String;
-                  final progressValue = percent / 100.0;
-
-                  onProgress?.call(progressValue, msg);
-                } else if (type == 'result') {
-                  final result = data['result'] as Map<String, dynamic>;
-                  finalQuiz = quiz.QuizModel.fromJson(result);
-                  onProgress?.call(1.0, 'Quiz generated successfully!');
-                }
-              } catch (e) {
-                print('⚠️  [QUIZ] Parse error: $e');
-              }
-            }
-          }
+        // Check if response.data is a Map
+        if (response.data is Map) {
+          print('🎯 [QUIZ] Response is a Map with keys: ${response.data.keys}');
         }
-      }
 
-      if (finalQuiz == null) {
-        throw Exception('Quiz generation completed but no result received');
+        final quizModel = quiz.QuizModel.fromJson(response.data);
+        print('✅ [QUIZ] Quiz parsed successfully');
+        return quizModel;
+      } else {
+        throw Exception('Failed to generate quiz');
       }
-
-      return finalQuiz;
     } on DioException catch (e) {
+      print('❌ [QUIZ] DioException: ${e.message}');
+      print('❌ [QUIZ] Response: ${e.response?.data}');
+
       if (e.response != null) {
         final responseData = e.response!.data;
         String errorMessage = 'Failed to generate quiz';
@@ -264,8 +228,9 @@ class DocumentsService {
       } else {
         throw Exception('Network error: ${e.message}');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ [QUIZ] Unexpected error: $e');
+      print('❌ [QUIZ] Stack trace: $stackTrace');
 
       if (e is Exception) {
         rethrow;
