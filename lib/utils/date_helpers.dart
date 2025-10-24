@@ -164,4 +164,108 @@ class DateHelpers {
       return '';
     }
   }
+
+  /// Parses a UTC datetime string and converts it to local DateTime
+  /// Returns null if parsing fails
+  /// Example: "2025-10-20T12:18:58.175018Z" -> Local DateTime
+  static DateTime? parseUtcToLocal(String? dateString) {
+    if (dateString == null || dateString.isEmpty) return null;
+
+    try {
+      final utcDate = DateTime.parse(dateString);
+      return utcDate.toLocal();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Parses a UTC datetime string, converts to local, and formats it
+  /// Returns defaultValue if parsing fails
+  /// Example: "2025-10-20T12:18:58.175018Z" -> "Oct 20, 2025 • 05:18 PM"
+  static String formatUtcToLocal(
+    String? dateString, {
+    String format = 'MMM dd, yyyy • hh:mm a',
+    String defaultValue = 'N/A',
+  }) {
+    final localDate = parseUtcToLocal(dateString);
+    if (localDate == null) return defaultValue;
+
+    try {
+      // Format based on the provided pattern
+      final year = localDate.year;
+      final month = localDate.month;
+      final day = localDate.day;
+      final hour = localDate.hour;
+      final minute = localDate.minute;
+
+      // Simple formatter to avoid importing intl package everywhere
+      final monthNames = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+
+      final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+      final period = hour >= 12 ? 'PM' : 'AM';
+
+      // Default format: "Oct 20, 2025 • 05:18 PM"
+      return '${monthNames[month - 1]} ${day.toString().padLeft(2, '0')}, $year • ${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
+    } catch (e) {
+      return defaultValue;
+    }
+  }
+
+  /// Formats a DateTime object to local time string
+  /// Assumes the DateTime is in UTC and converts to local
+  /// Returns defaultValue if date is null
+  /// Example: DateTime(UTC) -> "Oct 20, 2025 • 05:18 PM"
+  static String formatDateTimeToLocal(
+    DateTime? dateTime, {
+    String defaultValue = 'N/A',
+  }) {
+    if (dateTime == null) return defaultValue;
+
+    try {
+      // Convert UTC to local time
+      final localDate = dateTime.toLocal();
+
+      final year = localDate.year;
+      final month = localDate.month;
+      final day = localDate.day;
+      final hour = localDate.hour;
+      final minute = localDate.minute;
+
+      final monthNames = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+
+      final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+      final period = hour >= 12 ? 'PM' : 'AM';
+
+      // Default format: "Oct 20, 2025 • 05:18 PM"
+      return '${monthNames[month - 1]} ${day.toString().padLeft(2, '0')}, $year • ${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
+    } catch (e) {
+      return defaultValue;
+    }
+  }
 }

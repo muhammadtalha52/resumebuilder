@@ -896,6 +896,12 @@ class ContinuousTranscriptionNotifier
   // Timer management
   void _startTimer() {
     _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      // Check if provider is still mounted before updating state
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
       state = state.copyWith(
         sessionDuration: state.sessionDuration + const Duration(seconds: 1),
       );

@@ -85,11 +85,13 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
   }
 
   Future<void> loadHistory() async {
+    if (!mounted) return;
     state = state.copyWith(isLoading: true, error: null);
 
     try {
       final response = await _historyService.getResumeHistory();
 
+      if (!mounted) return;
       if (response['status'] == 'success' && response['data'] != null) {
         final List<dynamic> resumesJson = response['data'];
         final resumes = resumesJson
@@ -104,6 +106,7 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(
         isLoading: false,
         error: 'Error loading resume history: ${e.toString()}',

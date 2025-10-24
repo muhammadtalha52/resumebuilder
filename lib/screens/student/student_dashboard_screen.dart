@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/dashboard_provider.dart';
+import '../../providers/student_dashboard_provider.dart';
 
 class StudentDashboardScreen extends ConsumerWidget {
   const StudentDashboardScreen({super.key});
@@ -17,15 +17,23 @@ class StudentDashboardScreen extends ConsumerWidget {
         title: AppBarWidgets.foxLogo(),
         actions: [AppBarWidgets.premiumBadge()],
       ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Image.asset(
-              'assets/icons/background.png',
-              fit: BoxFit.cover,
-            ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/icons/background.png'),
+            fit: BoxFit.cover,
           ),
-          Padding(
+        ),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            // Invalidate student dashboard provider to trigger refresh
+            ref.invalidate(studentDashboardStatsProvider);
+          },
+          color: AppColors.primary,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -33,12 +41,12 @@ class StudentDashboardScreen extends ConsumerWidget {
                 const SizedBox(height: 10),
                 _buildWelcomeSection(ref),
                 const SizedBox(height: 10),
-                Expanded(child: _buildProgressAndMetricsSection(ref)),
+                _buildProgressAndMetricsSection(ref),
                 const SizedBox(height: 20),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -92,7 +100,7 @@ class StudentDashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildProgressAndMetricsSection(WidgetRef ref) {
-    final dashboardStatsAsync = ref.watch(dashboardStatsProvider(null));
+    final dashboardStatsAsync = ref.watch(studentDashboardStatsProvider);
 
     return dashboardStatsAsync.when(
       data: (stats) => Container(
@@ -124,28 +132,21 @@ class StudentDashboardScreen extends ConsumerWidget {
             _buildMetricCard(
               icon: Icons.quiz_outlined,
               title: 'Total Quizzes',
-              value: '0',
+              value: stats.data?.totalQuizzes?.toString() ?? '0',
               color: const Color(0xFF6366F1),
             ),
             const SizedBox(height: 12),
             _buildMetricCard(
-              icon: Icons.book_outlined,
+              icon: Icons.folder_outlined,
               title: 'Total Subjects',
-              value: '0',
+              value: stats.data?.totalMainFolders?.toString() ?? '0',
               color: const Color(0xFF8B5CF6),
-            ),
-            const SizedBox(height: 12),
-            _buildMetricCard(
-              icon: Icons.school_outlined,
-              title: 'Total Lectures',
-              value: '0',
-              color: const Color(0xFFEC4899),
             ),
             const SizedBox(height: 12),
             _buildMetricCard(
               icon: Icons.description_outlined,
               title: 'Total Documents',
-              value: '0',
+              value: stats.data?.totalDocuments?.toString() ?? '0',
               color: const Color(0xFF14B8A6),
             ),
           ],
@@ -178,9 +179,9 @@ class StudentDashboardScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
             ...List.generate(
-              4,
+              3,
               (index) => Padding(
-                padding: EdgeInsets.only(bottom: index < 3 ? 12 : 0),
+                padding: EdgeInsets.only(bottom: index < 2 ? 12 : 0),
                 child: _buildMetricCardShimmer(),
               ),
             ),

@@ -717,11 +717,17 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         context.pop();
       }
 
-      // Show error message
+      // Extract server error message
+      String errorMessage = e.toString();
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.substring('Exception: '.length);
+      }
+
+      // Show error message from server
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to generate quiz: $e'),
+            content: Text(errorMessage),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),

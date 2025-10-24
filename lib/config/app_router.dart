@@ -18,7 +18,7 @@ import '../screens/candidate/profile/edit_work_experience_screen.dart';
 
 import '../screens/candidate/resume/resume_history_screen.dart';
 import '../screens/candidate/resume/resume_review_screen.dart';
-import '../screens/common/legal_screen.dart';
+import '../screens/common/legal_webview_screen.dart';
 import '../screens/common/main_screen.dart';
 
 import '../screens/common/welcome_screen.dart';
@@ -84,11 +84,17 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/privacy-policy',
-      builder: (context, state) => const LegalScreen(title: 'Privacy Policy'),
+      builder: (context, state) => const LegalWebViewScreen(
+        url: 'https://skillresy.com/privacy-policy/',
+        title: 'Privacy Policy',
+      ),
     ),
     GoRoute(
       path: '/terms-of-use',
-      builder: (context, state) => const LegalScreen(title: 'Terms of Use'),
+      builder: (context, state) => const LegalWebViewScreen(
+        url: 'https://skillresy.com/terms-of-use/',
+        title: 'Terms of Use',
+      ),
     ),
     GoRoute(
       path: '/onboarding',

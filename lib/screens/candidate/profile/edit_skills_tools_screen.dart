@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../models/user_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/profile_provider.dart';
 import '../../../utils/snackbar_utils.dart';
@@ -23,23 +24,24 @@ class _EditSkillsToolsScreenState extends ConsumerState<EditSkillsToolsScreen> {
   final TextEditingController _toolsTechnologiesController =
       TextEditingController();
 
-  List<String> _hardSkills = [];
-  List<String> _softSkills = [];
-  List<String> _toolsTechnologies = [];
+  // Store objects to preserve IDs
+  List<HardSkill> _hardSkillObjects = [];
+  List<SoftSkill> _softSkillObjects = [];
+  List<ToolTechnology> _toolObjects = [];
+
   String? _hardSkillsError;
   String? _softSkillsError;
   String? _toolsError;
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
 
   // Store original values for comparison
-  List<String> _originalHardSkills = [];
-  List<String> _originalSoftSkills = [];
-  List<String> _originalToolsTechnologies = [];
+  List<HardSkill> _originalHardSkillObjects = [];
+  List<SoftSkill> _originalSoftSkillObjects = [];
+  List<ToolTechnology> _originalToolObjects = [];
 
   @override
   void initState() {
     super.initState();
-    // Delay the provider initialization to avoid modifying state during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUserData();
     });
@@ -50,27 +52,47 @@ class _EditSkillsToolsScreenState extends ConsumerState<EditSkillsToolsScreen> {
     final user = authState.user;
 
     if (user != null) {
-      // Load hard skills from list
+      // Load objects preserving IDs
       if (user.hardSkills != null && user.hardSkills!.isNotEmpty) {
-        _hardSkills = List.from(user.hardSkills!);
-        _originalHardSkills = List.from(_hardSkills);
+        _hardSkillObjects = List.from(user.hardSkills!);
+        _originalHardSkillObjects = List.from(_hardSkillObjects);
       }
 
-      // Load soft skills from list
       if (user.softSkills != null && user.softSkills!.isNotEmpty) {
-        _softSkills = List.from(user.softSkills!);
-        _originalSoftSkills = List.from(_softSkills);
+        _softSkillObjects = List.from(user.softSkills!);
+        _originalSoftSkillObjects = List.from(_softSkillObjects);
       }
 
-      // Load tools/technologies from list
       if (user.toolsTechnologies != null &&
           user.toolsTechnologies!.isNotEmpty) {
-        _toolsTechnologies = List.from(user.toolsTechnologies!);
-        _originalToolsTechnologies = List.from(_toolsTechnologies);
+        _toolObjects = List.from(user.toolsTechnologies!);
+        _originalToolObjects = List.from(_toolObjects);
       }
 
       setState(() {});
     }
+  }
+
+  // Helper methods to convert objects to strings for display
+  List<String> _hardSkillStrings() {
+    return _hardSkillObjects
+        .map((e) => e.skill ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
+  List<String> _softSkillStrings() {
+    return _softSkillObjects
+        .map((e) => e.skill ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
+  List<String> _toolStrings() {
+    return _toolObjects
+        .map((e) => e.tool ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
   }
 
   @override
@@ -81,44 +103,78 @@ class _EditSkillsToolsScreenState extends ConsumerState<EditSkillsToolsScreen> {
     super.dispose();
   }
 
-  void _addTag(
-    String tag,
-    List<String> list,
-    TextEditingController controller,
-  ) {
-    if (tag.trim().isNotEmpty && !list.contains(tag.trim())) {
-      setState(() {
-        list.add(tag.trim());
-        // Clear errors when adding tags
-        if (list == _hardSkills) _hardSkillsError = null;
-        if (list == _softSkills) _softSkillsError = null;
-        if (list == _toolsTechnologies) _toolsError = null;
-      });
-      controller.clear();
-    }
+  // Add hard skill
+  void _addHardSkill(String tag) {
+    final trimmed = tag.trim();
+    if (trimmed.isEmpty) return;
+
+    if (_hardSkillObjects.any((obj) => obj.skill == trimmed)) return;
+
+    setState(() {
+      _hardSkillObjects.add(HardSkill(skill: trimmed));
+      _hardSkillsError = null;
+    });
+    _hardSkillsController.clear();
   }
 
-  void _removeTag(String tag, List<String> list) {
+  void _removeHardSkill(String tag) {
     setState(() {
-      list.remove(tag);
+      _hardSkillObjects.removeWhere((obj) => obj.skill == tag);
     });
   }
 
-  void _clearTagError(List<String> list) {
+  // Add soft skill
+  void _addSoftSkill(String tag) {
+    final trimmed = tag.trim();
+    if (trimmed.isEmpty) return;
+
+    if (_softSkillObjects.any((obj) => obj.skill == trimmed)) return;
+
     setState(() {
-      if (list == _hardSkills) _hardSkillsError = null;
-      if (list == _softSkills) _softSkillsError = null;
-      if (list == _toolsTechnologies) _toolsError = null;
+      _softSkillObjects.add(SoftSkill(skill: trimmed));
+      _softSkillsError = null;
+    });
+    _softSkillsController.clear();
+  }
+
+  void _removeSoftSkill(String tag) {
+    setState(() {
+      _softSkillObjects.removeWhere((obj) => obj.skill == tag);
+    });
+  }
+
+  // Add tool/technology
+  void _addTool(String tag) {
+    final trimmed = tag.trim();
+    if (trimmed.isEmpty) return;
+
+    if (_toolObjects.any((obj) => obj.tool == trimmed)) return;
+
+    setState(() {
+      _toolObjects.add(ToolTechnology(tool: trimmed));
+      _toolsError = null;
+    });
+    _toolsTechnologiesController.clear();
+  }
+
+  void _removeTool(String tag) {
+    setState(() {
+      _toolObjects.removeWhere((obj) => obj.tool == tag);
     });
   }
 
   bool _hasChanges() {
-    // Check if any field has changed
-    final hardSkillsChanged = !_listEquals(_hardSkills, _originalHardSkills);
-    final softSkillsChanged = !_listEquals(_softSkills, _originalSoftSkills);
+    final hardSkillsChanged = !_listEquals(
+      _hardSkillStrings(),
+      _originalHardSkillObjects.map((e) => e.skill ?? '').toList(),
+    );
+    final softSkillsChanged = !_listEquals(
+      _softSkillStrings(),
+      _originalSoftSkillObjects.map((e) => e.skill ?? '').toList(),
+    );
     final toolsChanged = !_listEquals(
-      _toolsTechnologies,
-      _originalToolsTechnologies,
+      _toolStrings(),
+      _originalToolObjects.map((e) => e.tool ?? '').toList(),
     );
 
     return hardSkillsChanged || softSkillsChanged || toolsChanged;
@@ -141,17 +197,17 @@ class _EditSkillsToolsScreenState extends ConsumerState<EditSkillsToolsScreen> {
       _toolsError = null;
       _autovalidateMode = AutovalidateMode.onUserInteraction;
 
-      if (_hardSkills.isEmpty) {
+      if (_hardSkillObjects.isEmpty) {
         _hardSkillsError = 'Please add at least one hard skill';
         hasCustomErrors = true;
       }
 
-      if (_softSkills.isEmpty) {
+      if (_softSkillObjects.isEmpty) {
         _softSkillsError = 'Please add at least one soft skill';
         hasCustomErrors = true;
       }
 
-      if (_toolsTechnologies.isEmpty) {
+      if (_toolObjects.isEmpty) {
         _toolsError = 'Please add at least one tool or technology';
         hasCustomErrors = true;
       }
@@ -167,18 +223,30 @@ class _EditSkillsToolsScreenState extends ConsumerState<EditSkillsToolsScreen> {
       // Prepare the update data
       final updateData = <String, dynamic>{};
 
-      // Send lists directly as arrays for API
-      // Only add fields that have changed
-      if (!_listEquals(_hardSkills, _originalHardSkills)) {
-        updateData['hard_skills'] = _hardSkills;
+      // Send string arrays for API
+      final hardSkillsChanged = !_listEquals(
+        _hardSkillStrings(),
+        _originalHardSkillObjects.map((e) => e.skill ?? '').toList(),
+      );
+      final softSkillsChanged = !_listEquals(
+        _softSkillStrings(),
+        _originalSoftSkillObjects.map((e) => e.skill ?? '').toList(),
+      );
+      final toolsChanged = !_listEquals(
+        _toolStrings(),
+        _originalToolObjects.map((e) => e.tool ?? '').toList(),
+      );
+
+      if (hardSkillsChanged) {
+        updateData['hard_skills'] = _hardSkillStrings();
       }
 
-      if (!_listEquals(_softSkills, _originalSoftSkills)) {
-        updateData['soft_skills'] = _softSkills;
+      if (softSkillsChanged) {
+        updateData['soft_skills'] = _softSkillStrings();
       }
 
-      if (!_listEquals(_toolsTechnologies, _originalToolsTechnologies)) {
-        updateData['tools_technologies'] = _toolsTechnologies;
+      if (toolsChanged) {
+        updateData['tools_technologies'] = _toolStrings();
       }
 
       // Use profile provider to update
@@ -277,16 +345,13 @@ class _EditSkillsToolsScreenState extends ConsumerState<EditSkillsToolsScreen> {
                               TagField(
                                 label: 'Hard Skills',
                                 isRequired: false,
-                                tags: _hardSkills,
+                                tags: _hardSkillStrings(),
                                 controller: _hardSkillsController,
-                                onAdd: (tag) => _addTag(
-                                  tag,
-                                  _hardSkills,
-                                  _hardSkillsController,
-                                ),
-                                onRemove: (tag) => _removeTag(tag, _hardSkills),
+                                onAdd: _addHardSkill,
+                                onRemove: _removeHardSkill,
                                 errorText: _hardSkillsError,
-                                onClearError: () => _clearTagError(_hardSkills),
+                                onClearError: () =>
+                                    setState(() => _hardSkillsError = null),
                               ),
                               const SizedBox(height: 24),
 
@@ -294,16 +359,13 @@ class _EditSkillsToolsScreenState extends ConsumerState<EditSkillsToolsScreen> {
                               TagField(
                                 label: 'Soft Skills',
                                 isRequired: false,
-                                tags: _softSkills,
+                                tags: _softSkillStrings(),
                                 controller: _softSkillsController,
-                                onAdd: (tag) => _addTag(
-                                  tag,
-                                  _softSkills,
-                                  _softSkillsController,
-                                ),
-                                onRemove: (tag) => _removeTag(tag, _softSkills),
+                                onAdd: _addSoftSkill,
+                                onRemove: _removeSoftSkill,
                                 errorText: _softSkillsError,
-                                onClearError: () => _clearTagError(_softSkills),
+                                onClearError: () =>
+                                    setState(() => _softSkillsError = null),
                               ),
                               const SizedBox(height: 24),
 
@@ -311,18 +373,13 @@ class _EditSkillsToolsScreenState extends ConsumerState<EditSkillsToolsScreen> {
                               TagField(
                                 label: 'Tools/Technologies',
                                 isRequired: false,
-                                tags: _toolsTechnologies,
+                                tags: _toolStrings(),
                                 controller: _toolsTechnologiesController,
-                                onAdd: (tag) => _addTag(
-                                  tag,
-                                  _toolsTechnologies,
-                                  _toolsTechnologiesController,
-                                ),
-                                onRemove: (tag) =>
-                                    _removeTag(tag, _toolsTechnologies),
+                                onAdd: _addTool,
+                                onRemove: _removeTool,
                                 errorText: _toolsError,
                                 onClearError: () =>
-                                    _clearTagError(_toolsTechnologies),
+                                    setState(() => _toolsError = null),
                               ),
 
                               const SizedBox(height: 32),

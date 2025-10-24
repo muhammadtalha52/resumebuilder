@@ -114,7 +114,7 @@ class QuizAttempts {
     int? id,
     int? user,
     dynamic quiz,
-    String? quizId,
+    int? quizId,
     List<QuizSnapshot>? quizSnapshot,
     int? totalQuestions,
     int? questionsAttempted,
@@ -172,7 +172,7 @@ class QuizAttempts {
   int? _id;
   int? _user;
   dynamic _quiz;
-  String? _quizId;
+  int? _quizId;
   List<QuizSnapshot>? _quizSnapshot;
   int? _totalQuestions;
   int? _questionsAttempted;
@@ -190,7 +190,7 @@ class QuizAttempts {
 
   dynamic get quiz => _quiz;
 
-  String? get quizId => _quizId;
+  int? get quizId => _quizId;
 
   List<QuizSnapshot>? get quizSnapshot => _quizSnapshot;
 

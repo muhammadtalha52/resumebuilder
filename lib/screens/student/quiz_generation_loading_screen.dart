@@ -34,8 +34,8 @@ class QuizGenerationLoadingScreenState
     super.initState();
 
     // Calculate duration: 12 seconds per document
-    // 1 doc = 15s, 2 docs = 30s, 3 docs = 45s, etc.
-    final durationSeconds = 15 * widget.documentCount;
+    // 1 doc = 30s, 2 docs = 60s, 3 docs = 90s, etc.
+    final durationSeconds = 30 * widget.documentCount;
 
     // Controller for the main progress animation (0-95% over dynamic duration)
     _progressController = AnimationController(

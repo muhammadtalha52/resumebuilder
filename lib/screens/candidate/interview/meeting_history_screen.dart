@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../constants/app_colors.dart';
 import '../../../models/meeting_history_response.dart';
 import '../../../providers/meeting_history_provider.dart';
+import '../../../utils/date_helpers.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 
 class MeetingHistoryScreen extends ConsumerStatefulWidget {
@@ -146,7 +147,10 @@ class _MeetingHistoryScreenState extends ConsumerState<MeetingHistoryScreen> {
                     ),
                     const Spacer(),
                     Text(
-                      _formatDate(meeting.createdAt ?? DateTime.now()),
+                      DateHelpers.formatDateTimeToLocal(
+                        meeting.createdAt,
+                        defaultValue: 'N/A',
+                      ),
                       style: TextStyle(
                         fontSize: 13,
                         color: AppColors.textSecondary.withValues(alpha: 0.6),
@@ -251,7 +255,10 @@ class _MeetingHistoryScreenState extends ConsumerState<MeetingHistoryScreen> {
                     ),
                     const Spacer(),
                     Text(
-                      _formatDate(meeting.createdAt ?? DateTime.now()),
+                      DateHelpers.formatDateTimeToLocal(
+                        meeting.createdAt,
+                        defaultValue: 'N/A',
+                      ),
                       style: TextStyle(
                         fontSize: 13,
                         color: AppColors.textSecondary.withValues(alpha: 0.6),
@@ -313,35 +320,5 @@ class _MeetingHistoryScreenState extends ConsumerState<MeetingHistoryScreen> {
         ),
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return 'Today';
-    } else if (difference.inDays == 1) {
-      return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else {
-      return '${date.day} ${months[date.month - 1]} ${date.year}';
-    }
   }
 }

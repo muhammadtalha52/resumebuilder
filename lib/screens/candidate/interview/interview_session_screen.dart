@@ -5,16 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:skillresy/providers/auth_provider.dart';
 
+import '../../../constants/app_colors.dart';
 import '../../../models/conversation_models.dart';
 import '../../../providers/continuous_transcription_provider.dart';
-import '../../../constants/app_colors.dart';
-import '../../../providers/auth_provider.dart';
 import '../../../providers/interview_session_provider.dart';
-import '../../../providers/profile_provider.dart';
-import '../../../utils/snackbar_utils.dart';
-import '../../../widgets/common/custom_app_bar.dart';
-import '../../../widgets/common/custom_picker_field.dart';
-import '../../../widgets/common/tag_field.dart';
 import 'continuous_audio_transcriber.dart';
 
 class InterviewSessionScreen extends ConsumerWidget {
@@ -48,189 +42,196 @@ class InterviewSessionScreen extends ConsumerWidget {
       });
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.scaffold,
-      body: SafeArea(
-        child: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/icons/background.png'),
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
-            child: Container(
-              width: double.infinity,
-              height: double.infinity,
-              padding: const EdgeInsets.only(top: 15, bottom: 15),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+    return PopScope(
+      canPop: false,
+      // Always prevent back navigation - user must use End button
+      child: Scaffold(
+        backgroundColor: AppColors.scaffold,
+        body: SafeArea(
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/icons/background.png'),
+                fit: BoxFit.cover,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (sessionData.state != InterviewSessionState.idle) ...[
-                    // LIVE indicator with end button
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'LIVE',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                padding: const EdgeInsets.only(top: 15, bottom: 15),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (sessionData.state != InterviewSessionState.idle) ...[
+                      // LIVE indicator with end button
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
                               ),
-                            ),
-                          ),
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: GestureDetector(
-                              onTap: () {
-                                // Capture session data before stopping
-                                final sessionId = sessionData.sessionId;
-                                final sessionType =
-                                    sessionData.sessionType ?? 'Interview';
-                                final startTime =
-                                    sessionNotifier.sessionStartTime ??
-                                    DateTime.now();
-                                final duration = sessionData.sessionDuration;
-
-                                // Stop the session
-                                sessionNotifier.stopSession();
-
-                                // Navigate to summary screen
-                                if (sessionId != null && sessionId.isNotEmpty) {
-                                  final transcriptionData = ref.read(
-                                    continuousTranscriptionProvider,
-                                  );
-
-                                  print(transcriptionData);
-                                  context.go(
-                                    '/interview/summary?sessionId=$sessionId'
-                                    '&sessionType=$sessionType'
-                                    '&startTime=${startTime.toIso8601String()}'
-                                    '&duration=${duration.inSeconds}',
-                                  );
-                                } else {
-                                  // If no session ID, just go back home
-                                  context.go('/home');
-                                }
-                              },
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
                               child: const Text(
-                                'End',
+                                'LIVE',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: GestureDetector(
+                                onTap: () {
+                                  // Capture session data before stopping
+                                  final sessionId = sessionData.sessionId;
+                                  final sessionType =
+                                      sessionData.sessionType ?? 'Interview';
+                                  final startTime =
+                                      sessionNotifier.sessionStartTime ??
+                                      DateTime.now();
+                                  final duration = sessionData.sessionDuration;
 
-                  // Interview section - only show in idle state
-                  if (sessionData.state == InterviewSessionState.idle) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondaryLight.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.mic,
-                            color: AppColors.textSecondary.withValues(
-                              alpha: 0.6,
+                                  // Stop the session
+                                  sessionNotifier.stopSession();
+
+                                  // Navigate to summary screen
+                                  if (sessionId != null &&
+                                      sessionId.isNotEmpty) {
+                                    final transcriptionData = ref.read(
+                                      continuousTranscriptionProvider,
+                                    );
+
+                                    print(transcriptionData);
+                                    context.go(
+                                      '/interview/summary?sessionId=$sessionId'
+                                      '&sessionType=$sessionType'
+                                      '&startTime=${startTime.toIso8601String()}'
+                                      '&duration=${duration.inSeconds}',
+                                    );
+                                  } else {
+                                    // If no session ID, just go back home
+                                    context.go('/home');
+                                  }
+                                },
+                                child: const Text(
+                                  'End',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
                             ),
-                            size: 16,
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Interview section - only show in idle state
+                    if (sessionData.state == InterviewSessionState.idle) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondaryLight.withValues(
+                            alpha: 0.2,
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            sessionData.sessionType ?? 'Interview',
-                            style: TextStyle(
-                              fontSize: 14,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.mic,
                               color: AppColors.textSecondary.withValues(
                                 alpha: 0.6,
                               ),
-                              fontWeight: FontWeight.w500,
+                              size: 16,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 6),
+                            Text(
+                              sessionData.sessionType ?? 'Interview',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textSecondary.withValues(
+                                  alpha: 0.6,
+                                ),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(height: 8),
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final interviewSession = ref.watch(
+                            interviewSessionProvider,
+                          );
+                          return Text(
+                            interviewSession.positionTitle.isNotEmpty
+                                ? interviewSession.positionTitle
+                                : 'Senior Software Position',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Dynamic content based on session state
+                    Expanded(
+                      child: _buildSessionContent(sessionData, sessionNotifier),
                     ),
-                    const SizedBox(height: 8),
-                    Consumer(
-                      builder: (context, ref, child) {
-                        final interviewSession = ref.watch(
-                          interviewSessionProvider,
-                        );
-                        return Text(
-                          interviewSession.positionTitle.isNotEmpty
-                              ? interviewSession.positionTitle
-                              : 'Senior Software Position',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
+
+                    // Bottom section - conditional based on session state
+                    if (sessionData.state != InterviewSessionState.idle)
+                      _buildBottomSection(ref, sessionData, sessionNotifier),
+
+                    // Start button for idle state
+                    if (sessionData.state == InterviewSessionState.idle)
+                      _buildStartSessionButton(ref, sessionNotifier),
                   ],
-
-                  // Dynamic content based on session state
-                  Expanded(
-                    child: _buildSessionContent(sessionData, sessionNotifier),
-                  ),
-
-                  // Bottom section - conditional based on session state
-                  if (sessionData.state != InterviewSessionState.idle)
-                    _buildBottomSection(ref, sessionData, sessionNotifier),
-
-                  // Start button for idle state
-                  if (sessionData.state == InterviewSessionState.idle)
-                    _buildStartSessionButton(ref, sessionNotifier),
-                ],
+                ),
               ),
             ),
           ),
@@ -462,6 +463,12 @@ class InterviewSessionScreen extends ConsumerWidget {
           Expanded(
             child: GestureDetector(
               onTap: () {
+                // Prevent duplicate API calls if already in progress
+                if (sessionData.isGettingHelp) {
+                  print('[SCOUT-BTN] Already getting help, ignoring tap');
+                  return;
+                }
+
                 // Check session type and call appropriate method
                 final sessionType = sessionData.sessionType?.toLowerCase();
                 if (sessionType == 'meeting') {
@@ -517,7 +524,15 @@ class InterviewSessionScreen extends ConsumerWidget {
           // Follow-up Questions Button
           Expanded(
             child: GestureDetector(
-              onTap: () => sessionNotifier.getFollowUpQuestions(),
+              onTap: () {
+                // Prevent duplicate API calls if already in progress
+                if (sessionData.isGettingHelp) {
+                  print('[FOLLOW-UP-BTN] Already getting help, ignoring tap');
+                  return;
+                }
+
+                sessionNotifier.getFollowUpQuestions();
+              },
               child: Container(
                 height: 65, // Fixed height for both buttons
                 padding: const EdgeInsets.symmetric(

@@ -35,11 +35,13 @@ class MeetingHistoryNotifier extends StateNotifier<MeetingHistoryState> {
   }
 
   Future<void> loadMeetings() async {
+    if (!mounted) return;
     state = state.copyWith(isLoading: true, error: null);
 
     try {
       final response = await _service.getMeetingHistory();
 
+      if (!mounted) return;
       if (response.status == 'success' && response.data != null) {
         // Sort by date, most recent first
         final sortedMeetings = List<MeetingHistoryItem>.from(response.data!)
@@ -57,6 +59,7 @@ class MeetingHistoryNotifier extends StateNotifier<MeetingHistoryState> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(
         isLoading: false,
         error: 'Error loading meeting history: ${e.toString()}',

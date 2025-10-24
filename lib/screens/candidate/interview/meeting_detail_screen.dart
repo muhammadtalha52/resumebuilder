@@ -180,8 +180,9 @@ class _MeetingDetailScreenState extends ConsumerState<MeetingDetailScreen> {
                                 _buildOverviewCard(
                                   icon: Icons.calendar_today,
                                   label: 'Date',
-                                  value: DateHelpers.formatToReadableDateTime(
+                                  value: DateHelpers.formatDateTimeToLocal(
                                     widget.meeting.createdAt,
+                                    defaultValue: 'N/A',
                                   ),
                                 ),
                                 const SizedBox(width: 8),

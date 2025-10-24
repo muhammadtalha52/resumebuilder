@@ -9,8 +9,23 @@ import '../models/student_signup_request.dart';
 import '../models/user_model.dart';
 import '../utils/keys.dart';
 import 'auth_service_provider.dart';
+import 'continuous_transcription_provider.dart';
+import 'dashboard_provider.dart';
+import 'documents_provider.dart';
+import 'history_provider.dart';
+import 'interview_session_provider.dart';
+import 'interview_summary_provider.dart';
+import 'lectures_provider.dart';
+import 'meeting_history_provider.dart';
 import 'onboarding_provider.dart';
+import 'profile_provider.dart';
+import 'quiz_history_provider.dart';
+import 'quiz_provider.dart';
+import 'resume_provider.dart';
+import 'scout_chat_provider.dart';
 import 'student_signup_provider.dart';
+import 'study_space_provider.dart';
+import 'subjects_provider.dart';
 
 // Auth State
 class AuthState extends Equatable {
@@ -286,14 +301,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   void signOut() {
+    print('[LOGOUT] Starting logout - clearing all user data and providers');
+
     // Clear app logic data
     appLogic.accessToken = '';
     appLogic.user = null;
     appLogic.box.erase();
 
-    // Clear onboarding state to ensure fresh forms for new accounts
-    _ref.read(onboardingProvider.notifier).reset();
-    _ref.read(studentSignupProvider.notifier).reset();
+    // Invalidate all user-specific providers to ensure clean state for next login
+    // This automatically resets all providers to their initial state
+    _ref.invalidate(profileProvider);
+    _ref.invalidate(interviewSessionProvider);
+    _ref.invalidate(interviewSummaryProvider);
+    _ref.invalidate(meetingHistoryProvider);
+    _ref.invalidate(continuousTranscriptionProvider);
+    _ref.invalidate(dashboardStatsProvider);
+    _ref.invalidate(dashboardFilterProvider);
+    _ref.invalidate(resumeProvider);
+    _ref.invalidate(quizProvider);
+    _ref.invalidate(quizHistoryProvider);
+    _ref.invalidate(documentsProvider);
+    _ref.invalidate(studySpaceProvider);
+    _ref.invalidate(lecturesProvider);
+    _ref.invalidate(subjectsProvider);
+    _ref.invalidate(historyProvider);
+    _ref.invalidate(scoutChatProvider);
+    _ref.invalidate(onboardingProvider);
+    _ref.invalidate(studentSignupProvider);
+
+    print(
+      '[LOGOUT] All providers invalidated - clean state ready for next login',
+    );
 
     // Reset auth state
     state = const AuthState();

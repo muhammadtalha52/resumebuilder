@@ -5,6 +5,7 @@ import 'package:skillresy/utils/snackbar_utils.dart';
 import '../constants/app_colors.dart';
 import '../models/generate_resume_response.dart';
 import '../providers/resume_provider.dart';
+import '../providers/resume_edit_provider.dart';
 import '../widgets/dialogs/confirmation_dialog.dart';
 
 class ResumeEditModal extends ConsumerStatefulWidget {
@@ -28,32 +29,15 @@ class ResumeEditModal extends ConsumerStatefulWidget {
 }
 
 class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
-  late GenerateResumeResponse _editableResumeData;
   final ScrollController _scrollController = ScrollController();
-
-  // AI Suggestions state
-  bool _showAISuggestions = false;
-  String? _suggestedContent;
-  String? _suggestedSection;
-  GenerateResumeResponse? _suggestedResumeData;
-  bool _isLoadingAISuggestion = false;
-
-  // PDF generation state
-  bool _isSavingChanges = false;
-
-  // Change tracking
-  bool _hasChanges = false;
+  late final StateNotifierProvider<ResumeEditNotifier, ResumeEditState>
+  _editProvider;
 
   @override
   void initState() {
     super.initState();
-    // Create a deep copy of the resume data to avoid modifying the original
-    try {
-      final originalJson = widget.resumeData.toJson();
-      _editableResumeData = GenerateResumeResponse.fromJson(originalJson);
-    } catch (e) {
-      _editableResumeData = widget.resumeData;
-    }
+    // Create a provider instance for this modal
+    _editProvider = createResumeEditProvider(widget.resumeData);
   }
 
   @override
@@ -62,15 +46,34 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     super.dispose();
   }
 
+  // Helper getters to access state easily
+  ResumeEditState get _state => ref.read(_editProvider);
+
+  ResumeEditNotifier get _notifier => ref.read(_editProvider.notifier);
+
+  GenerateResumeResponse get _editableResumeData => _state.editableResumeData;
+
+  String? get _suggestedContent => _state.suggestedContent;
+
+  String? get _suggestedSection => _state.suggestedSection;
+
+  bool get _isLoadingAISuggestion => _state.isLoadingAISuggestion;
+
+  bool get _isSavingChanges => _state.isSavingChanges;
+
+  bool get _hasChanges => _state.hasChanges;
+
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false, // Disable back button
+    final state = ref.watch(_editProvider);
+
+    return PopScope(
+      canPop: false, // Disable back button
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F5F5),
         body: SafeArea(
           child: AbsorbPointer(
-            absorbing: _isSavingChanges,
+            absorbing: state.isSavingChanges,
             child: Stack(
               children: [
                 // Main content
@@ -116,7 +119,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                           const Spacer(),
                           // Check button
                           GestureDetector(
-                            onTap: _isSavingChanges ? null : _saveChanges,
+                            onTap: state.isSavingChanges ? null : _saveChanges,
                             child: Container(
                               width: 40,
                               height: 40,
@@ -124,7 +127,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                                 color: const Color(0xFFFF6B35),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: _isSavingChanges
+                              child: state.isSavingChanges
                                   ? Container(
                                       padding: EdgeInsets.all(5),
                                       width: 15,
@@ -177,6 +180,8 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                                 _buildWorkExperienceSection(),
                                 const SizedBox(height: 32),
                                 _buildProjectsSection(),
+                                const SizedBox(height: 32),
+                                _buildEducationSection(),
                               ],
                             ),
                           ),
@@ -186,7 +191,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                   ],
                 ),
                 // AI Suggestions bottom panel - only show when there are suggestions
-                if (_showAISuggestions) _buildAISuggestionsPanel(),
+                if (state.showAISuggestions) _buildAISuggestionsPanel(),
               ],
             ),
           ),
@@ -201,40 +206,95 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Personal Details heading
-        const Text(
-          'Personal Details',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
+        // Personal Details heading with edit button
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Personal Details',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.edit, color: AppColors.primary),
+              onPressed: _editPersonalDetails,
+              tooltip: 'Edit Personal Details',
+            ),
+          ],
         ),
         const SizedBox(height: 16),
 
         // Name and details
         Text(
-          personal?.name ?? 'Alex John',
+          personal?.name ?? 'Your Name',
           style: const TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
             color: Colors.black,
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          'Senior Software Engineer',
-          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          personal?.phone ?? '(123) 456-7890',
-          style: TextStyle(fontSize: 14, color: const Color(0xFF4285F4)),
-        ),
-        Text(
-          personal?.personalWebsite ?? 'New York, NY',
-          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-        ),
+        if (personal?.email != null && personal!.email!.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.email, size: 16, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                personal.email!,
+                style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+              ),
+            ],
+          ),
+        ],
+        if (personal?.phone != null && personal!.phone!.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(Icons.phone, size: 16, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                personal.phone!,
+                style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+              ),
+            ],
+          ),
+        ],
+        if (personal?.linkedin != null && personal!.linkedin!.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(Icons.link, size: 16, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  personal.linkedin!,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
+        if (personal?.personalWebsite != null &&
+            personal!.personalWebsite!.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(Icons.language, size: 16, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  personal.personalWebsite!,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -261,11 +321,12 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                   onPressed: _editProfessionalSummary,
                   tooltip: 'Edit Summary',
                 ),
-                IconButton(
-                  icon: const Icon(Icons.refresh, color: AppColors.primary),
-                  onPressed: () => _regenerateSection(['summary']),
-                  tooltip: 'Regenerate Summary with AI',
-                ),
+                // TODO: Uncomment when regenerate feature is ready
+                // IconButton(
+                //   icon: const Icon(Icons.refresh, color: AppColors.primary),
+                //   onPressed: () => _regenerateSection(['summary']),
+                //   tooltip: 'Regenerate Summary with AI',
+                // ),
               ],
             ),
           ],
@@ -395,31 +456,67 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                 ),
               ],
             ),
-            IconButton(
-              icon: const Icon(Icons.refresh, color: AppColors.primary),
-              onPressed: () => _regenerateSection(['work_experience']),
-              tooltip: 'Regenerate Work Experience with AI',
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.add_circle, color: AppColors.primary),
+                  onPressed: () => _addWorkExperience(),
+                  tooltip: 'Add Work Experience',
+                ),
+                // TODO: Uncomment when regenerate feature is ready
+                // IconButton(
+                //   icon: const Icon(Icons.refresh, color: AppColors.primary),
+                //   onPressed: () => _regenerateSection(['work_experience']),
+                //   tooltip: 'Regenerate with AI',
+                // ),
+              ],
             ),
           ],
         ),
         const SizedBox(height: 16),
 
         if (workExperiences.isNotEmpty)
-          ...workExperiences.map(
-            (experience) => _buildWorkExperienceItem(experience),
+          ...workExperiences.asMap().entries.map(
+            (entry) => _buildWorkExperienceItem(entry.value, entry.key),
           )
         else
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
-              color: Colors.grey[50],
-            ),
-            child: const Center(
-              child: Text(
-                'No work experience available',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+          GestureDetector(
+            onTap: _addWorkExperience,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: AppColors.primary,
+                  width: 2,
+                  style: BorderStyle.solid,
+                ),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.blue.shade50,
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.add_circle_outline,
+                      size: 48,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Add Your First Work Experience',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tap to add your work history',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -427,7 +524,12 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     );
   }
 
-  Widget _buildWorkExperienceItem(WorkExperience experience) {
+  Widget _buildWorkExperienceItem(WorkExperience experience, int index) {
+    final workExperiences =
+        _editableResumeData.resumeData?.workExperience ?? [];
+    final isFirst = index == 0;
+    final isLast = index == workExperiences.length - 1;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -438,6 +540,55 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Action buttons row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (!isFirst)
+                IconButton(
+                  icon: const Icon(
+                    Icons.arrow_upward,
+                    size: 20,
+                    color: AppColors.primary,
+                  ),
+                  onPressed: () => _notifier.moveWorkExperienceUp(index),
+                  tooltip: 'Move Up',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              if (!isLast)
+                IconButton(
+                  icon: const Icon(
+                    Icons.arrow_downward,
+                    size: 20,
+                    color: AppColors.primary,
+                  ),
+                  onPressed: () => _notifier.moveWorkExperienceDown(index),
+                  tooltip: 'Move Down',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              IconButton(
+                icon: const Icon(
+                  Icons.edit,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
+                onPressed: () => _editWorkExperience(experience, index),
+                tooltip: 'Edit',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                onPressed: () => _deleteWorkExperience(index),
+                tooltip: 'Delete',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           Text(
             experience.role ?? 'Role',
             style: const TextStyle(
@@ -497,6 +648,971 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     );
   }
 
+  void _addWorkExperience() {
+    _showWorkExperienceDialog(null, null);
+  }
+
+  void _editWorkExperience(WorkExperience experience, int index) {
+    _showWorkExperienceDialog(experience, index);
+  }
+
+  void _showWorkExperienceDialog(WorkExperience? experience, int? index) {
+    final isEditing = experience != null && index != null;
+
+    final companyController = TextEditingController(
+      text: experience?.company ?? '',
+    );
+    final roleController = TextEditingController(text: experience?.role ?? '');
+    final locationController = TextEditingController(
+      text: experience?.location ?? '',
+    );
+    final fromDateController = TextEditingController(
+      text: experience?.fromDate ?? '',
+    );
+    final toDateController = TextEditingController(
+      text: experience?.toDate ?? '',
+    );
+
+    final descriptionList = List<String>.from(experience?.description ?? []);
+    final descriptionControllers = descriptionList
+        .map((desc) => TextEditingController(text: desc))
+        .toList();
+
+    bool isCurrentlyWorking = experience?.toDate?.toLowerCase() == 'present';
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+              maxWidth: 500,
+            ),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
+                  Text(
+                    isEditing ? 'Edit Work Experience' : 'Add Work Experience',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Company Field
+                  TextField(
+                    controller: companyController,
+                    decoration: InputDecoration(
+                      labelText: 'Company Name *',
+                      hintText: 'e.g., Google, Microsoft',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.primary),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF9FAFB),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Role Field
+                  TextField(
+                    controller: roleController,
+                    decoration: InputDecoration(
+                      labelText: 'Job Title / Role *',
+                      hintText: 'e.g., Senior Software Engineer',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.primary),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF9FAFB),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Location Field
+                  TextField(
+                    controller: locationController,
+                    decoration: InputDecoration(
+                      labelText: 'Location',
+                      hintText: 'e.g., San Francisco, CA',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.primary),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF9FAFB),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Date Fields Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: fromDateController,
+                          decoration: InputDecoration(
+                            labelText: 'Start Date *',
+                            hintText: 'Jan 2020',
+                            hintStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF9FAFB),
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF1A1A1A),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: toDateController,
+                          enabled: !isCurrentlyWorking,
+                          decoration: InputDecoration(
+                            labelText: 'End Date',
+                            hintText: 'Dec 2023',
+                            hintStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: isCurrentlyWorking
+                                ? const Color(0xFFE5E7EB)
+                                : const Color(0xFFF9FAFB),
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF1A1A1A),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Currently Working Checkbox
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: isCurrentlyWorking,
+                        onChanged: (value) {
+                          setDialogState(() {
+                            isCurrentlyWorking = value ?? false;
+                            if (isCurrentlyWorking) {
+                              toDateController.text = 'Present';
+                            } else {
+                              toDateController.text = '';
+                            }
+                          });
+                        },
+                        activeColor: AppColors.primary,
+                      ),
+                      const Text(
+                        'I currently work here',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Description/Responsibilities Section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Key Responsibilities',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1A1A1A),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () {
+                          setDialogState(() {
+                            descriptionControllers.add(TextEditingController());
+                          });
+                        },
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Add'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Description Items
+                  ...descriptionControllers.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final controller = entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 16),
+                            child: Text('• ', style: TextStyle(fontSize: 16)),
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: controller,
+                              maxLines: 2,
+                              decoration: InputDecoration(
+                                hintText:
+                                    'Describe your responsibility or achievement',
+                                hintStyle: const TextStyle(
+                                  color: Color(0xFF9CA3AF),
+                                  fontSize: 13,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFE5E7EB),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                                filled: true,
+                                fillColor: const Color(0xFFF9FAFB),
+                                contentPadding: const EdgeInsets.all(12),
+                              ),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF1A1A1A),
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.close,
+                              size: 18,
+                              color: Colors.red,
+                            ),
+                            onPressed: () {
+                              setDialogState(() {
+                                descriptionControllers.removeAt(idx);
+                              });
+                            },
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+
+                  if (descriptionControllers.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.grey[50],
+                      ),
+                      child: Center(
+                        child: Text(
+                          'No responsibilities added yet. Click "Add" to add one.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(height: 24),
+
+                  // Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Container(
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE5E7EB),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF6B7280),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            // Validation
+                            if (companyController.text.trim().isEmpty) {
+                              showErrorSnackBar(
+                                context: context,
+                                message: 'Company name is required',
+                              );
+                              return;
+                            }
+                            if (roleController.text.trim().isEmpty) {
+                              showErrorSnackBar(
+                                context: context,
+                                message: 'Job title is required',
+                              );
+                              return;
+                            }
+                            if (fromDateController.text.trim().isEmpty) {
+                              showErrorSnackBar(
+                                context: context,
+                                message: 'Start date is required',
+                              );
+                              return;
+                            }
+
+                            // Collect descriptions
+                            final descriptions = descriptionControllers
+                                .map((c) => c.text.trim())
+                                .where((text) => text.isNotEmpty)
+                                .toList();
+
+                            // Create work experience object
+                            final workExp = WorkExperience(
+                              company: companyController.text.trim(),
+                              role: roleController.text.trim(),
+                              location: locationController.text.trim().isEmpty
+                                  ? null
+                                  : locationController.text.trim(),
+                              fromDate: fromDateController.text.trim(),
+                              toDate: isCurrentlyWorking
+                                  ? 'Present'
+                                  : toDateController.text.trim(),
+                              description: descriptions.isEmpty
+                                  ? null
+                                  : descriptions,
+                            );
+
+                            // Add or update
+                            if (isEditing) {
+                              _notifier.updateWorkExperience(index, workExp);
+                              showSuccessSnackBar(
+                                context: context,
+                                message: 'Work experience updated',
+                              );
+                            } else {
+                              _notifier.addWorkExperience(workExp);
+                              showSuccessSnackBar(
+                                context: context,
+                                message: 'Work experience added',
+                              );
+                            }
+
+                            Navigator.of(context).pop();
+                          },
+                          child: Container(
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(
+                              child: Text(
+                                isEditing ? 'Update' : 'Add',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteWorkExperience(int index) async {
+    final confirmed = await showConfirmationDialog(
+      context: context,
+      title: 'Delete Work Experience?',
+      subtitle: 'This action cannot be undone.',
+      icon: Icons.delete_outline,
+      iconBackgroundColor: Colors.red,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      confirmButtonColor: Colors.red,
+    );
+
+    if (confirmed == true) {
+      _notifier.deleteWorkExperience(index);
+      showSuccessSnackBar(context: context, message: 'Work experience deleted');
+    }
+  }
+
+  void _addProject() {
+    _showProjectDialog(null, null);
+  }
+
+  void _editProject(Projects project, int index) {
+    _showProjectDialog(project, index);
+  }
+
+  void _showProjectDialog(Projects? project, int? index) {
+    final isEditing = project != null && index != null;
+
+    final nameController = TextEditingController(text: project?.name ?? '');
+    final typeController = TextEditingController(text: project?.type ?? '');
+    final linkController = TextEditingController(text: project?.link ?? '');
+    final fromDateController = TextEditingController(
+      text: project?.fromDate ?? '',
+    );
+    final toDateController = TextEditingController(text: project?.toDate ?? '');
+
+    final descriptionList = List<String>.from(project?.description ?? []);
+    final descriptionControllers = descriptionList
+        .map((desc) => TextEditingController(text: desc))
+        .toList();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+              maxWidth: 500,
+            ),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
+                  Text(
+                    isEditing ? 'Edit Project' : 'Add Project',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Project Name Field
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: 'Project Name *',
+                      hintText: 'e.g., E-commerce Platform',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.primary),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF9FAFB),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Project Type Field
+                  TextField(
+                    controller: typeController,
+                    decoration: InputDecoration(
+                      labelText: 'Project Type',
+                      hintText: 'e.g., Web Application, Mobile App',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.primary),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF9FAFB),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Date Fields Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: fromDateController,
+                          decoration: InputDecoration(
+                            labelText: 'Start Date',
+                            hintText: 'Jan 2023',
+                            hintStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF9FAFB),
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF1A1A1A),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: toDateController,
+                          decoration: InputDecoration(
+                            labelText: 'End Date',
+                            hintText: 'Mar 2024',
+                            hintStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF9FAFB),
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF1A1A1A),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Link Field
+                  TextField(
+                    controller: linkController,
+                    keyboardType: TextInputType.url,
+                    decoration: InputDecoration(
+                      labelText: 'Project Link',
+                      hintText: 'e.g., github.com/username/project',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.primary),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF9FAFB),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Description Section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Project Description',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1A1A1A),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () {
+                          setDialogState(() {
+                            descriptionControllers.add(TextEditingController());
+                          });
+                        },
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Add'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Description Items
+                  ...descriptionControllers.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final controller = entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 16),
+                            child: Text('• ', style: TextStyle(fontSize: 16)),
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: controller,
+                              maxLines: 2,
+                              decoration: InputDecoration(
+                                hintText:
+                                    'Describe project feature or achievement',
+                                hintStyle: const TextStyle(
+                                  color: Color(0xFF9CA3AF),
+                                  fontSize: 13,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFE5E7EB),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                                filled: true,
+                                fillColor: const Color(0xFFF9FAFB),
+                                contentPadding: const EdgeInsets.all(12),
+                              ),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF1A1A1A),
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.close,
+                              size: 18,
+                              color: Colors.red,
+                            ),
+                            onPressed: () {
+                              setDialogState(() {
+                                descriptionControllers.removeAt(idx);
+                              });
+                            },
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+
+                  if (descriptionControllers.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.grey[50],
+                      ),
+                      child: Center(
+                        child: Text(
+                          'No description added yet. Click "Add" to add one.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(height: 24),
+
+                  // Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Container(
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE5E7EB),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF6B7280),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            // Validation
+                            if (nameController.text.trim().isEmpty) {
+                              showErrorSnackBar(
+                                context: context,
+                                message: 'Project name is required',
+                              );
+                              return;
+                            }
+
+                            // Collect descriptions
+                            final descriptions = descriptionControllers
+                                .map((c) => c.text.trim())
+                                .where((text) => text.isNotEmpty)
+                                .toList();
+
+                            // Create project object
+                            final projectObj = Projects(
+                              name: nameController.text.trim(),
+                              type: typeController.text.trim().isEmpty
+                                  ? null
+                                  : typeController.text.trim(),
+                              fromDate: fromDateController.text.trim().isEmpty
+                                  ? null
+                                  : fromDateController.text.trim(),
+                              toDate: toDateController.text.trim().isEmpty
+                                  ? null
+                                  : toDateController.text.trim(),
+                              link: linkController.text.trim().isEmpty
+                                  ? null
+                                  : linkController.text.trim(),
+                              description: descriptions.isEmpty
+                                  ? null
+                                  : descriptions,
+                            );
+
+                            // Add or update
+                            if (isEditing) {
+                              _notifier.updateProject(index, projectObj);
+                              showSuccessSnackBar(
+                                context: context,
+                                message: 'Project updated',
+                              );
+                            } else {
+                              _notifier.addProject(projectObj);
+                              showSuccessSnackBar(
+                                context: context,
+                                message: 'Project added',
+                              );
+                            }
+
+                            Navigator.of(context).pop();
+                          },
+                          child: Container(
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(
+                              child: Text(
+                                isEditing ? 'Update' : 'Add',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteProject(int index) async {
+    final confirmed = await showConfirmationDialog(
+      context: context,
+      title: 'Delete Project?',
+      subtitle: 'This action cannot be undone.',
+      icon: Icons.delete_outline,
+      iconBackgroundColor: Colors.red,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      confirmButtonColor: Colors.red,
+    );
+
+    if (confirmed == true) {
+      _notifier.deleteProject(index);
+      showSuccessSnackBar(context: context, message: 'Project deleted');
+    }
+  }
+
   Widget _buildProjectsSection() {
     final projects = _editableResumeData.resumeData?.projects ?? [];
 
@@ -528,29 +1644,67 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                 ),
               ],
             ),
-            IconButton(
-              icon: const Icon(Icons.refresh, color: AppColors.primary),
-              onPressed: () => _regenerateSection(['projects']),
-              tooltip: 'Regenerate Projects with AI',
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.add_circle, color: AppColors.primary),
+                  onPressed: () => _addProject(),
+                  tooltip: 'Add Project',
+                ),
+                // TODO: Uncomment when regenerate feature is ready
+                // IconButton(
+                //   icon: const Icon(Icons.refresh, color: AppColors.primary),
+                //   onPressed: () => _regenerateSection(['projects']),
+                //   tooltip: 'Regenerate with AI',
+                // ),
+              ],
             ),
           ],
         ),
         const SizedBox(height: 16),
 
         if (projects.isNotEmpty)
-          ...projects.map((project) => _buildProjectItem(project))
+          ...projects.asMap().entries.map(
+            (entry) => _buildProjectItem(entry.value, entry.key),
+          )
         else
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
-              color: Colors.grey[50],
-            ),
-            child: const Center(
-              child: Text(
-                'No projects available',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+          GestureDetector(
+            onTap: _addProject,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: const Color(0xFF4CAF50),
+                  width: 2,
+                  style: BorderStyle.solid,
+                ),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.green.shade50,
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.add_circle_outline,
+                      size: 48,
+                      color: const Color(0xFF4CAF50),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Add Your First Project',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF4CAF50),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tap to add your projects',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -558,7 +1712,11 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     );
   }
 
-  Widget _buildProjectItem(Projects project) {
+  Widget _buildProjectItem(Projects project, int index) {
+    final projects = _editableResumeData.resumeData?.projects ?? [];
+    final isFirst = index == 0;
+    final isLast = index == projects.length - 1;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -569,6 +1727,55 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Action buttons row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (!isFirst)
+                IconButton(
+                  icon: const Icon(
+                    Icons.arrow_upward,
+                    size: 20,
+                    color: AppColors.primary,
+                  ),
+                  onPressed: () => _notifier.moveProjectUp(index),
+                  tooltip: 'Move Up',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              if (!isLast)
+                IconButton(
+                  icon: const Icon(
+                    Icons.arrow_downward,
+                    size: 20,
+                    color: AppColors.primary,
+                  ),
+                  onPressed: () => _notifier.moveProjectDown(index),
+                  tooltip: 'Move Down',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              IconButton(
+                icon: const Icon(
+                  Icons.edit,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
+                onPressed: () => _editProject(project, index),
+                tooltip: 'Edit',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                onPressed: () => _deleteProject(index),
+                tooltip: 'Delete',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           Text(
             project.name ?? 'Project Name',
             style: const TextStyle(
@@ -577,6 +1784,13 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
               color: Colors.black,
             ),
           ),
+          if (project.type != null && project.type!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              project.type!,
+              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+            ),
+          ],
           if (project.fromDate != null || project.toDate != null) ...[
             const SizedBox(height: 4),
             Text(
@@ -718,12 +1932,14 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'AI Suggestion for ${_suggestedSection?.replaceAll('_', ' ').toUpperCase() ?? 'Section'}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
+            Expanded(
+              child: Text(
+                'AI Suggestion for ${_suggestedSection?.replaceAll('_', ' ').toUpperCase() ?? 'Section'}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
               ),
             ),
             GestureDetector(
@@ -950,13 +2166,8 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        if (_editableResumeData.resumeData != null) {
-                          _editableResumeData.resumeData!.summary =
-                              controller.text;
-                          _hasChanges = true; // Mark as changed
-                        }
+                        _notifier.updateSummary(controller.text);
                         Navigator.of(context).pop();
-                        setState(() {});
                       },
                       child: Container(
                         height: 48,
@@ -1100,20 +2311,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                       onTap: () {
                         final skillName = controller.text.trim();
                         if (skillName.isNotEmpty) {
-                          setState(() {
-                            // Ensure skills object exists
-                            _editableResumeData.resumeData?.skills ??= Skills();
-
-                            // Add to hard skills by default
-                            _editableResumeData
-                                    .resumeData
-                                    ?.skills
-                                    ?.hardSkills ??=
-                                [];
-                            _editableResumeData.resumeData?.skills?.hardSkills!
-                                .add(skillName);
-                            _hasChanges = true; // Mark as changed
-                          });
+                          _notifier.addSkill(skillName);
                           Navigator.of(context).pop();
 
                           showSuccessSnackBar(
@@ -1151,13 +2349,329 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
   }
 
   void _removeSkill(String skill) {
-    setState(() {
-      final skills = _editableResumeData.resumeData?.skills;
-      skills?.hardSkills?.remove(skill);
-      skills?.softSkills?.remove(skill);
-      skills?.toolsAndTechnologies?.remove(skill);
-      _hasChanges = true; // Mark as changed
-    });
+    _notifier.removeSkill(skill);
+  }
+
+  void _editPersonalDetails() {
+    final personal = _editableResumeData.resumeData?.personal;
+
+    final nameController = TextEditingController(text: personal?.name ?? '');
+    final emailController = TextEditingController(text: personal?.email ?? '');
+    final phoneController = TextEditingController(text: personal?.phone ?? '');
+    final linkedinController = TextEditingController(
+      text: personal?.linkedin ?? '',
+    );
+    final websiteController = TextEditingController(
+      text: personal?.personalWebsite ?? '',
+    );
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Title
+                const Text(
+                  'Edit Personal Details',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 24),
+
+                // Name Field
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Full Name *',
+                    hintText: 'Enter your full name',
+                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                    prefixIcon: const Icon(
+                      Icons.person_outline,
+                      color: AppColors.primary,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.primary),
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFF9FAFB),
+                    contentPadding: const EdgeInsets.all(16),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                ),
+
+                const SizedBox(height: 16),
+
+                // Email Field
+                TextField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    hintText: 'your.email@example.com',
+                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                    prefixIcon: const Icon(
+                      Icons.email_outlined,
+                      color: AppColors.primary,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.primary),
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFF9FAFB),
+                    contentPadding: const EdgeInsets.all(16),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Phone Field
+                TextField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: 'Phone',
+                    hintText: '+1 (123) 456-7890',
+                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                    prefixIcon: const Icon(
+                      Icons.phone_outlined,
+                      color: AppColors.primary,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.primary),
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFF9FAFB),
+                    contentPadding: const EdgeInsets.all(16),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // LinkedIn Field
+                TextField(
+                  controller: linkedinController,
+                  keyboardType: TextInputType.url,
+                  decoration: InputDecoration(
+                    labelText: 'LinkedIn',
+                    hintText: 'linkedin.com/in/yourprofile',
+                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                    prefixIcon: const Icon(
+                      Icons.link,
+                      color: AppColors.primary,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.primary),
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFF9FAFB),
+                    contentPadding: const EdgeInsets.all(16),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Website Field
+                TextField(
+                  controller: websiteController,
+                  keyboardType: TextInputType.url,
+                  decoration: InputDecoration(
+                    labelText: 'Personal Website / Portfolio',
+                    hintText: 'www.yourwebsite.com',
+                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                    prefixIcon: const Icon(
+                      Icons.language,
+                      color: AppColors.primary,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.primary),
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFF9FAFB),
+                    contentPadding: const EdgeInsets.all(16),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Buttons
+                Row(
+                  children: [
+                    // Cancel button
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE5E7EB),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF6B7280),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 16),
+
+                    // Save button
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          if (nameController.text.trim().isEmpty) {
+                            showErrorSnackBar(
+                              context: context,
+                              message: 'Name is required',
+                            );
+                            return;
+                          }
+
+                          final updatedPersonal = Personal(
+                            name: nameController.text.trim(),
+                            email: emailController.text.trim().isEmpty
+                                ? null
+                                : emailController.text.trim(),
+                            phone: phoneController.text.trim().isEmpty
+                                ? null
+                                : phoneController.text.trim(),
+                            linkedin: linkedinController.text.trim().isEmpty
+                                ? null
+                                : linkedinController.text.trim(),
+                            personalWebsite:
+                                websiteController.text.trim().isEmpty
+                                ? null
+                                : websiteController.text.trim(),
+                          );
+
+                          _notifier.updatePersonalDetails(updatedPersonal);
+                          Navigator.of(context).pop();
+
+                          showSuccessSnackBar(
+                            context: context,
+                            message: 'Personal details updated',
+                          );
+                        },
+                        child: Container(
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Save',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   /// Regenerate specific sections using AI
@@ -1180,13 +2694,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     if (confirmed != true) return;
 
     // Show AI suggestions panel immediately with loading state
-    setState(() {
-      _suggestedSection = sections.first;
-      _showAISuggestions = true;
-      _isLoadingAISuggestion = true;
-      _suggestedContent = null;
-      _suggestedResumeData = null;
-    });
+    _notifier.showAISuggestionsLoading(sections.first);
 
     try {
       final result = await ref
@@ -1239,33 +2747,39 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                   .join('\n\n');
               sectionName = 'projects';
             }
+          } else if (regeneratedSections.contains('education')) {
+            // For education, convert the list to a formatted string
+            if (result.resumeData?.education != null) {
+              final educationList = result.resumeData!.education!;
+              suggestedContent = educationList
+                  .map(
+                    (edu) =>
+                        '${edu.degree ?? ''}\n'
+                        '${edu.university ?? ''}\n'
+                        '${edu.fromDate ?? ''} - ${edu.toDate ?? ''}\n'
+                        '${edu.courses != null && edu.courses!.isNotEmpty ? 'Courses: ${edu.courses!.join(', ')}' : ''}',
+                  )
+                  .join('\n\n');
+              sectionName = 'education';
+            }
           }
 
           if (suggestedContent != null && sectionName != null) {
             // Show AI suggestions panel with the new content
-            setState(() {
-              _suggestedContent = suggestedContent;
-              _suggestedSection = sectionName;
-              _suggestedResumeData =
-                  result; // Store the complete regenerated data
-              _showAISuggestions = true;
-              _isLoadingAISuggestion = false; // Turn off loading state
-            });
+            _notifier.setAISuggestions(
+              content: suggestedContent,
+              section: sectionName,
+              resumeData: result,
+            );
           } else {
             // CRITICAL: DO NOT overwrite entire data if no specific content found
             // Instead, hide the suggestions panel and show error
-            setState(() {
-              _showAISuggestions = false;
-              _isLoadingAISuggestion = false;
-            });
+            _notifier.hideAISuggestions();
           }
         } else {
           // CRITICAL: DO NOT overwrite entire data if no regenerated sections
           // Instead, hide the suggestions panel and show error
-          setState(() {
-            _showAISuggestions = false;
-            _isLoadingAISuggestion = false;
-          });
+          _notifier.hideAISuggestions();
 
           showErrorSnackBar(
             context: context,
@@ -1274,80 +2788,30 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
         }
       }
     } catch (e) {
+      _notifier.hideAISuggestions();
       showErrorSnackBar(
         context: context,
         message: 'Failed to regenerate: ${e.toString()}.',
       );
-    } finally {
-      setState(() {
-        _isLoadingAISuggestion = false;
-      });
     }
   }
 
   /// Accept the AI suggestion and update the resume
   void _acceptSuggestion() {
-    if (_suggestedContent != null &&
-        _suggestedSection != null &&
-        _suggestedResumeData != null) {
-      setState(() {
-        // Update only the specific section with the regenerated content
-        // CRITICAL: Only update the regenerated section, preserve all other data
-        if (_suggestedSection == 'summary') {
-          if (_editableResumeData.resumeData != null &&
-              _suggestedResumeData!.resumeData != null) {
-            // Only update the summary, keep everything else intact
-            _editableResumeData.resumeData!.summary =
-                _suggestedResumeData!.resumeData!.summary;
-          }
-        } else if (_suggestedSection == 'work_experience') {
-          if (_editableResumeData.resumeData != null &&
-              _suggestedResumeData!.resumeData != null) {
-            // Only update work experience, keep everything else intact
-            _editableResumeData.resumeData!.workExperience =
-                _suggestedResumeData!.resumeData!.workExperience;
-          }
-        } else if (_suggestedSection == 'projects') {
-          if (_editableResumeData.resumeData != null &&
-              _suggestedResumeData!.resumeData != null) {
-            // Only update projects, keep everything else intact
-            _editableResumeData.resumeData!.projects =
-                _suggestedResumeData!.resumeData!.projects;
-          }
-        }
-
-        // Hide the suggestions panel and clear all suggestion data
-        _showAISuggestions = false;
-        _suggestedContent = null;
-        _suggestedSection = null;
-        _suggestedResumeData = null;
-        _hasChanges = true; // Mark as changed when accepting AI suggestions
-      });
-
-      showSuccessSnackBar(
-        context: context,
-        message: 'AI suggestion for applied',
-      );
-    }
+    _notifier.acceptSuggestion();
+    showSuccessSnackBar(context: context, message: 'AI suggestion applied');
   }
 
   /// Dismiss the AI suggestion and keep the original content
   void _dismissSuggestion() {
-    setState(() {
-      _showAISuggestions = false;
-      _suggestedContent = null;
-      _suggestedSection = null;
-      _suggestedResumeData = null;
-    });
+    _notifier.hideAISuggestions();
   }
 
   Future<void> _saveChanges() async {
     // Prevent multiple simultaneous saves
     if (_isSavingChanges) return;
 
-    setState(() {
-      _isSavingChanges = true;
-    });
+    _notifier.setSavingChanges(true);
 
     try {
       // Only regenerate PDF if there are changes
@@ -1377,7 +2841,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       if (pdfBase64 != null) {
         print('📑 Setting new PDF Base64 length: ${pdfBase64.length}');
         // Update only the PDF base64, keep all current resume data intact
-        _editableResumeData.pdfBase64 = pdfBase64;
+        _notifier.updatePdfBase64(pdfBase64);
         print(
           '📋 Updated editable data PDF length: ${_editableResumeData.pdfBase64?.length ?? 0}',
         );
@@ -1415,10 +2879,672 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       }
     } finally {
       if (mounted) {
-        setState(() {
-          _isSavingChanges = false;
-        });
+        _notifier.setSavingChanges(false);
       }
+    }
+  }
+
+  Widget _buildEducationSection() {
+    final education = _editableResumeData.resumeData?.education ?? [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF9C27B0),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.school,
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Education',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.add_circle, color: AppColors.primary),
+                  onPressed: () => _addEducation(),
+                  tooltip: 'Add Education',
+                ),
+                // TODO: Uncomment when regenerate feature is ready
+                // IconButton(
+                //   icon: const Icon(Icons.refresh, color: AppColors.primary),
+                //   onPressed: () => _regenerateSection(['education']),
+                //   tooltip: 'Regenerate with AI',
+                // ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        if (education.isNotEmpty)
+          ...education.asMap().entries.map(
+            (entry) => _buildEducationItem(entry.value, entry.key),
+          )
+        else
+          GestureDetector(
+            onTap: _addEducation,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: const Color(0xFF9C27B0),
+                  width: 2,
+                  style: BorderStyle.solid,
+                ),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.purple.shade50,
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.add_circle_outline,
+                      size: 48,
+                      color: const Color(0xFF9C27B0),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Add Your Education',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF9C27B0),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tap to add your educational background',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildEducationItem(Education education, int index) {
+    final educationList = _editableResumeData.resumeData?.education ?? [];
+    final isFirst = index == 0;
+    final isLast = index == educationList.length - 1;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Action buttons row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (!isFirst)
+                IconButton(
+                  icon: const Icon(
+                    Icons.arrow_upward,
+                    size: 20,
+                    color: AppColors.primary,
+                  ),
+                  onPressed: () => _notifier.moveEducationUp(index),
+                  tooltip: 'Move Up',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              if (!isLast)
+                IconButton(
+                  icon: const Icon(
+                    Icons.arrow_downward,
+                    size: 20,
+                    color: AppColors.primary,
+                  ),
+                  onPressed: () => _notifier.moveEducationDown(index),
+                  tooltip: 'Move Down',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              IconButton(
+                icon: const Icon(
+                  Icons.edit,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
+                onPressed: () => _editEducation(education, index),
+                tooltip: 'Edit',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                onPressed: () => _deleteEducation(index),
+                tooltip: 'Delete',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            education.degree ?? 'Degree',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            education.university ?? 'University',
+            style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+          ),
+          if (education.fromDate != null || education.toDate != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              '${education.fromDate ?? ''} - ${education.toDate ?? ''}',
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.primary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+          if (education.courses != null && education.courses!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            const Text(
+              'Relevant Courses:',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...education.courses!.map(
+              (course) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('• ', style: TextStyle(fontSize: 14)),
+                    Expanded(
+                      child: Text(
+                        course,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[800],
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _addEducation() {
+    _showEducationDialog(null, null);
+  }
+
+  void _editEducation(Education education, int index) {
+    _showEducationDialog(education, index);
+  }
+
+  void _showEducationDialog(Education? education, int? index) {
+    final isEditing = education != null && index != null;
+
+    final degreeController = TextEditingController(
+      text: education?.degree ?? '',
+    );
+    final universityController = TextEditingController(
+      text: education?.university ?? '',
+    );
+    final fromDateController = TextEditingController(
+      text: education?.fromDate ?? '',
+    );
+    final toDateController = TextEditingController(
+      text: education?.toDate ?? '',
+    );
+
+    final coursesList = List<String>.from(education?.courses ?? []);
+    final coursesControllers = coursesList
+        .map((course) => TextEditingController(text: course))
+        .toList();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+              maxWidth: 500,
+            ),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
+                  Text(
+                    isEditing ? 'Edit Education' : 'Add Education',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Degree Field
+                  TextField(
+                    controller: degreeController,
+                    decoration: InputDecoration(
+                      labelText: 'Degree *',
+                      hintText: 'e.g., Bachelor of Science in Computer Science',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.primary),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF9FAFB),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // University Field
+                  TextField(
+                    controller: universityController,
+                    decoration: InputDecoration(
+                      labelText: 'University / Institution *',
+                      hintText: 'e.g., Stanford University',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.primary),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF9FAFB),
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Date Fields Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: fromDateController,
+                          decoration: InputDecoration(
+                            labelText: 'Start Date',
+                            hintText: '2018',
+                            hintStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF9FAFB),
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF1A1A1A),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: toDateController,
+                          decoration: InputDecoration(
+                            labelText: 'End Date',
+                            hintText: '2022',
+                            hintStyle: const TextStyle(
+                              color: Color(0xFF9CA3AF),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF9FAFB),
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF1A1A1A),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Courses Section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Relevant Courses',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1A1A1A),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () {
+                          setDialogState(() {
+                            coursesControllers.add(TextEditingController());
+                          });
+                        },
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Add'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Courses Items
+                  ...coursesControllers.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final controller = entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 16),
+                            child: Text('• ', style: TextStyle(fontSize: 16)),
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: controller,
+                              maxLines: 2,
+                              decoration: InputDecoration(
+                                hintText: 'Course name',
+                                hintStyle: const TextStyle(
+                                  color: Color(0xFF9CA3AF),
+                                  fontSize: 13,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFE5E7EB),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                                filled: true,
+                                fillColor: const Color(0xFFF9FAFB),
+                                contentPadding: const EdgeInsets.all(12),
+                              ),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF1A1A1A),
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.close,
+                              size: 18,
+                              color: Colors.red,
+                            ),
+                            onPressed: () {
+                              setDialogState(() {
+                                coursesControllers.removeAt(idx);
+                              });
+                            },
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+
+                  if (coursesControllers.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.grey[50],
+                      ),
+                      child: Center(
+                        child: Text(
+                          'No courses added yet. Click "Add" to add one.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(height: 24),
+
+                  // Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Container(
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE5E7EB),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF6B7280),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            // Validation
+                            if (degreeController.text.trim().isEmpty) {
+                              showErrorSnackBar(
+                                context: context,
+                                message: 'Degree is required',
+                              );
+                              return;
+                            }
+                            if (universityController.text.trim().isEmpty) {
+                              showErrorSnackBar(
+                                context: context,
+                                message: 'University is required',
+                              );
+                              return;
+                            }
+
+                            // Collect courses
+                            final courses = coursesControllers
+                                .map((c) => c.text.trim())
+                                .where((text) => text.isNotEmpty)
+                                .toList();
+
+                            // Create education object
+                            final educationObj = Education(
+                              degree: degreeController.text.trim(),
+                              university: universityController.text.trim(),
+                              fromDate: fromDateController.text.trim().isEmpty
+                                  ? null
+                                  : fromDateController.text.trim(),
+                              toDate: toDateController.text.trim().isEmpty
+                                  ? null
+                                  : toDateController.text.trim(),
+                              courses: courses.isEmpty ? null : courses,
+                            );
+
+                            // Add or update
+                            if (isEditing) {
+                              _notifier.updateEducation(index, educationObj);
+                              showSuccessSnackBar(
+                                context: context,
+                                message: 'Education updated',
+                              );
+                            } else {
+                              _notifier.addEducation(educationObj);
+                              showSuccessSnackBar(
+                                context: context,
+                                message: 'Education added',
+                              );
+                            }
+
+                            Navigator.of(context).pop();
+                          },
+                          child: Container(
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(
+                              child: Text(
+                                isEditing ? 'Update' : 'Add',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteEducation(int index) async {
+    final confirmed = await showConfirmationDialog(
+      context: context,
+      title: 'Delete Education?',
+      subtitle: 'This action cannot be undone.',
+      icon: Icons.delete_outline,
+      iconBackgroundColor: Colors.red,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      confirmButtonColor: Colors.red,
+    );
+
+    if (confirmed == true) {
+      _notifier.deleteEducation(index);
+      showSuccessSnackBar(context: context, message: 'Education deleted');
     }
   }
 }

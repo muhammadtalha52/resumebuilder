@@ -230,20 +230,13 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
           children: [
             Checkbox(
               value: _agreedToTerms,
-              onChanged: (value) async {
-                if (value == true) {
-                  // Show privacy policy before allowing user to check
-                  await context.push('/privacy-policy');
-                  // After user returns from privacy policy, check the box
-                  setState(() {
-                    _agreedToTerms = true;
+              onChanged: (value) {
+                setState(() {
+                  _agreedToTerms = value ?? false;
+                  if (_agreedToTerms) {
                     _termsError = null;
-                  });
-                } else {
-                  setState(() {
-                    _agreedToTerms = false;
-                  });
-                }
+                  }
+                });
               },
               activeColor: AppColors.primary,
               visualDensity: VisualDensity.compact,
@@ -263,6 +256,11 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
                     GestureDetector(
                       onTap: () {
                         context.push('/privacy-policy');
+                        // Auto-check the checkbox when user views the policy
+                        setState(() {
+                          _agreedToTerms = true;
+                          _termsError = null;
+                        });
                       },
                       child: Text(
                         'Privacy Policy',
@@ -284,6 +282,11 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
                     GestureDetector(
                       onTap: () {
                         context.push('/terms-of-use');
+                        // Auto-check the checkbox when user views the terms
+                        setState(() {
+                          _agreedToTerms = true;
+                          _termsError = null;
+                        });
                       },
                       child: Text(
                         'Terms of Use',

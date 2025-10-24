@@ -125,10 +125,16 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
           }
         }
 
-        final nowDateTime =
-            '${DateTime.now().toUtc().toIso8601String().split('.').first}Z';
+        final nowDateTime = DateTime.now().toUtc().toIso8601String();
         // Get updated session data
         final sessionData = _ref.read(interviewSessionProvider);
+
+        // Get duration from the model (passed from the summary screen)
+        final durationMinutes =
+            state.meetingSummaryModel!.duration?.inMinutes ?? 0;
+
+        print('[SAVE] Duration: $durationMinutes min, DateTime: $nowDateTime');
+
         var dataToApi = {
           'company_name': sessionData.companyName,
           'position_title': sessionData.positionTitle,
@@ -136,7 +142,7 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
           'role_industry': sessionData.roleIndustry,
           'job_description': sessionData.jobDescription,
           "interview_date": nowDateTime,
-          "duration_minutes": sessionData.duration?.inMinutes ?? 20,
+          "duration_minutes": durationMinutes,
           "transcript": completeTranscriptAndScoutResponses,
           "key_topics": summary.keyDiscussionPoints,
           "strength_highlight": summary.strengthsHighlighted,

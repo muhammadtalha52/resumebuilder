@@ -1,8 +1,19 @@
 class MeetingSummaryModel {
   final String? status;
   final Summary? summary;
+  final Duration? duration;
+  final String? sessionId;
+  final String? sessionType;
+  final DateTime? startTime;
 
-  MeetingSummaryModel({this.status, this.summary});
+  MeetingSummaryModel({
+    this.status,
+    this.summary,
+    this.duration,
+    this.sessionId,
+    this.sessionType,
+    this.startTime,
+  });
 
   factory MeetingSummaryModel.fromJson(dynamic json) {
     return MeetingSummaryModel(
@@ -24,6 +35,10 @@ class MeetingSummaryModel {
     return MeetingSummaryModel(
       status: status ?? this.status,
       summary: summary ?? this.summary,
+      duration: duration ?? this.duration,
+      sessionId: sessionId ?? this.sessionId,
+      sessionType: sessionType ?? this.sessionType,
+      startTime: startTime ?? this.startTime,
     );
   }
 
@@ -43,6 +58,7 @@ class Summary {
     List<String>? keyDiscussionPoints,
     List<String>? decisionsMade,
     List<String>? actionItems,
+    List<String>? candidateActionItems,
     List<String>? topMomentsInInterview,
     List<String>? potentialWeaknessOrStrengths,
     List<String>? aiDrivenInterviewAnalytics,
@@ -52,6 +68,7 @@ class Summary {
     _keyDiscussionPoints = keyDiscussionPoints;
     _decisionsMade = decisionsMade;
     _actionItems = actionItems;
+    _candidateActionItems = candidateActionItems;
     _topMomentsInInterview = topMomentsInInterview;
     _potentialWeaknessOrStrengths = potentialWeaknessOrStrengths;
     _aiDrivenInterviewAnalytics = aiDrivenInterviewAnalytics;
@@ -68,6 +85,9 @@ class Summary {
         : [];
     _actionItems = json['actionItems'] != null
         ? json['actionItems'].cast<String>()
+        : [];
+    _candidateActionItems = json['candidateActionItems'] != null
+        ? json['candidateActionItems'].cast<String>()
         : [];
     _topMomentsInInterview = json['topMomentsInInterview'] != null
         ? json['topMomentsInInterview'].cast<String>()
@@ -89,6 +109,7 @@ class Summary {
   List<String>? _keyDiscussionPoints;
   List<String>? _decisionsMade;
   List<String>? _actionItems;
+  List<String>? _candidateActionItems;
   List<String>? _topMomentsInInterview;
   List<String>? _potentialWeaknessOrStrengths;
   List<String>? _aiDrivenInterviewAnalytics;
@@ -100,6 +121,8 @@ class Summary {
   List<String>? get decisionsMade => _decisionsMade;
 
   List<String>? get actionItems => _actionItems;
+
+  List<String>? get candidateActionItems => _candidateActionItems;
 
   List<String>? get topMomentsInInterview => _topMomentsInInterview;
 
@@ -117,6 +140,7 @@ class Summary {
     map['keyDiscussionPoints'] = _keyDiscussionPoints;
     map['decisionsMade'] = _decisionsMade;
     map['actionItems'] = _actionItems;
+    map['candidateActionItems'] = _candidateActionItems;
     map['topMomentsInInterview'] = _topMomentsInInterview;
     map['potentialWeaknessOrStrengths'] = _potentialWeaknessOrStrengths;
     map['aiDrivenInterviewAnalytics'] = _aiDrivenInterviewAnalytics;

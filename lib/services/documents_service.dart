@@ -5,6 +5,7 @@ import '../models/quiz_history_response.dart';
 import '../models/quize_model.dart' as quiz;
 import '../utils/endpoint_headers.dart';
 import '../utils/s3_utils.dart';
+import '../utils/api_error_handler.dart';
 
 class DocumentsService {
   Future<doc.DocumentsResponse> getFolderItems({required int folderId}) async {
@@ -18,36 +19,12 @@ class DocumentsService {
       if (response.statusCode == 200 && response.data != null) {
         return doc.DocumentsResponse.fromJson(response.data);
       } else {
-        throw Exception(
-          response.data?['message'] ?? 'Failed to fetch documents',
-        );
+        throw Exception(ApiErrorHandler.extractErrorMessage(response.data));
       }
     } on DioException catch (e) {
-      if (e.response != null) {
-        final responseData = e.response!.data;
-        String errorMessage = 'Failed to fetch documents';
-
-        if (responseData is Map) {
-          if (responseData.containsKey('error')) {
-            errorMessage = responseData['error'].toString();
-          } else if (responseData.containsKey('message')) {
-            errorMessage = responseData['message'].toString();
-          } else if (responseData.containsKey('detail')) {
-            errorMessage = responseData['detail'].toString();
-          }
-        } else if (responseData is String) {
-          errorMessage = responseData;
-        }
-
-        throw Exception(errorMessage);
-      } else {
-        throw Exception('Network error: ${e.message}');
-      }
+      throw ApiErrorHandler.createException(e);
     } catch (e) {
-      if (e is Exception) {
-        rethrow;
-      }
-      throw Exception('Failed to fetch documents: $e');
+      throw ApiErrorHandler.createException(e);
     }
   }
 
@@ -86,32 +63,12 @@ class DocumentsService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return doc.Data.fromJson(response.data);
       } else {
-        throw Exception('Failed to save document');
+        throw Exception(ApiErrorHandler.extractErrorMessage(response.data));
       }
     } on DioException catch (e) {
-      if (e.response != null) {
-        final responseData = e.response!.data;
-        String errorMessage = 'Failed to save document';
-
-        if (responseData is Map) {
-          if (responseData.containsKey('error')) {
-            errorMessage = responseData['error'].toString();
-          } else if (responseData.containsKey('message')) {
-            errorMessage = responseData['message'].toString();
-          } else if (responseData.containsKey('detail')) {
-            errorMessage = responseData['detail'].toString();
-          }
-        }
-
-        throw Exception(errorMessage);
-      } else {
-        throw Exception('Network error: ${e.message}');
-      }
+      throw ApiErrorHandler.createException(e);
     } catch (e) {
-      if (e is Exception) {
-        rethrow;
-      }
-      throw Exception('Failed to save document: $e');
+      throw ApiErrorHandler.createException(e);
     }
   }
 
@@ -124,34 +81,12 @@ class DocumentsService {
       );
 
       if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception('Failed to delete document');
+        throw Exception(ApiErrorHandler.extractErrorMessage(response.data));
       }
     } on DioException catch (e) {
-      if (e.response != null) {
-        final responseData = e.response!.data;
-        String errorMessage = 'Failed to delete document';
-
-        if (responseData is Map) {
-          if (responseData.containsKey('error')) {
-            errorMessage = responseData['error'].toString();
-          } else if (responseData.containsKey('message')) {
-            errorMessage = responseData['message'].toString();
-          } else if (responseData.containsKey('detail')) {
-            errorMessage = responseData['detail'].toString();
-          }
-        } else if (responseData is String) {
-          errorMessage = responseData;
-        }
-
-        throw Exception(errorMessage);
-      } else {
-        throw Exception('Network error: ${e.message}');
-      }
+      throw ApiErrorHandler.createException(e);
     } catch (e) {
-      if (e is Exception) {
-        rethrow;
-      }
-      throw Exception('Failed to delete document: $e');
+      throw ApiErrorHandler.createException(e);
     }
   }
 
@@ -172,8 +107,9 @@ class DocumentsService {
       final quizDio = Dio(
         BaseOptions(
           baseUrl: ApiEndpoints.quizBaseUrl,
-          connectTimeout: const Duration(seconds: 120),
-          receiveTimeout: const Duration(seconds: 120),
+          connectTimeout: const Duration(minutes: 10),
+          sendTimeout: const Duration(minutes: 10),
+          receiveTimeout: const Duration(minutes: 10),
         ),
       );
 
@@ -185,57 +121,25 @@ class DocumentsService {
           headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         ),
       );
-
-      print('🎯 [QUIZ] Response status: ${response.statusCode}');
-      print('🎯 [QUIZ] Response data type: ${response.data.runtimeType}');
       print('🎯 [QUIZ] Response data: ${response.data}');
 
       if (response.statusCode == 200 && response.data != null) {
         print('🎯 [QUIZ] Parsing response...');
-
-        // Check if response.data is a Map
         if (response.data is Map) {
           print('🎯 [QUIZ] Response is a Map with keys: ${response.data.keys}');
         }
-
         final quizModel = quiz.QuizModel.fromJson(response.data);
         print('✅ [QUIZ] Quiz parsed successfully');
         return quizModel;
       } else {
-        throw Exception('Failed to generate quiz');
+        throw Exception(ApiErrorHandler.extractErrorMessage(response.data));
       }
     } on DioException catch (e) {
       print('❌ [QUIZ] DioException: ${e.message}');
-      print('❌ [QUIZ] Response: ${e.response?.data}');
-
-      if (e.response != null) {
-        final responseData = e.response!.data;
-        String errorMessage = 'Failed to generate quiz';
-
-        if (responseData is Map) {
-          if (responseData.containsKey('error')) {
-            errorMessage = responseData['error'].toString();
-          } else if (responseData.containsKey('message')) {
-            errorMessage = responseData['message'].toString();
-          } else if (responseData.containsKey('detail')) {
-            errorMessage = responseData['detail'].toString();
-          }
-        } else if (responseData is String) {
-          errorMessage = responseData;
-        }
-
-        throw Exception(errorMessage);
-      } else {
-        throw Exception('Network error: ${e.message}');
-      }
+      throw ApiErrorHandler.createException(e);
     } catch (e, stackTrace) {
       print('❌ [QUIZ] Unexpected error: $e');
-      print('❌ [QUIZ] Stack trace: $stackTrace');
-
-      if (e is Exception) {
-        rethrow;
-      }
-      throw Exception('Failed to generate quiz: $e');
+      throw ApiErrorHandler.createException(e);
     }
   }
 
@@ -277,38 +181,14 @@ class DocumentsService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         print('✅ [QUIZ] Quiz attempt saved successfully');
       } else {
-        throw Exception('Failed to save quiz attempt');
+        throw Exception(ApiErrorHandler.extractErrorMessage(response.data));
       }
     } on DioException catch (e) {
       print('❌ [QUIZ] Failed to save quiz attempt: ${e.message}');
-
-      if (e.response != null) {
-        final responseData = e.response!.data;
-        String errorMessage = 'Failed to save quiz attempt';
-
-        if (responseData is Map) {
-          if (responseData.containsKey('error')) {
-            errorMessage = responseData['error'].toString();
-          } else if (responseData.containsKey('message')) {
-            errorMessage = responseData['message'].toString();
-          } else if (responseData.containsKey('detail')) {
-            errorMessage = responseData['detail'].toString();
-          }
-        } else if (responseData is String) {
-          errorMessage = responseData;
-        }
-
-        throw Exception(errorMessage);
-      } else {
-        throw Exception('Network error: ${e.message}');
-      }
+      throw ApiErrorHandler.createException(e);
     } catch (e) {
       print('❌ [QUIZ] Unexpected error while saving quiz attempt: $e');
-
-      if (e is Exception) {
-        rethrow;
-      }
-      throw Exception('Failed to save quiz attempt: $e');
+      throw ApiErrorHandler.createException(e);
     }
   }
 
@@ -342,38 +222,14 @@ class DocumentsService {
         print('📝 [QUIZ] Found ${quizAttempts.length} quiz attempts');
         return quizAttempts;
       } else {
-        throw Exception('Failed to fetch quiz attempts');
+        throw Exception(ApiErrorHandler.extractErrorMessage(response.data));
       }
     } on DioException catch (e) {
       print('❌ [QUIZ] Failed to fetch quiz attempts: ${e.message}');
-
-      if (e.response != null) {
-        final responseData = e.response!.data;
-        String errorMessage = 'Failed to fetch quiz attempts';
-
-        if (responseData is Map) {
-          if (responseData.containsKey('error')) {
-            errorMessage = responseData['error'].toString();
-          } else if (responseData.containsKey('message')) {
-            errorMessage = responseData['message'].toString();
-          } else if (responseData.containsKey('detail')) {
-            errorMessage = responseData['detail'].toString();
-          }
-        } else if (responseData is String) {
-          errorMessage = responseData;
-        }
-
-        throw Exception(errorMessage);
-      } else {
-        throw Exception('Network error: ${e.message}');
-      }
+      throw ApiErrorHandler.createException(e);
     } catch (e) {
       print('❌ [QUIZ] Unexpected error while fetching quiz attempts: $e');
-
-      if (e is Exception) {
-        rethrow;
-      }
-      throw Exception('Failed to fetch quiz attempts: $e');
+      throw ApiErrorHandler.createException(e);
     }
   }
 }

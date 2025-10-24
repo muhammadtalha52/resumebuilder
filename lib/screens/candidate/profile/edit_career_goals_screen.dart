@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../models/user_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/profile_provider.dart';
 import '../../../utils/snackbar_utils.dart';
@@ -25,25 +26,26 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
   final TextEditingController _longTermGoalsController =
       TextEditingController();
 
-  List<String> _jobTitles = [];
-  List<String> _industries = [];
-  List<String> _longTermGoals = [];
+  // Store objects to preserve IDs and metadata
+  List<DesiredJobTitle> _jobTitleObjects = [];
+  List<IndustryPreference> _industryObjects = [];
+  List<CareerGoal> _longTermGoalObjects = [];
   List<String> _locationPreferences = [];
+
   String? _jobTitlesError;
   String? _industriesError;
   String? _locationError;
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
 
   // Store original values for comparison
-  List<String> _originalJobTitles = [];
-  List<String> _originalIndustries = [];
-  List<String> _originalLongTermGoals = [];
+  List<DesiredJobTitle> _originalJobTitleObjects = [];
+  List<IndustryPreference> _originalIndustryObjects = [];
+  List<CareerGoal> _originalLongTermGoalObjects = [];
   List<String> _originalLocationPreferences = [];
 
   @override
   void initState() {
     super.initState();
-    // Delay the provider initialization to avoid modifying state during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUserData();
     });
@@ -54,34 +56,59 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
     final user = authState.user;
 
     if (user != null) {
-      // Load job titles from list
+      // Load job title objects - preserving IDs
       if (user.desiredJobTitles != null && user.desiredJobTitles!.isNotEmpty) {
-        _jobTitles = List.from(user.desiredJobTitles!);
-        _originalJobTitles = List.from(_jobTitles);
+        _jobTitleObjects = List.from(user.desiredJobTitles!);
+        _originalJobTitleObjects = List.from(_jobTitleObjects);
       }
 
-      // Load industries from list
+      // Load industry objects - preserving IDs
       if (user.industryPreferences != null &&
           user.industryPreferences!.isNotEmpty) {
-        _industries = List.from(user.industryPreferences!);
-        _originalIndustries = List.from(_industries);
+        _industryObjects = List.from(user.industryPreferences!);
+        _originalIndustryObjects = List.from(_industryObjects);
       }
 
-      // Load long-term goals from list
+      // Load career goal objects - preserving IDs
       if (user.careerGoals != null && user.careerGoals!.isNotEmpty) {
-        _longTermGoals = List.from(user.careerGoals!);
-        _originalLongTermGoals = List.from(_longTermGoals);
+        _longTermGoalObjects = List.from(user.careerGoals!);
+        _originalLongTermGoalObjects = List.from(_longTermGoalObjects);
       }
 
-      // Load location preferences
+      // Load location preferences - extract locationType strings from objects
       if (user.locationPreferences != null &&
           user.locationPreferences!.isNotEmpty) {
-        _locationPreferences = List.from(user.locationPreferences!);
+        _locationPreferences = user.locationPreferences!
+            .map((e) => e.locationType ?? '')
+            .where((s) => s.isNotEmpty)
+            .toList();
         _originalLocationPreferences = List.from(_locationPreferences);
       }
 
       setState(() {});
     }
+  }
+
+  // Helper methods to convert between objects and strings for display
+  List<String> _jobTitleStrings() {
+    return _jobTitleObjects
+        .map((e) => e.title ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
+  List<String> _industryStrings() {
+    return _industryObjects
+        .map((e) => e.industry ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
+  List<String> _longTermGoalStrings() {
+    return _longTermGoalObjects
+        .map((e) => e.goal ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
   }
 
   @override
@@ -92,42 +119,87 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
     super.dispose();
   }
 
-  void _addTag(
-    String tag,
-    List<String> list,
-    TextEditingController controller,
-  ) {
-    if (tag.trim().isNotEmpty && !list.contains(tag.trim())) {
-      setState(() {
-        list.add(tag.trim());
-        // Clear errors when adding tags
-        if (list == _jobTitles) _jobTitlesError = null;
-        if (list == _industries) _industriesError = null;
-      });
-      controller.clear();
-    }
+  // Add job title - create new object or preserve existing
+  void _addJobTitle(String tag) {
+    final trimmed = tag.trim();
+    if (trimmed.isEmpty) return;
+
+    // Check if already exists
+    if (_jobTitleObjects.any((obj) => obj.title == trimmed)) return;
+
+    setState(() {
+      // Add new object without ID (backend will assign)
+      _jobTitleObjects.add(DesiredJobTitle(title: trimmed));
+      _jobTitlesError = null;
+    });
+    _jobTitlesController.clear();
   }
 
-  void _removeTag(String tag, List<String> list) {
+  // Remove job title object
+  void _removeJobTitle(String tag) {
     setState(() {
-      list.remove(tag);
+      _jobTitleObjects.removeWhere((obj) => obj.title == tag);
     });
   }
 
-  void _clearTagError(List<String> list) {
+  // Add industry - create new object or preserve existing
+  void _addIndustry(String tag) {
+    final trimmed = tag.trim();
+    if (trimmed.isEmpty) return;
+
+    // Check if already exists
+    if (_industryObjects.any((obj) => obj.industry == trimmed)) return;
+
     setState(() {
-      if (list == _jobTitles) _jobTitlesError = null;
-      if (list == _industries) _industriesError = null;
+      // Add new object without ID (backend will assign)
+      _industryObjects.add(IndustryPreference(industry: trimmed));
+      _industriesError = null;
+    });
+    _industriesController.clear();
+  }
+
+  // Remove industry object
+  void _removeIndustry(String tag) {
+    setState(() {
+      _industryObjects.removeWhere((obj) => obj.industry == tag);
+    });
+  }
+
+  // Add long-term goal - create new object or preserve existing
+  void _addLongTermGoal(String tag) {
+    final trimmed = tag.trim();
+    if (trimmed.isEmpty) return;
+
+    // Check if already exists
+    if (_longTermGoalObjects.any((obj) => obj.goal == trimmed)) return;
+
+    setState(() {
+      // Add new object without ID (backend will assign)
+      _longTermGoalObjects.add(CareerGoal(goal: trimmed));
+    });
+    _longTermGoalsController.clear();
+  }
+
+  // Remove long-term goal object
+  void _removeLongTermGoal(String tag) {
+    setState(() {
+      _longTermGoalObjects.removeWhere((obj) => obj.goal == tag);
     });
   }
 
   bool _hasChanges() {
-    // Check if any field has changed
-    final jobTitlesChanged = !_listEquals(_jobTitles, _originalJobTitles);
-    final industriesChanged = !_listEquals(_industries, _originalIndustries);
+    // Compare object lists by their string values
+    final jobTitlesChanged = !_listEquals(
+      _jobTitleStrings(),
+      _originalJobTitleObjects.map((e) => e.title ?? '').toList(),
+    );
+    final industriesChanged = !_listEquals(
+      _industryStrings(),
+      _originalIndustryObjects.map((e) => e.industry ?? '').toList(),
+    );
     final longTermGoalsChanged = !_listEquals(
-      _longTermGoals,
-      _originalLongTermGoals,
+      _longTermGoalStrings(),
+      _originalLongTermGoalObjects.map((e) => e.goal ?? '').toList(),
     );
     final locationChanged = !_listEquals(
       _locationPreferences,
@@ -157,12 +229,12 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
       _locationError = null;
       _autovalidateMode = AutovalidateMode.onUserInteraction;
 
-      if (_jobTitles.isEmpty) {
+      if (_jobTitleObjects.isEmpty) {
         _jobTitlesError = 'Please add at least one job title';
         hasCustomErrors = true;
       }
 
-      if (_industries.isEmpty) {
+      if (_industryObjects.isEmpty) {
         _industriesError = 'Please add at least one industry';
         hasCustomErrors = true;
       }
@@ -183,18 +255,30 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
       // Prepare the update data
       final updateData = <String, dynamic>{};
 
-      // Send lists directly as arrays for API
-      // Only add fields that have changed
-      if (!_listEquals(_jobTitles, _originalJobTitles)) {
-        updateData['desired_job_titles'] = _jobTitles;
+      // Send string arrays for API (backend expects string arrays, not objects)
+      final jobTitlesChanged = !_listEquals(
+        _jobTitleStrings(),
+        _originalJobTitleObjects.map((e) => e.title ?? '').toList(),
+      );
+      final industriesChanged = !_listEquals(
+        _industryStrings(),
+        _originalIndustryObjects.map((e) => e.industry ?? '').toList(),
+      );
+      final longTermGoalsChanged = !_listEquals(
+        _longTermGoalStrings(),
+        _originalLongTermGoalObjects.map((e) => e.goal ?? '').toList(),
+      );
+
+      if (jobTitlesChanged) {
+        updateData['desired_job_titles'] = _jobTitleStrings();
       }
 
-      if (!_listEquals(_industries, _originalIndustries)) {
-        updateData['industry_preferences'] = _industries;
+      if (industriesChanged) {
+        updateData['industry_preferences'] = _industryStrings();
       }
 
-      if (!_listEquals(_longTermGoals, _originalLongTermGoals)) {
-        updateData['long_term_career_goals'] = _longTermGoals;
+      if (longTermGoalsChanged) {
+        updateData['long_term_career_goals'] = _longTermGoalStrings();
       }
 
       // Add location preferences if changed
@@ -270,16 +354,13 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
                               TagField(
                                 label: 'Desired Job Titles',
                                 isRequired: false,
-                                tags: _jobTitles,
+                                tags: _jobTitleStrings(),
                                 controller: _jobTitlesController,
-                                onAdd: (tag) => _addTag(
-                                  tag,
-                                  _jobTitles,
-                                  _jobTitlesController,
-                                ),
-                                onRemove: (tag) => _removeTag(tag, _jobTitles),
+                                onAdd: _addJobTitle,
+                                onRemove: _removeJobTitle,
                                 errorText: _jobTitlesError,
-                                onClearError: () => _clearTagError(_jobTitles),
+                                onClearError: () =>
+                                    setState(() => _jobTitlesError = null),
                               ),
                               const SizedBox(height: 24),
 
@@ -287,16 +368,13 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
                               TagField(
                                 label: 'Preferred Industries',
                                 isRequired: false,
-                                tags: _industries,
+                                tags: _industryStrings(),
                                 controller: _industriesController,
-                                onAdd: (tag) => _addTag(
-                                  tag,
-                                  _industries,
-                                  _industriesController,
-                                ),
-                                onRemove: (tag) => _removeTag(tag, _industries),
+                                onAdd: _addIndustry,
+                                onRemove: _removeIndustry,
                                 errorText: _industriesError,
-                                onClearError: () => _clearTagError(_industries),
+                                onClearError: () =>
+                                    setState(() => _industriesError = null),
                               ),
                               const SizedBox(height: 24),
 
@@ -324,15 +402,10 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
                               TagField(
                                 label: 'Long-term Goals',
                                 isRequired: false,
-                                tags: _longTermGoals,
+                                tags: _longTermGoalStrings(),
                                 controller: _longTermGoalsController,
-                                onAdd: (tag) => _addTag(
-                                  tag,
-                                  _longTermGoals,
-                                  _longTermGoalsController,
-                                ),
-                                onRemove: (tag) =>
-                                    _removeTag(tag, _longTermGoals),
+                                onAdd: _addLongTermGoal,
+                                onRemove: _removeLongTermGoal,
                                 errorText: null,
                                 onClearError: () {},
                               ),

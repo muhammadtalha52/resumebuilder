@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import '../../constants/app_colors.dart';
 import '../../models/quiz_history_response.dart';
 import '../../models/quize_model.dart';
 import '../../providers/quiz_history_provider.dart';
+import '../../utils/date_helpers.dart';
 import '../../widgets/common/custom_app_bar.dart';
 
 class QuizHistoryScreen extends ConsumerStatefulWidget {
@@ -158,16 +158,11 @@ class _QuizHistoryScreenState extends ConsumerState<QuizHistoryScreen> {
     final correctAnswers = attempt.correctAnswers ?? 0;
     final percentage = double.tryParse(attempt.scorePercentage ?? '0') ?? 0.0;
 
-    // Format date
-    String formattedDate = 'Recently';
-    if (attempt.completedAt != null) {
-      try {
-        final date = DateTime.parse(attempt.completedAt!);
-        formattedDate = DateFormat('MMM dd, yyyy • hh:mm a').format(date);
-      } catch (e) {
-        // Use default if parsing fails
-      }
-    }
+    // Format date - convert UTC to local time
+    final formattedDate = DateHelpers.formatUtcToLocal(
+      attempt.completedAt,
+      defaultValue: 'Recently',
+    );
 
     // Convert QuizSnapshot to QuizModel for review screen
     QuizModel? quizModel;

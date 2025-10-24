@@ -3,11 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../models/user_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/profile_provider.dart';
 import '../../../utils/snackbar_utils.dart';
-import '../../../widgets/common/custom_app_bar.dart';
-import '../../../widgets/common/custom_picker_field.dart';
 import '../../../widgets/common/custom_text_field.dart';
 import '../../../widgets/common/tag_field.dart';
 
@@ -27,22 +26,22 @@ class _EditOthersScreenState extends ConsumerState<EditOthersScreen> {
       TextEditingController();
   final TextEditingController _referencesController = TextEditingController();
 
-  List<String> _languages = [];
-  List<String> _volunteerWork = [];
-  List<String> _hobbiesInterests = [];
+  // Store objects to preserve IDs
+  List<Language> _languageObjects = [];
+  List<VolunteerWork> _volunteerWorkObjects = [];
+  List<HobbyInterest> _hobbyObjects = [];
   String _references = '';
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
 
   // Store original values for comparison
-  List<String> _originalLanguages = [];
-  List<String> _originalVolunteerWork = [];
-  List<String> _originalHobbiesInterests = [];
+  List<Language> _originalLanguageObjects = [];
+  List<VolunteerWork> _originalVolunteerWorkObjects = [];
+  List<HobbyInterest> _originalHobbyObjects = [];
   String _originalReferences = '';
 
   @override
   void initState() {
     super.initState();
-    // Delay the provider initialization to avoid modifying state during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUserData();
     });
@@ -53,22 +52,20 @@ class _EditOthersScreenState extends ConsumerState<EditOthersScreen> {
     final user = authState.user;
 
     if (user != null) {
-      // Load languages from list
+      // Load objects preserving IDs
       if (user.languages != null && user.languages!.isNotEmpty) {
-        _languages = List.from(user.languages!);
-        _originalLanguages = List.from(_languages);
+        _languageObjects = List.from(user.languages!);
+        _originalLanguageObjects = List.from(_languageObjects);
       }
 
-      // Load volunteer work from list
       if (user.volunteerWork != null && user.volunteerWork!.isNotEmpty) {
-        _volunteerWork = List.from(user.volunteerWork!);
-        _originalVolunteerWork = List.from(_volunteerWork);
+        _volunteerWorkObjects = List.from(user.volunteerWork!);
+        _originalVolunteerWorkObjects = List.from(_volunteerWorkObjects);
       }
 
-      // Load hobbies & interests from list
       if (user.hobbiesInterests != null && user.hobbiesInterests!.isNotEmpty) {
-        _hobbiesInterests = List.from(user.hobbiesInterests!);
-        _originalHobbiesInterests = List.from(_hobbiesInterests);
+        _hobbyObjects = List.from(user.hobbiesInterests!);
+        _originalHobbyObjects = List.from(_hobbyObjects);
       }
 
       // Set references
@@ -80,6 +77,28 @@ class _EditOthersScreenState extends ConsumerState<EditOthersScreen> {
     }
   }
 
+  // Helper methods to convert objects to strings for display
+  List<String> _languageStrings() {
+    return _languageObjects
+        .map((e) => e.language ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
+  List<String> _volunteerWorkStrings() {
+    return _volunteerWorkObjects
+        .map((e) => e.organization ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
+  List<String> _hobbyStrings() {
+    return _hobbyObjects
+        .map((e) => e.hobbyInterest ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
   @override
   void dispose() {
     _languagesController.dispose();
@@ -89,40 +108,75 @@ class _EditOthersScreenState extends ConsumerState<EditOthersScreen> {
     super.dispose();
   }
 
-  void _addTag(
-    String tag,
-    List<String> list,
-    TextEditingController controller,
-  ) {
-    if (tag.trim().isNotEmpty && !list.contains(tag.trim())) {
-      setState(() {
-        list.add(tag.trim());
-      });
-      controller.clear();
-    }
+  // Add language
+  void _addLanguage(String tag) {
+    final trimmed = tag.trim();
+    if (trimmed.isEmpty) return;
+
+    if (_languageObjects.any((obj) => obj.language == trimmed)) return;
+
+    setState(() {
+      _languageObjects.add(Language(language: trimmed));
+    });
+    _languagesController.clear();
   }
 
-  void _removeTag(String tag, List<String> list) {
+  void _removeLanguage(String tag) {
     setState(() {
-      list.remove(tag);
+      _languageObjects.removeWhere((obj) => obj.language == tag);
     });
   }
 
-  void _clearTagError(List<String> list) {
-    // No specific errors for others fields as they're optional
-    setState(() {});
+  // Add volunteer work
+  void _addVolunteerWork(String tag) {
+    final trimmed = tag.trim();
+    if (trimmed.isEmpty) return;
+
+    if (_volunteerWorkObjects.any((obj) => obj.organization == trimmed)) return;
+
+    setState(() {
+      _volunteerWorkObjects.add(VolunteerWork(organization: trimmed));
+    });
+    _volunteerWorkController.clear();
+  }
+
+  void _removeVolunteerWork(String tag) {
+    setState(() {
+      _volunteerWorkObjects.removeWhere((obj) => obj.organization == tag);
+    });
+  }
+
+  // Add hobby/interest
+  void _addHobby(String tag) {
+    final trimmed = tag.trim();
+    if (trimmed.isEmpty) return;
+
+    if (_hobbyObjects.any((obj) => obj.hobbyInterest == trimmed)) return;
+
+    setState(() {
+      _hobbyObjects.add(HobbyInterest(hobbyInterest: trimmed));
+    });
+    _hobbiesInterestsController.clear();
+  }
+
+  void _removeHobby(String tag) {
+    setState(() {
+      _hobbyObjects.removeWhere((obj) => obj.hobbyInterest == tag);
+    });
   }
 
   bool _hasChanges() {
-    // Check if any field has changed
-    final languagesChanged = !_listEquals(_languages, _originalLanguages);
+    final languagesChanged = !_listEquals(
+      _languageStrings(),
+      _originalLanguageObjects.map((e) => e.language ?? '').toList(),
+    );
     final volunteerWorkChanged = !_listEquals(
-      _volunteerWork,
-      _originalVolunteerWork,
+      _volunteerWorkStrings(),
+      _originalVolunteerWorkObjects.map((e) => e.organization ?? '').toList(),
     );
     final hobbiesChanged = !_listEquals(
-      _hobbiesInterests,
-      _originalHobbiesInterests,
+      _hobbyStrings(),
+      _originalHobbyObjects.map((e) => e.hobbyInterest ?? '').toList(),
     );
     final referencesChanged = _references != _originalReferences;
 
@@ -150,18 +204,30 @@ class _EditOthersScreenState extends ConsumerState<EditOthersScreen> {
     // Prepare the update data
     final updateData = <String, dynamic>{};
 
-    // Send lists directly as arrays for API
-    // Only add fields that have changed
-    if (!_listEquals(_languages, _originalLanguages)) {
-      updateData['languages'] = _languages;
+    // Send string arrays for API
+    final languagesChanged = !_listEquals(
+      _languageStrings(),
+      _originalLanguageObjects.map((e) => e.language ?? '').toList(),
+    );
+    final volunteerWorkChanged = !_listEquals(
+      _volunteerWorkStrings(),
+      _originalVolunteerWorkObjects.map((e) => e.organization ?? '').toList(),
+    );
+    final hobbiesChanged = !_listEquals(
+      _hobbyStrings(),
+      _originalHobbyObjects.map((e) => e.hobbyInterest ?? '').toList(),
+    );
+
+    if (languagesChanged) {
+      updateData['languages'] = _languageStrings();
     }
 
-    if (!_listEquals(_volunteerWork, _originalVolunteerWork)) {
-      updateData['volunteer_work'] = _volunteerWork;
+    if (volunteerWorkChanged) {
+      updateData['volunteer_work'] = _volunteerWorkStrings();
     }
 
-    if (!_listEquals(_hobbiesInterests, _originalHobbiesInterests)) {
-      updateData['hobbies_interests'] = _hobbiesInterests;
+    if (hobbiesChanged) {
+      updateData['hobbies_interests'] = _hobbyStrings();
     }
 
     if (_references != _originalReferences) {
@@ -262,16 +328,12 @@ class _EditOthersScreenState extends ConsumerState<EditOthersScreen> {
                               TagField(
                                 label: 'Languages',
                                 isRequired: false,
-                                tags: _languages,
+                                tags: _languageStrings(),
                                 controller: _languagesController,
-                                onAdd: (tag) => _addTag(
-                                  tag,
-                                  _languages,
-                                  _languagesController,
-                                ),
-                                onRemove: (tag) => _removeTag(tag, _languages),
+                                onAdd: _addLanguage,
+                                onRemove: _removeLanguage,
                                 errorText: null,
-                                onClearError: () => _clearTagError(_languages),
+                                onClearError: () {},
                               ),
                               const SizedBox(height: 24),
 
@@ -279,18 +341,12 @@ class _EditOthersScreenState extends ConsumerState<EditOthersScreen> {
                               TagField(
                                 label: 'Volunteer Work',
                                 isRequired: false,
-                                tags: _volunteerWork,
+                                tags: _volunteerWorkStrings(),
                                 controller: _volunteerWorkController,
-                                onAdd: (tag) => _addTag(
-                                  tag,
-                                  _volunteerWork,
-                                  _volunteerWorkController,
-                                ),
-                                onRemove: (tag) =>
-                                    _removeTag(tag, _volunteerWork),
+                                onAdd: _addVolunteerWork,
+                                onRemove: _removeVolunteerWork,
                                 errorText: null,
-                                onClearError: () =>
-                                    _clearTagError(_volunteerWork),
+                                onClearError: () {},
                               ),
                               const SizedBox(height: 24),
 
@@ -298,18 +354,12 @@ class _EditOthersScreenState extends ConsumerState<EditOthersScreen> {
                               TagField(
                                 label: 'Hobbies & Interests',
                                 isRequired: false,
-                                tags: _hobbiesInterests,
+                                tags: _hobbyStrings(),
                                 controller: _hobbiesInterestsController,
-                                onAdd: (tag) => _addTag(
-                                  tag,
-                                  _hobbiesInterests,
-                                  _hobbiesInterestsController,
-                                ),
-                                onRemove: (tag) =>
-                                    _removeTag(tag, _hobbiesInterests),
+                                onAdd: _addHobby,
+                                onRemove: _removeHobby,
                                 errorText: null,
-                                onClearError: () =>
-                                    _clearTagError(_hobbiesInterests),
+                                onClearError: () {},
                               ),
                               const SizedBox(height: 24),
 

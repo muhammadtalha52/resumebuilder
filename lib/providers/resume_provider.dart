@@ -488,7 +488,28 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
 
   /// Update the generated resume data with edited content
   void updateGeneratedResume(GenerateResumeResponse updatedResumeData) {
-    state = state.copyWith(generatedResumeData: updatedResumeData);
+    print('🔄 ResumeProvider.updateGeneratedResume called');
+    print(
+      '📋 Old PDF length: ${state.generatedResumeData?.pdfBase64?.length ?? 0}',
+    );
+    print('📋 New PDF length: ${updatedResumeData.pdfBase64?.length ?? 0}');
+    print('📋 Old object hashCode: ${state.generatedResumeData?.hashCode}');
+    print('📋 New object hashCode: ${updatedResumeData.hashCode}');
+
+    // Create a completely new instance to ensure Riverpod detects the change
+    final newResumeData = GenerateResumeResponse(
+      resumeData: updatedResumeData.resumeData,
+      pdfBase64: updatedResumeData.pdfBase64,
+      regeneratedSections: updatedResumeData.regeneratedSections,
+    );
+
+    print('📋 Final object hashCode: ${newResumeData.hashCode}');
+
+    state = state.copyWith(generatedResumeData: newResumeData);
+
+    print(
+      '✅ State updated - generatedResumeData hashCode: ${state.generatedResumeData?.hashCode}',
+    );
   }
 
   /// Convert current resume data to PDF using specified template

@@ -371,14 +371,26 @@ class _InterviewSummaryScreenState extends ConsumerState<MeetingSummaryScreen> {
                                       ],
 
                                       // Action Items
-                                      if (summaryData.actionItems != null &&
-                                          summaryData
-                                              .actionItems!
-                                              .isNotEmpty) ...[
+                                      if ((summaryData.candidateActionItems !=
+                                                  null &&
+                                              summaryData
+                                                  .candidateActionItems!
+                                                  .isNotEmpty) ||
+                                          (summaryData.actionItems != null &&
+                                              summaryData
+                                                  .actionItems!
+                                                  .isNotEmpty)) ...[
                                         const SizedBox(height: 24),
                                         _buildSection(
                                           'Action Items',
-                                          summaryData.actionItems!,
+                                          summaryData.candidateActionItems !=
+                                                      null &&
+                                                  summaryData
+                                                      .candidateActionItems!
+                                                      .isNotEmpty
+                                              ? summaryData
+                                                    .candidateActionItems!
+                                              : summaryData.actionItems!,
                                           Colors.purple,
                                           isCheckmark: true,
                                         ),

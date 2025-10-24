@@ -1061,7 +1061,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
         // Decode base64 PDF
         final pdfBytes = base64Decode(generatedResumeData.pdfBase64!);
 
-        // Generate filename with company and job title if available
+        // Generate unique filename with company, job title, and timestamp
         final companyName = _companyController.text.trim().replaceAll(
           RegExp(r'[^a-zA-Z0-9]'),
           '_',
@@ -1071,14 +1071,16 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           '_',
         );
         final dateStr = DateTime.now().toString().split(' ')[0];
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
 
         String fileName;
         if (companyName.isNotEmpty && jobTitle.isNotEmpty) {
-          fileName = 'resume_${companyName}_${jobTitle}_$dateStr.pdf';
+          fileName =
+              'resume_${companyName}_${jobTitle}_${dateStr}_$timestamp.pdf';
         } else if (jobTitle.isNotEmpty) {
-          fileName = 'resume_${jobTitle}_$dateStr.pdf';
+          fileName = 'resume_${jobTitle}_${dateStr}_$timestamp.pdf';
         } else {
-          fileName = 'resume_$dateStr.pdf';
+          fileName = 'resume_${dateStr}_$timestamp.pdf';
         }
 
         // Platform-specific handling
@@ -2381,8 +2383,9 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                       child: Stack(
                         children: [
                           // PDF viewer widget that handles dynamic updates
+                          // Use UniqueKey to force rebuild on every PDF change
                           _DynamicPdfViewer(
-                            key: ValueKey('pdf_${pdfBytes.hashCode}'),
+                            key: ValueKey(pdfBytes.length),
                             pdfBytes: pdfBytes,
                           ),
                           // Overlay with PDF info and tap hint
@@ -2825,8 +2828,13 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
   }
 
   void _handleResumeUpdate(dynamic updatedResumeData) {
+    print('🔄 _handleResumeUpdate called');
+    print('📋 Updated PDF length: ${updatedResumeData.pdfBase64?.length ?? 0}');
+
     // Update the provider with new data (already contains updated PDF)
     ref.read(resumeProvider.notifier).updateGeneratedResume(updatedResumeData);
+
+    print('✅ Provider updated with new resume data');
 
     // Refresh the UI to show updated data
     setState(() {});
@@ -2861,7 +2869,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
   void _showSaveDialog(BuildContext parentContext) {
     showDialog(
       context: context,
-      barrierDismissible: false, // Prevent dismissal during loading
+      barrierDismissible: true, // Allow dismissal by tapping outside
       builder: (BuildContext context) {
         return _SaveDialog(
           onSave: () async {
@@ -2870,10 +2878,6 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
               Navigator.of(context).pop(); // Close dialog
               parentContext.pop(); // Navigate back
             }
-          },
-          onSkip: () {
-            Navigator.of(context).pop(); // Close dialog
-            parentContext.pop(); // Navigate back without saving
           },
         );
       },
@@ -2913,9 +2917,8 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
 
 class _SaveDialog extends StatefulWidget {
   final Future<void> Function() onSave;
-  final VoidCallback onSkip;
 
-  const _SaveDialog({required this.onSave, required this.onSkip});
+  const _SaveDialog({required this.onSave});
 
   @override
   State<_SaveDialog> createState() => _SaveDialogState();
@@ -2971,6 +2974,7 @@ class _SaveDialogState extends State<_SaveDialog> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
+            minimumSize: const Size(120, 44),
           ),
           child: _isLoading
               ? SizedBox(
@@ -3029,8 +3033,13 @@ class _DynamicPdfViewerState extends State<_DynamicPdfViewer> {
   @override
   void didUpdateWidget(_DynamicPdfViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Check if PDF content has changed and update if needed
-    if (widget.pdfBytes.hashCode != _currentPdfBytes.hashCode) {
+    // Always update when widget receives new bytes reference
+    // Even if length is same, content might have changed
+    if (!identical(widget.pdfBytes, _currentPdfBytes)) {
+      print(
+        '📄 PDF bytes changed: ${_currentPdfBytes.length} -> ${widget.pdfBytes.length}',
+      );
+      print('📄 Force updating PDF viewer');
       setState(() {
         _currentPdfBytes = widget.pdfBytes;
       });

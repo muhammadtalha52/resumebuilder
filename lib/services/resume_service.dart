@@ -237,12 +237,11 @@ class ResumeService {
       );
 
       // Add optional parameters if provided
-      if (jobUrl != null && jobUrl.isNotEmpty) {
-        formData.fields.add(MapEntry('job_url', jobUrl));
-      }
-
+      // Prioritize job_description if both are provided (API accepts only one)
       if (jobDescription != null && jobDescription.isNotEmpty) {
         formData.fields.add(MapEntry('job_description', jobDescription));
+      } else if (jobUrl != null && jobUrl.isNotEmpty) {
+        formData.fields.add(MapEntry('job_url', jobUrl));
       }
 
       // Add template
@@ -327,12 +326,11 @@ class ResumeService {
       );
 
       // Add optional parameters if provided
-      if (jobUrl != null && jobUrl.isNotEmpty) {
-        formData.fields.add(MapEntry('job_url', jobUrl));
-      }
-
+      // Prioritize job_description if both are provided (API accepts only one)
       if (jobDescription != null && jobDescription.isNotEmpty) {
         formData.fields.add(MapEntry('job_description', jobDescription));
+      } else if (jobUrl != null && jobUrl.isNotEmpty) {
+        formData.fields.add(MapEntry('job_url', jobUrl));
       }
 
       // Add template parameter

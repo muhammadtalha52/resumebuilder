@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../constants/app_colors.dart';
 import '../../../main.dart';
 import '../../../providers/history_provider.dart';
+import '../../../utils/date_helpers.dart';
 import '../../../utils/endpoint_headers.dart';
 import '../../../utils/s3_utils.dart';
 import '../../../utils/snackbar_utils.dart';
@@ -201,25 +202,7 @@ class _ResumeHistoryScreenState extends ConsumerState<ResumeHistoryScreen> {
         : resume.jobTitle.isNotEmpty
         ? resume.jobTitle
         : 'Resume';
-    return '$company, ${_formatDate(resume.createdAt)}';
-  }
-
-  String _formatDate(DateTime date) {
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
+    return '$company, ${DateHelpers.formatDateTimeToLocal(resume.createdAt, defaultValue: 'N/A')}';
   }
 
   Future<void> _downloadResume(

@@ -28,19 +28,26 @@ class DashboardScreen extends ConsumerWidget {
               fit: BoxFit.cover,
             ),
           ),
-          SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 10),
-                _buildWelcomeSection(ref),
-                const SizedBox(height: 10),
-                _buildProgressAndMetricsSection(ref),
-                const SizedBox(height: 24),
-                _buildRecentActivitySection(ref),
-                const SizedBox(height: 20),
-              ],
+          RefreshIndicator(
+            onRefresh: () async {
+              // Invalidate dashboard provider to trigger refresh
+              ref.invalidate(dashboardStatsProvider);
+            },
+            color: AppColors.primary,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 10),
+                  _buildWelcomeSection(ref),
+                  const SizedBox(height: 10),
+                  _buildProgressAndMetricsSection(ref),
+                  const SizedBox(height: 24),
+                  _buildRecentActivitySection(ref),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
         ],
@@ -91,9 +98,11 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildProgressAndMetricsSection(WidgetRef ref) {
-    final selectedTab = ref.watch(selectedTabProvider);
-    final filterMap = {0: 'day', 1: 'week', 2: 'month'};
-    final currentFilter = filterMap[selectedTab];
+    // Commented out tab selection - using default 'week' filter
+    // final selectedTab = ref.watch(selectedTabProvider);
+    // final filterMap = {0: 'day', 1: 'week', 2: 'month'};
+    // final currentFilter = filterMap[selectedTab];
+    final currentFilter = 'week'; // Default filter
     final dashboardStatsAsync = ref.watch(
       dashboardStatsProvider(currentFilter),
     );
@@ -123,21 +132,22 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            padding: const EdgeInsets.all(4),
-            child: Row(
-              children: [
-                _buildTabButton(ref, 'Day', 0, selectedTab),
-                _buildTabButton(ref, 'Week', 1, selectedTab),
-                _buildTabButton(ref, 'Month', 2, selectedTab),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
+          // Commented out tab buttons for Day/Week/Month filter
+          // Container(
+          //   decoration: BoxDecoration(
+          //     color: const Color(0xFFF5F5F5),
+          //     borderRadius: BorderRadius.circular(10),
+          //   ),
+          //   padding: const EdgeInsets.all(4),
+          //   child: Row(
+          //     children: [
+          //       _buildTabButton(ref, 'Day', 0, selectedTab),
+          //       _buildTabButton(ref, 'Week', 1, selectedTab),
+          //       _buildTabButton(ref, 'Month', 2, selectedTab),
+          //     ],
+          //   ),
+          // ),
+          // const SizedBox(height: 20),
           dashboardStatsAsync.when(
             data: (stats) => GridView.count(
               shrinkWrap: true,
@@ -307,9 +317,11 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildRecentActivitySection(WidgetRef ref) {
-    final selectedTab = ref.watch(selectedTabProvider);
-    final filterMap = {0: 'day', 1: 'week', 2: 'month'};
-    final currentFilter = filterMap[selectedTab];
+    // Commented out tab selection - using default 'week' filter
+    // final selectedTab = ref.watch(selectedTabProvider);
+    // final filterMap = {0: 'day', 1: 'week', 2: 'month'};
+    // final currentFilter = filterMap[selectedTab];
+    final currentFilter = 'week'; // Default filter
     final dashboardStatsAsync = ref.watch(
       dashboardStatsProvider(currentFilter),
     );

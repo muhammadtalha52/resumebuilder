@@ -16,15 +16,7 @@ class ImagePickerService {
       final ImageSourceType? sourceType = await _showImageSourceDialog(context);
       if (sourceType == null) return null;
 
-      // Request permission
-      bool hasPermission = await _requestPermission(sourceType);
-      if (!hasPermission) {
-        throw Exception(
-          'Permission denied for ${sourceType == ImageSourceType.camera ? 'camera' : 'gallery'}',
-        );
-      }
-
-      // Pick image
+      // Pick image - image_picker will handle permission requests automatically
       final XFile? pickedFile = await _pickImage(sourceType);
       if (pickedFile == null) return null;
 
@@ -204,34 +196,54 @@ class ImagePickerService {
       // Request camera permission
       PermissionStatus cameraStatus = await Permission.camera.status;
       // Debug: Camera permission status: $cameraStatus
-      if (cameraStatus.isDenied) {
-        cameraStatus = await Permission.camera.request();
-        // Debug: Camera permission after request: $cameraStatus
+
+      // If permission is already granted, return true
+      if (cameraStatus.isGranted) {
+        return true;
       }
+
+      // If not granted, request permission (this will show the system dialog)
+      cameraStatus = await Permission.camera.request();
+      // Debug: Camera permission after request: $cameraStatus
+
+      // Return whether permission was granted
       return cameraStatus.isGranted;
     } else {
       // Request gallery/photo permission
       // For Android 13+, use photos permission, for older versions use storage
       PermissionStatus photosStatus = await Permission.photos.status;
       // Debug: Photos permission status: $photosStatus
-      if (photosStatus.isDenied) {
-        photosStatus = await Permission.photos.request();
-        // Debug: Photos permission after request: $photosStatus
+
+      // If permission is already granted or limited (iOS 14+), return true
+      if (photosStatus.isGranted || photosStatus.isLimited) {
+        return true;
       }
 
-      if (photosStatus.isGranted) {
+      // If not granted, request permission
+      photosStatus = await Permission.photos.request();
+      // Debug: Photos permission after request: $photosStatus
+
+      if (photosStatus.isGranted || photosStatus.isLimited) {
         return true;
       }
 
       // Fallback to storage permission for older Android versions
       PermissionStatus storageStatus = await Permission.storage.status;
       // Debug: Storage permission status: $storageStatus
-      if (storageStatus.isDenied) {
-        storageStatus = await Permission.storage.request();
-        // Debug: Storage permission after request: $storageStatus
+
+      // If storage permission is already granted, return true
+      if (storageStatus.isGranted) {
+        return true;
       }
 
-      final hasPermission = storageStatus.isGranted || photosStatus.isGranted;
+      // If not granted, request permission
+      storageStatus = await Permission.storage.request();
+      // Debug: Storage permission after request: $storageStatus
+
+      final hasPermission =
+          storageStatus.isGranted ||
+          photosStatus.isGranted ||
+          photosStatus.isLimited;
       // Debug: Final permission result: $hasPermission
       return hasPermission;
     }

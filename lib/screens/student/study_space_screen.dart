@@ -11,11 +11,26 @@ import '../../widgets/dialogs/create_subject_dialog.dart';
 import '../../widgets/dialogs/delete_confirmation_dialog.dart';
 import 'lectures_screen.dart';
 
-class StudySpaceScreen extends ConsumerWidget {
+class StudySpaceScreen extends ConsumerStatefulWidget {
   const StudySpaceScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StudySpaceScreen> createState() => _StudySpaceScreenState();
+}
+
+class _StudySpaceScreenState extends ConsumerState<StudySpaceScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Load folders when screen is mounted
+    // Using addPostFrameCallback to ensure it runs after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(studySpaceProvider.notifier).loadFolders();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final foldersAsync = ref.watch(studySpaceProvider);
 
     return Scaffold(

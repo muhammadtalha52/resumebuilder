@@ -11,14 +11,21 @@ final folderServiceProvider = Provider<FolderService>((ref) {
 class StudySpaceNotifier extends AsyncNotifier<List<ParentFolder>> {
   @override
   Future<List<ParentFolder>> build() async {
-    // Load folders from server on initialization
-    return await _fetchFolders();
+    // Return empty list initially - folders will be loaded when screen is mounted
+    // This prevents race conditions during logout/login transitions
+    return [];
   }
 
   Future<List<ParentFolder>> _fetchFolders() async {
     final folderService = ref.read(folderServiceProvider);
     final response = await folderService.getAllFolders();
     return response.parentFolders ?? [];
+  }
+
+  // Load folders from server (shows loading state)
+  Future<void> loadFolders() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => _fetchFolders());
   }
 
   // Refresh folders from server (keeps current data visible during refresh)

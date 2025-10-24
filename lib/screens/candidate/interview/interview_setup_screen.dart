@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../providers/continuous_transcription_provider.dart';
 import '../../../providers/interview_session_provider.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/custom_picker_field.dart';
@@ -46,7 +47,16 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
   @override
   void initState() {
     super.initState();
-    // Prefill form fields for testing
+
+    // CLEAN STATE: Invalidate the session provider to ensure fresh start
+    // This is the entry point for starting a NEW session
+    // User's intent to start new session is clear when they reach this screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(continuousTranscriptionProvider);
+      print(
+        '[SETUP-SCREEN] ✅ Provider invalidated - fresh start for new session',
+      );
+    });
   }
 
   @override
