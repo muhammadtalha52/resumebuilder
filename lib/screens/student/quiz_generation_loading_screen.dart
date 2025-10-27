@@ -5,12 +5,12 @@ import '../../providers/quiz_provider.dart';
 
 class QuizGenerationLoadingScreen extends ConsumerStatefulWidget {
   final VoidCallback? onAnimationComplete;
-  final int documentCount;
+  final int sizeBytes;
 
   const QuizGenerationLoadingScreen({
     super.key,
     this.onAnimationComplete,
-    this.documentCount = 1,
+    this.sizeBytes = 1048576, // Default 1 MB in bytes
   });
 
   @override
@@ -33,9 +33,21 @@ class QuizGenerationLoadingScreenState
   void initState() {
     super.initState();
 
-    // Calculate duration: 12 seconds per document
-    // 1 doc = 30s, 2 docs = 60s, 3 docs = 90s, etc.
-    final durationSeconds = 30 * widget.documentCount;
+    // Calculate duration based on file size
+    // Formula: Files < 1 MB = 30 seconds, Files >= 1 MB = size × 30 seconds
+    final sizeInMB = widget.sizeBytes / (1024 * 1024);
+
+    int durationSeconds;
+    if (sizeInMB < 1.0) {
+      // Any file less than 1 MB gets fixed 30 seconds
+      durationSeconds = 30;
+    } else {
+      // Files 1 MB and above: 30 seconds per MB
+      final calculatedDuration = (sizeInMB * 30).toInt();
+      // Apply max constraint (10 minutes)
+      const maxDuration = 600;
+      durationSeconds = calculatedDuration.clamp(30, maxDuration);
+    }
 
     // Controller for the main progress animation (0-95% over dynamic duration)
     _progressController = AnimationController(

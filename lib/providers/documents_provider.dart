@@ -144,3 +144,126 @@ final folderDocumentsProvider = FutureProvider.family
       final service = ref.watch(documentsServiceProvider);
       return await service.getFolderItems(folderId: folderId);
     });
+
+/// Maximum number of documents allowed for quiz generation
+const int kMaxQuizDocuments = 5;
+
+/// Maximum total file size for quiz generation (10 MB)
+const int kMaxQuizTotalSizeMB = 10;
+const int kMaxQuizTotalSizeBytes = kMaxQuizTotalSizeMB * 1024 * 1024;
+
+/// Document selection state for quiz generation
+class DocumentSelectionState {
+  final Map<String, int> selectedDocuments; // S3 filename -> file size (bytes)
+  final bool isSelectionMode;
+
+  DocumentSelectionState({
+    required this.selectedDocuments,
+    required this.isSelectionMode,
+  });
+
+  factory DocumentSelectionState.initial() {
+    return DocumentSelectionState(
+      selectedDocuments: {},
+      isSelectionMode: false,
+    );
+  }
+
+  DocumentSelectionState copyWith({
+    Map<String, int>? selectedDocuments,
+    bool? isSelectionMode,
+  }) {
+    return DocumentSelectionState(
+      selectedDocuments: selectedDocuments ?? this.selectedDocuments,
+      isSelectionMode: isSelectionMode ?? this.isSelectionMode,
+    );
+  }
+
+  int get selectionCount => selectedDocuments.length;
+
+  /// Total size of all selected documents in bytes
+  int get totalSize =>
+      selectedDocuments.values.fold(0, (sum, size) => sum + size);
+
+  /// Total size formatted as human-readable string
+  String get totalSizeFormatted {
+    final sizeInMB = totalSize / (1024 * 1024);
+    return '${sizeInMB.toStringAsFixed(1)} MB';
+  }
+
+  bool get isAtMaxLimit => selectedDocuments.length >= kMaxQuizDocuments;
+
+  bool get isAtMaxSize => totalSize >= kMaxQuizTotalSizeBytes;
+
+  bool isSelected(String s3Filename) =>
+      selectedDocuments.containsKey(s3Filename);
+
+  /// Get list of selected S3 filenames
+  List<String> get selectedFilenames => selectedDocuments.keys.toList();
+}
+
+/// Result of a selection toggle operation
+enum SelectionToggleResult { added, removed, maxLimitReached, sizeLimitReached }
+
+/// Notifier for managing document selection
+class DocumentSelectionNotifier extends StateNotifier<DocumentSelectionState> {
+  DocumentSelectionNotifier() : super(DocumentSelectionState.initial());
+
+  /// Toggle selection for a document
+  /// Returns the result of the operation
+  SelectionToggleResult toggleSelection(String s3Filename, int fileSize) {
+    final newSelected = Map<String, int>.from(state.selectedDocuments);
+
+    if (newSelected.containsKey(s3Filename)) {
+      // Deselecting - always allowed
+      newSelected.remove(s3Filename);
+      // Exit selection mode if no documents selected
+      state = state.copyWith(
+        selectedDocuments: newSelected,
+        isSelectionMode: newSelected.isNotEmpty,
+      );
+      return SelectionToggleResult.removed;
+    } else {
+      // Selecting - check count limit
+      if (state.isAtMaxLimit) {
+        // Don't allow selection beyond max count limit
+        return SelectionToggleResult.maxLimitReached;
+      }
+
+      // Check size limit - calculate what the new total would be
+      final newTotalSize = state.totalSize + fileSize;
+      if (newTotalSize > kMaxQuizTotalSizeBytes) {
+        // Don't allow selection if it exceeds size limit
+        return SelectionToggleResult.sizeLimitReached;
+      }
+
+      // Add document with its size
+      newSelected[s3Filename] = fileSize;
+      // Enter selection mode
+      state = state.copyWith(
+        selectedDocuments: newSelected,
+        isSelectionMode: true,
+      );
+      return SelectionToggleResult.added;
+    }
+  }
+
+  /// Clear all selections
+  void clearSelection() {
+    state = DocumentSelectionState.initial();
+  }
+
+  /// Enter selection mode without selecting any documents
+  void enterSelectionMode() {
+    state = state.copyWith(isSelectionMode: true);
+  }
+}
+
+/// Provider for document selection state
+final documentSelectionProvider =
+    StateNotifierProvider.autoDispose<
+      DocumentSelectionNotifier,
+      DocumentSelectionState
+    >((ref) {
+      return DocumentSelectionNotifier();
+    });

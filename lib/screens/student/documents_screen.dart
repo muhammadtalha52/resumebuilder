@@ -16,7 +16,7 @@ import '../../utils/s3_utils.dart';
 import '../../providers/quiz_provider.dart';
 import 'document_viewer_screen.dart';
 
-class DocumentsScreen extends ConsumerStatefulWidget {
+class DocumentsScreen extends ConsumerWidget {
   final String lectureId;
   final String lectureName;
 
@@ -27,51 +27,25 @@ class DocumentsScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<DocumentsScreen> createState() => _DocumentsScreenState();
-}
-
-class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
-  final Set<String> _selectedDocuments = {}; // Store selected s3Filenames
-  bool _isSelectionMode = false;
-
-  void _toggleDocumentSelection(String s3Filename) {
-    setState(() {
-      if (_selectedDocuments.contains(s3Filename)) {
-        _selectedDocuments.remove(s3Filename);
-        if (_selectedDocuments.isEmpty) {
-          _isSelectionMode = false;
-        }
-      } else {
-        _selectedDocuments.add(s3Filename);
-        _isSelectionMode = true;
-      }
-    });
-  }
-
-  void _cancelSelection() {
-    setState(() {
-      _selectedDocuments.clear();
-      _isSelectionMode = false;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     // Parse lectureId to int for API call
-    final folderId = int.tryParse(widget.lectureId) ?? 0;
+    final folderId = int.tryParse(lectureId) ?? 0;
     final documentsAsync = ref.watch(folderDocumentsProvider(folderId));
+    final selectionState = ref.watch(documentSelectionProvider);
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
-      appBar: _isSelectionMode
+      appBar: selectionState.isSelectionMode
           ? AppBar(
               backgroundColor: AppColors.primary,
               leading: IconButton(
                 icon: const Icon(Icons.close, color: AppColors.white),
-                onPressed: _cancelSelection,
+                onPressed: () {
+                  ref.read(documentSelectionProvider.notifier).clearSelection();
+                },
               ),
               title: Text(
-                '${_selectedDocuments.length} selected',
+                '${selectionState.selectionCount} selected',
                 style: const TextStyle(
                   color: AppColors.white,
                   fontSize: 18,
@@ -80,8 +54,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
               ),
               actions: [
                 TextButton.icon(
-                  onPressed: _selectedDocuments.length >= 1
-                      ? () => _generateQuiz(context)
+                  onPressed: selectionState.selectionCount >= 1
+                      ? () => _generateQuiz(context, ref, selectionState)
                       : null,
                   icon: const Icon(
                     Icons.quiz,
@@ -100,7 +74,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
               ],
             )
           : BackNavigationAppBar(
-              title: widget.lectureName,
+              title: lectureName,
               onBackPressed: () => Navigator.pop(context),
             ),
       body: Container(
@@ -118,14 +92,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             final hasDocuments = documents.isNotEmpty;
 
             return hasDocuments
-                ? _buildDocumentsList(context, ref, documents)
+                ? _buildDocumentsList(context, ref, documents, selectionState)
                 : _buildEmptyState(context, ref);
           },
           loading: () => _buildLoadingState(),
           error: (error, stack) => _buildErrorState(context, error.toString()),
         ),
       ),
-      floatingActionButton: _isSelectionMode
+      floatingActionButton: selectionState.isSelectionMode
           ? null
           : documentsAsync.maybeWhen(
               data: (documentsResponse) {
@@ -149,21 +123,26 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     BuildContext context,
     WidgetRef ref,
     List<Data> documents,
+    DocumentSelectionState selectionState,
   ) {
-    final folderId = int.tryParse(widget.lectureId) ?? 0;
+    final folderId = int.tryParse(lectureId) ?? 0;
 
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      itemCount: _isSelectionMode ? documents.length : documents.length + 1,
+      itemCount: selectionState.isSelectionMode
+          ? documents.length
+          : documents.length + 1,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         // First item is the Create Quiz button (only when NOT in selection mode)
-        if (index == 0 && !_isSelectionMode) {
-          return _buildCreateQuizButton();
+        if (index == 0 && !selectionState.isSelectionMode) {
+          return _buildCreateQuizButton(ref);
         }
 
         // Adjust index for documents (skip the button when not in selection mode)
-        final documentIndex = _isSelectionMode ? index : index - 1;
+        final documentIndex = selectionState.isSelectionMode
+            ? index
+            : index - 1;
         final document = documents[documentIndex];
         final icon = _getFileIcon(document.fileType ?? '');
         final size = _formatFileSize(document.fileSize ?? 0);
@@ -213,56 +192,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
           ),
           child: _buildDocumentCard(
             context: context,
+            ref: ref,
             icon: icon,
             name: document.name ?? 'Untitled',
             size: size,
             date: date,
-            isSelected: _selectedDocuments.contains(document.s3Filename),
-            onTap: () {
-              // If in selection mode, toggle selection
-              if (_isSelectionMode) {
-                if (document.s3Filename != null) {
-                  _toggleDocumentSelection(document.s3Filename!);
-                }
-                return;
-              }
-
-              // Normal tap - open document
-              if (document.s3Filename != null &&
-                  document.s3Filename!.isNotEmpty) {
-                final urlString = S3Utils.constructAssetUrl(
-                  document.s3Filename!,
-                );
-
-                print('📄 Opening document: ${document.name}');
-                print('🔗 S3 Filename: ${document.s3Filename}');
-                print('🌐 Final URL: $urlString');
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => DocumentViewerScreen(
-                      documentUrl: urlString,
-                      documentName: document.name ?? 'Document',
-                    ),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Document URL not available'),
-                    backgroundColor: AppColors.error,
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              }
-            },
-            onLongPress: () {
-              // Long press - enter selection mode
-              if (document.s3Filename != null) {
-                _toggleDocumentSelection(document.s3Filename!);
-              }
-            },
+            document: document,
+            selectionState: selectionState,
           ),
         );
       },
@@ -336,17 +272,113 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
 
   Widget _buildDocumentCard({
     required BuildContext context,
+    required WidgetRef ref,
     required String icon,
     required String name,
     required String size,
     required String date,
-    required bool isSelected,
-    required VoidCallback onTap,
-    required VoidCallback onLongPress,
+    required Data document,
+    required DocumentSelectionState selectionState,
   }) {
+    final isSelected = selectionState.isSelected(document.s3Filename ?? '');
+
     return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
+      onTap: () {
+        // If in selection mode, toggle selection
+        if (selectionState.isSelectionMode) {
+          if (document.s3Filename != null) {
+            final result = ref
+                .read(documentSelectionProvider.notifier)
+                .toggleSelection(document.s3Filename!, document.fileSize ?? 0);
+
+            // Show feedback if limit reached
+            if (result == SelectionToggleResult.maxLimitReached) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Maximum $kMaxQuizDocuments documents allowed for quiz generation',
+                  ),
+                  backgroundColor: AppColors.error,
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            } else if (result == SelectionToggleResult.sizeLimitReached) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Total file size cannot exceed $kMaxQuizTotalSizeMB MB. Current: ${selectionState.totalSizeFormatted}',
+                  ),
+                  backgroundColor: AppColors.error,
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          }
+          return;
+        }
+
+        // Normal tap - open document
+        if (document.s3Filename != null && document.s3Filename!.isNotEmpty) {
+          final urlString = S3Utils.constructAssetUrl(document.s3Filename!);
+
+          print('📄 Opening document: ${document.name}');
+          print('🔗 S3 Filename: ${document.s3Filename}');
+          print('🌐 Final URL: $urlString');
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DocumentViewerScreen(
+                documentUrl: urlString,
+                documentName: document.name ?? 'Document',
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Document URL not available'),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      },
+      onLongPress: () {
+        // Long press - enter selection mode
+        if (document.s3Filename != null) {
+          final result = ref
+              .read(documentSelectionProvider.notifier)
+              .toggleSelection(document.s3Filename!, document.fileSize ?? 0);
+
+          // Show feedback if limit reached
+          if (result == SelectionToggleResult.maxLimitReached) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Maximum $kMaxQuizDocuments documents allowed for quiz generation',
+                ),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          } else if (result == SelectionToggleResult.sizeLimitReached) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Total file size cannot exceed $kMaxQuizTotalSizeMB MB. Current: ${selectionState.totalSizeFormatted}',
+                ),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+      },
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -367,7 +399,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         child: Row(
           children: [
             // Selection checkbox (only show in selection mode)
-            if (_isSelectionMode) ...[
+            if (selectionState.isSelectionMode) ...[
               Container(
                 width: 24,
                 height: 24,
@@ -422,12 +454,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     );
   }
 
-  Widget _buildCreateQuizButton() {
+  Widget _buildCreateQuizButton(WidgetRef ref) {
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _isSelectionMode = true;
-        });
+        ref.read(documentSelectionProvider.notifier).enterSelectionMode();
       },
       child: Container(
         padding: const EdgeInsets.all(20),
@@ -635,7 +665,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         final saveDocResponse = await resumeService.uploadDocsToS3(file);
 
         // Step 3: Save document metadata to API
-        final folderId = int.tryParse(widget.lectureId) ?? 0;
+        final folderId = int.tryParse(lectureId) ?? 0;
         await documentsService.saveFolderItem(
           folderId: folderId,
           name: fileName,
@@ -683,8 +713,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
   }
 
   /// Generate quiz from selected documents
-  Future<void> _generateQuiz(BuildContext context) async {
-    if (_selectedDocuments.isEmpty) return;
+  Future<void> _generateQuiz(
+    BuildContext context,
+    WidgetRef ref,
+    DocumentSelectionState selectionState,
+  ) async {
+    if (selectionState.selectedDocuments.isEmpty) return;
 
     try {
       // Reset progress
@@ -692,22 +726,22 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
 
       // Navigate to full-screen loading animation
       if (context.mounted) {
-        context.push('/quiz/loading?count=${_selectedDocuments.length}');
+        context.push('/quiz/loading?sizeBytes=${selectionState.totalSize}');
       }
 
       // Call the generate quiz service with progress callback
       final service = ref.read(documentsServiceProvider);
       final quizAsync = await service.generateQuiz(
-        s3Filenames: _selectedDocuments.toList(),
+        s3Filenames: selectionState.selectedFilenames,
       );
 
       // Clear selection
-      _cancelSelection();
+      ref.read(documentSelectionProvider.notifier).clearSelection();
 
       // Navigate to quiz screen (replacing the loading screen)
       if (context.mounted) {
         context.pushReplacement(
-          '/quiz/start?lectureName=${Uri.encodeComponent(widget.lectureName)}',
+          '/quiz/start?lectureName=${Uri.encodeComponent(lectureName)}',
           extra: quizAsync,
         );
       }

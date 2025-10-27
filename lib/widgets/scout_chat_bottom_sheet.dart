@@ -35,12 +35,12 @@ class _ScoutChatBottomSheetState extends ConsumerState<ScoutChatBottomSheet> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
-    // Reset chat session when bottom sheet closes
-    ref.read(scoutChatProvider.notifier).resetSession();
     super.dispose();
   }
 
   Future<void> _setupChatSession() async {
+    // Reset any previous session before setting up new one
+    ref.read(scoutChatProvider.notifier).resetSession();
     await ref.read(scoutChatProvider.notifier).setupChatSession(widget.meeting);
     setState(() {
       _isSessionSetup = true;

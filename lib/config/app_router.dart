@@ -157,8 +157,10 @@ final GoRouter appRouter = GoRouter(
       path: '/quiz/loading',
       builder: (context, state) {
         final params = state.uri.queryParameters;
-        final documentCount = int.tryParse(params['count'] ?? '1') ?? 1;
-        return QuizGenerationLoadingScreen(documentCount: documentCount);
+        final sizeBytes =
+            int.tryParse(params['sizeBytes'] ?? '1048576') ??
+            1048576; // Default 1 MB
+        return QuizGenerationLoadingScreen(sizeBytes: sizeBytes);
       },
     ),
     GoRoute(

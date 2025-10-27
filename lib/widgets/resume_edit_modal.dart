@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:skillresy/utils/snackbar_utils.dart';
 
 import '../constants/app_colors.dart';
@@ -666,12 +667,28 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     final locationController = TextEditingController(
       text: experience?.location ?? '',
     );
-    final fromDateController = TextEditingController(
-      text: experience?.fromDate ?? '',
-    );
-    final toDateController = TextEditingController(
-      text: experience?.toDate ?? '',
-    );
+
+    // Parse dates from string format (MMM yyyy)
+    DateTime? selectedFromDate;
+    DateTime? selectedToDate;
+
+    if (experience?.fromDate != null && experience!.fromDate!.isNotEmpty) {
+      try {
+        selectedFromDate = DateFormat('MMM yyyy').parse(experience.fromDate!);
+      } catch (e) {
+        // If parsing fails, leave as null
+      }
+    }
+
+    if (experience?.toDate != null &&
+        experience!.toDate!.isNotEmpty &&
+        experience!.toDate!.toLowerCase() != 'present') {
+      try {
+        selectedToDate = DateFormat('MMM yyyy').parse(experience!.toDate!);
+      } catch (e) {
+        // If parsing fails, leave as null
+      }
+    }
 
     final descriptionList = List<String>.from(experience?.description ?? []);
     final descriptionControllers = descriptionList
@@ -804,68 +821,146 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                   Row(
                     children: [
                       Expanded(
-                        child: TextField(
-                          controller: fromDateController,
-                          decoration: InputDecoration(
-                            labelText: 'Start Date *',
-                            hintText: 'Jan 2020',
-                            hintStyle: const TextStyle(
-                              color: Color(0xFF9CA3AF),
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE5E7EB),
+                        child: GestureDetector(
+                          onTap: () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedFromDate ?? DateTime.now(),
+                              firstDate: DateTime(1950),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setDialogState(() {
+                                selectedFromDate = picked;
+                              });
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: const Color(0xFFE5E7EB),
                               ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: AppColors.primary,
-                              ),
+                              color: const Color(0xFFF9FAFB),
                             ),
-                            filled: true,
-                            fillColor: const Color(0xFFF9FAFB),
-                            contentPadding: const EdgeInsets.all(16),
-                          ),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF1A1A1A),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Start Date *',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        selectedFromDate != null
+                                            ? DateFormat(
+                                                'MMM yyyy',
+                                              ).format(selectedFromDate!)
+                                            : 'Jan 2020',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: selectedFromDate != null
+                                              ? const Color(0xFF1A1A1A)
+                                              : const Color(0xFF9CA3AF),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.calendar_today,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: TextField(
-                          controller: toDateController,
-                          enabled: !isCurrentlyWorking,
-                          decoration: InputDecoration(
-                            labelText: 'End Date',
-                            hintText: 'Dec 2023',
-                            hintStyle: const TextStyle(
-                              color: Color(0xFF9CA3AF),
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE5E7EB),
+                        child: GestureDetector(
+                          onTap: isCurrentlyWorking
+                              ? null
+                              : () async {
+                                  final DateTime? picked = await showDatePicker(
+                                    context: context,
+                                    initialDate:
+                                        selectedToDate ?? DateTime.now(),
+                                    firstDate: DateTime(1950),
+                                    lastDate: DateTime.now(),
+                                  );
+                                  if (picked != null) {
+                                    setDialogState(() {
+                                      selectedToDate = picked;
+                                    });
+                                  }
+                                },
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: const Color(0xFFE5E7EB),
                               ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: AppColors.primary,
-                              ),
+                              color: isCurrentlyWorking
+                                  ? const Color(0xFFE5E7EB)
+                                  : const Color(0xFFF9FAFB),
                             ),
-                            filled: true,
-                            fillColor: isCurrentlyWorking
-                                ? const Color(0xFFE5E7EB)
-                                : const Color(0xFFF9FAFB),
-                            contentPadding: const EdgeInsets.all(16),
-                          ),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF1A1A1A),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'End Date',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        isCurrentlyWorking
+                                            ? 'Present'
+                                            : (selectedToDate != null
+                                                  ? DateFormat(
+                                                      'MMM yyyy',
+                                                    ).format(selectedToDate!)
+                                                  : 'Dec 2023'),
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color:
+                                              isCurrentlyWorking ||
+                                                  selectedToDate != null
+                                              ? const Color(0xFF1A1A1A)
+                                              : const Color(0xFF9CA3AF),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.calendar_today,
+                                  size: 18,
+                                  color: isCurrentlyWorking
+                                      ? Colors.grey[400]
+                                      : AppColors.primary,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -882,9 +977,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                           setDialogState(() {
                             isCurrentlyWorking = value ?? false;
                             if (isCurrentlyWorking) {
-                              toDateController.text = 'Present';
-                            } else {
-                              toDateController.text = '';
+                              selectedToDate = null;
                             }
                           });
                         },
@@ -1060,7 +1153,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                               );
                               return;
                             }
-                            if (fromDateController.text.trim().isEmpty) {
+                            if (selectedFromDate == null) {
                               showErrorSnackBar(
                                 context: context,
                                 message: 'Start date is required',
@@ -1081,10 +1174,16 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                               location: locationController.text.trim().isEmpty
                                   ? null
                                   : locationController.text.trim(),
-                              fromDate: fromDateController.text.trim(),
+                              fromDate: DateFormat(
+                                'MMM yyyy',
+                              ).format(selectedFromDate!),
                               toDate: isCurrentlyWorking
                                   ? 'Present'
-                                  : toDateController.text.trim(),
+                                  : (selectedToDate != null
+                                        ? DateFormat(
+                                            'MMM yyyy',
+                                          ).format(selectedToDate!)
+                                        : null),
                               description: descriptions.isEmpty
                                   ? null
                                   : descriptions,
@@ -1169,10 +1268,24 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     final nameController = TextEditingController(text: project?.name ?? '');
     final typeController = TextEditingController(text: project?.type ?? '');
     final linkController = TextEditingController(text: project?.link ?? '');
-    final fromDateController = TextEditingController(
-      text: project?.fromDate ?? '',
-    );
-    final toDateController = TextEditingController(text: project?.toDate ?? '');
+
+    // Parse existing dates for editing
+    DateTime? selectedFromDate;
+    DateTime? selectedToDate;
+    if (project?.fromDate != null && project!.fromDate!.isNotEmpty) {
+      try {
+        selectedFromDate = DateFormat('MMM yyyy').parse(project.fromDate!);
+      } catch (e) {
+        selectedFromDate = null;
+      }
+    }
+    if (project?.toDate != null && project!.toDate!.isNotEmpty) {
+      try {
+        selectedToDate = DateFormat('MMM yyyy').parse(project.toDate!);
+      } catch (e) {
+        selectedToDate = null;
+      }
+    }
 
     final descriptionList = List<String>.from(project?.description ?? []);
     final descriptionControllers = descriptionList
@@ -1276,65 +1389,135 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                   Row(
                     children: [
                       Expanded(
-                        child: TextField(
-                          controller: fromDateController,
-                          decoration: InputDecoration(
-                            labelText: 'Start Date',
-                            hintText: 'Jan 2023',
-                            hintStyle: const TextStyle(
-                              color: Color(0xFF9CA3AF),
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE5E7EB),
+                        child: GestureDetector(
+                          onTap: () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedFromDate ?? DateTime.now(),
+                              firstDate: DateTime(1950),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setDialogState(() {
+                                selectedFromDate = picked;
+                              });
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: const Color(0xFFE5E7EB),
                               ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: AppColors.primary,
-                              ),
+                              color: const Color(0xFFF9FAFB),
                             ),
-                            filled: true,
-                            fillColor: const Color(0xFFF9FAFB),
-                            contentPadding: const EdgeInsets.all(16),
-                          ),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF1A1A1A),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Start Date',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        selectedFromDate != null
+                                            ? DateFormat(
+                                                'MMM yyyy',
+                                              ).format(selectedFromDate!)
+                                            : 'Jan 2023',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: selectedFromDate != null
+                                              ? const Color(0xFF1A1A1A)
+                                              : const Color(0xFF9CA3AF),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.calendar_today,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: TextField(
-                          controller: toDateController,
-                          decoration: InputDecoration(
-                            labelText: 'End Date',
-                            hintText: 'Mar 2024',
-                            hintStyle: const TextStyle(
-                              color: Color(0xFF9CA3AF),
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE5E7EB),
+                        child: GestureDetector(
+                          onTap: () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedToDate ?? DateTime.now(),
+                              firstDate: DateTime(1950),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setDialogState(() {
+                                selectedToDate = picked;
+                              });
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: const Color(0xFFE5E7EB),
                               ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: AppColors.primary,
-                              ),
+                              color: const Color(0xFFF9FAFB),
                             ),
-                            filled: true,
-                            fillColor: const Color(0xFFF9FAFB),
-                            contentPadding: const EdgeInsets.all(16),
-                          ),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF1A1A1A),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'End Date',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        selectedToDate != null
+                                            ? DateFormat(
+                                                'MMM yyyy',
+                                              ).format(selectedToDate!)
+                                            : 'Mar 2024',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: selectedToDate != null
+                                              ? const Color(0xFF1A1A1A)
+                                              : const Color(0xFF9CA3AF),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.calendar_today,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -1534,12 +1717,16 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                               type: typeController.text.trim().isEmpty
                                   ? null
                                   : typeController.text.trim(),
-                              fromDate: fromDateController.text.trim().isEmpty
-                                  ? null
-                                  : fromDateController.text.trim(),
-                              toDate: toDateController.text.trim().isEmpty
-                                  ? null
-                                  : toDateController.text.trim(),
+                              fromDate: selectedFromDate != null
+                                  ? DateFormat(
+                                      'MMM yyyy',
+                                    ).format(selectedFromDate!)
+                                  : null,
+                              toDate: selectedToDate != null
+                                  ? DateFormat(
+                                      'MMM yyyy',
+                                    ).format(selectedToDate!)
+                                  : null,
                               link: linkController.text.trim().isEmpty
                                   ? null
                                   : linkController.text.trim(),
@@ -3130,12 +3317,28 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     final universityController = TextEditingController(
       text: education?.university ?? '',
     );
-    final fromDateController = TextEditingController(
-      text: education?.fromDate ?? '',
-    );
-    final toDateController = TextEditingController(
-      text: education?.toDate ?? '',
-    );
+
+    // Parse dates from string format
+    DateTime? selectedFromDate;
+    DateTime? selectedToDate;
+
+    if (education?.fromDate != null && education!.fromDate!.isNotEmpty) {
+      try {
+        final year = int.parse(education.fromDate!);
+        selectedFromDate = DateTime(year);
+      } catch (e) {
+        // If parsing fails, leave as null
+      }
+    }
+
+    if (education?.toDate != null && education!.toDate!.isNotEmpty) {
+      try {
+        final year = int.parse(education.toDate!);
+        selectedToDate = DateTime(year);
+      } catch (e) {
+        // If parsing fails, leave as null
+      }
+    }
 
     final coursesList = List<String>.from(education?.courses ?? []);
     final coursesControllers = coursesList
@@ -3148,10 +3351,14 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => Dialog(
           backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 24,
+          ),
           child: Container(
+            width: MediaQuery.of(context).size.width,
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.85,
-              maxWidth: 500,
             ),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -3239,65 +3446,135 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                   Row(
                     children: [
                       Expanded(
-                        child: TextField(
-                          controller: fromDateController,
-                          decoration: InputDecoration(
-                            labelText: 'Start Date',
-                            hintText: '2018',
-                            hintStyle: const TextStyle(
-                              color: Color(0xFF9CA3AF),
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE5E7EB),
+                        child: GestureDetector(
+                          onTap: () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedFromDate ?? DateTime.now(),
+                              firstDate: DateTime(1950),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setDialogState(() {
+                                selectedFromDate = picked;
+                              });
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: const Color(0xFFE5E7EB),
                               ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: AppColors.primary,
-                              ),
+                              color: const Color(0xFFF9FAFB),
                             ),
-                            filled: true,
-                            fillColor: const Color(0xFFF9FAFB),
-                            contentPadding: const EdgeInsets.all(16),
-                          ),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF1A1A1A),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Start Date',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        selectedFromDate != null
+                                            ? DateFormat(
+                                                'MMM dd, yyyy',
+                                              ).format(selectedFromDate!)
+                                            : 'Jan 01, 2018',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: selectedFromDate != null
+                                              ? const Color(0xFF1A1A1A)
+                                              : const Color(0xFF9CA3AF),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.calendar_today,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: TextField(
-                          controller: toDateController,
-                          decoration: InputDecoration(
-                            labelText: 'End Date',
-                            hintText: '2022',
-                            hintStyle: const TextStyle(
-                              color: Color(0xFF9CA3AF),
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE5E7EB),
+                        child: GestureDetector(
+                          onTap: () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedToDate ?? DateTime.now(),
+                              firstDate: DateTime(1950),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              setDialogState(() {
+                                selectedToDate = picked;
+                              });
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: const Color(0xFFE5E7EB),
                               ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: AppColors.primary,
-                              ),
+                              color: const Color(0xFFF9FAFB),
                             ),
-                            filled: true,
-                            fillColor: const Color(0xFFF9FAFB),
-                            contentPadding: const EdgeInsets.all(16),
-                          ),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF1A1A1A),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'End Date',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        selectedToDate != null
+                                            ? DateFormat(
+                                                'MMM dd, yyyy',
+                                              ).format(selectedToDate!)
+                                            : 'Jun 01, 2022',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: selectedToDate != null
+                                              ? const Color(0xFF1A1A1A)
+                                              : const Color(0xFF9CA3AF),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.calendar_today,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -3474,12 +3751,12 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                             final educationObj = Education(
                               degree: degreeController.text.trim(),
                               university: universityController.text.trim(),
-                              fromDate: fromDateController.text.trim().isEmpty
-                                  ? null
-                                  : fromDateController.text.trim(),
-                              toDate: toDateController.text.trim().isEmpty
-                                  ? null
-                                  : toDateController.text.trim(),
+                              fromDate: selectedFromDate != null
+                                  ? '${selectedFromDate!.year}'
+                                  : null,
+                              toDate: selectedToDate != null
+                                  ? '${selectedToDate!.year}'
+                                  : null,
                               courses: courses.isEmpty ? null : courses,
                             );
 

@@ -118,7 +118,7 @@ final interviewServiceProvider = Provider<InterviewService>((ref) {
 });
 
 final scoutChatProvider =
-    StateNotifierProvider<ScoutChatNotifier, ScoutChatState>((ref) {
+    StateNotifierProvider.autoDispose<ScoutChatNotifier, ScoutChatState>((ref) {
       final interviewService = ref.watch(interviewServiceProvider);
       return ScoutChatNotifier(interviewService);
     });
