@@ -529,13 +529,13 @@ class ResumeService {
         throw SaveResumeException('File no longer exists');
       }
 
-      // Check file size (same validation as other uploads)
+      // Check file size (must match client-side validation)
       final fileSizeInBytes = await pdfFile.length();
-      const maxSizeInBytes = 10 * 1024 * 1024; // 10MB for PDFs
+      const maxSizeInBytes = 5 * 1024 * 1024; // 5MB limit
 
       if (fileSizeInBytes > maxSizeInBytes) {
         throw SaveResumeException(
-          'File size (${getFileSize(fileSizeInBytes)}) exceeds 10MB limit',
+          'File size (${getFileSize(fileSizeInBytes)}) exceeds 5MB limit',
         );
       }
 

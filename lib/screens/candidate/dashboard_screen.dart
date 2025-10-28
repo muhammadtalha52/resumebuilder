@@ -6,14 +6,30 @@ import '../../widgets/common/custom_app_bar.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../utils/date_helpers.dart';
+import '../common/main_screen.dart';
 
 final selectedTabProvider = StateProvider<int>((ref) => 1);
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  @override
+  Widget build(BuildContext context) {
+    // Listen to tab changes and refresh dashboard when user switches to dashboard tab
+    ref.listen<int>(navigationIndexProvider, (previous, current) {
+      // Only refresh when switching TO dashboard tab (index 0) from another tab
+      if (current == 0 && previous != null && previous != 0) {
+        print(
+          '[CandidateDashboard] Tab switched to dashboard - refreshing data',
+        );
+        ref.invalidate(dashboardStatsProvider);
+      }
+    });
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       appBar: CustomAppBar(

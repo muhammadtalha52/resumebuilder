@@ -622,6 +622,25 @@ class DocumentsScreen extends ConsumerWidget {
           throw Exception('File path is empty');
         }
 
+        // Validate file size (5MB = 5 * 1024 * 1024 bytes)
+        const maxFileSizeInBytes = 5 * 1024 * 1024; // 5MB
+        if (fileSize > maxFileSizeInBytes) {
+          final fileSizeInMB = (fileSize / (1024 * 1024)).toStringAsFixed(2);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'File size ($fileSizeInMB MB) exceeds the 5MB limit. Please select a smaller file.',
+                ),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+          return; // Stop the upload process
+        }
+
         // Show loading dialog
         if (context.mounted) {
           showDialog(

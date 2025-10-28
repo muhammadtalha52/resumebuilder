@@ -6,6 +6,7 @@ import '../../../constants/app_colors.dart';
 import '../../../providers/interview_summary_provider.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/custom_app_bar.dart';
+import '../../../widgets/dialogs/confirmation_dialog.dart';
 
 class MeetingSummaryScreen extends ConsumerStatefulWidget {
   final String sessionId;
@@ -33,6 +34,10 @@ class _InterviewSummaryScreenState extends ConsumerState<MeetingSummaryScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Reset provider state for new meeting session
+      ref.read(interviewSummaryProvider.notifier).reset();
+
+      // Load new meeting summary
       ref
           .read(interviewSummaryProvider.notifier)
           .endSessionAndGetSummary(
@@ -62,6 +67,61 @@ class _InterviewSummaryScreenState extends ConsumerState<MeetingSummaryScreen> {
     return 'Today, $hour:${dateTime.minute.toString().padLeft(2, '0')}$period';
   }
 
+  void _handleBackNavigation() async {
+    final summaryState = ref.read(interviewSummaryProvider);
+
+    // If meeting is already saved, just go back
+    if (summaryState.hasSaved) {
+      context.go('/home');
+      return;
+    }
+
+    // If meeting summary exists but not saved, show confirmation dialog
+    if (summaryState.meetingSummaryModel != null) {
+      final confirmed = await showConfirmationDialog(
+        context: context,
+        title: 'Save Meeting?',
+        subtitle: 'Would you like to save your meeting before leaving?',
+        icon: Icons.save_outlined,
+        iconBackgroundColor: AppColors.primary,
+        confirmText: 'Save & Exit',
+        cancelText: 'Cancel',
+        confirmButtonColor: AppColors.primary,
+        confirmTextColor: Colors.white,
+      );
+
+      if (confirmed == true && mounted) {
+        // Save the meeting
+        await ref.read(interviewSummaryProvider.notifier).saveInterviewData();
+
+        if (mounted) {
+          final updatedState = ref.read(interviewSummaryProvider);
+
+          if (updatedState.hasSaved) {
+            showSuccessSnackBar(
+              context: context,
+              message: 'Meeting saved successfully!',
+            );
+            Future.delayed(const Duration(milliseconds: 300), () {
+              if (mounted) {
+                context.go('/home');
+              }
+            });
+          } else if (updatedState.error != null) {
+            showErrorSnackBar(
+              context: context,
+              message: 'Error: ${updatedState.error}',
+            );
+          }
+        }
+      }
+      // If confirmed == false (Cancel clicked), dialog closes and user stays on screen
+    } else {
+      // No summary data, just go back
+      context.go('/home');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final summaryState = ref.watch(interviewSummaryProvider);
@@ -70,7 +130,7 @@ class _InterviewSummaryScreenState extends ConsumerState<MeetingSummaryScreen> {
       backgroundColor: AppColors.scaffold,
       appBar: BackNavigationAppBar(
         title: 'Meeting Summary',
-        onBackPressed: () => context.go('/home'),
+        onBackPressed: _handleBackNavigation,
         showFoxIcon: true,
       ),
       body: SafeArea(

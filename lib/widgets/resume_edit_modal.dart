@@ -703,10 +703,14 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => Dialog(
           backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 24,
+          ),
           child: Container(
+            width: MediaQuery.of(context).size.width,
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.85,
-              maxWidth: 500,
             ),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -1298,10 +1302,14 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => Dialog(
           backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 24,
+          ),
           child: Container(
+            width: MediaQuery.of(context).size.width,
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.85,
-              maxWidth: 500,
             ),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -2255,7 +2263,12 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       barrierDismissible: false,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 24),
         child: Container(
+          width: MediaQuery.of(context).size.width,
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+          ),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -2270,19 +2283,8 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icon
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.edit, color: Colors.white, size: 32),
-              ),
-              const SizedBox(height: 24),
-
               // Title
               const Text(
                 'Edit Professional Summary',
@@ -2291,7 +2293,6 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF1A1A1A),
                 ),
-                textAlign: TextAlign.center,
               ),
 
               const SizedBox(height: 24),
@@ -2299,7 +2300,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
               // Text Field
               TextField(
                 controller: controller,
-                maxLines: 5,
+                maxLines: 10,
                 decoration: InputDecoration(
                   hintText: 'Enter your professional summary...',
                   hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
@@ -2392,7 +2393,12 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       barrierDismissible: false,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 24),
         child: Container(
+          width: MediaQuery.of(context).size.width,
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+          ),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -2557,9 +2563,11 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       barrierDismissible: false,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 24),
         child: Container(
+          width: MediaQuery.of(context).size.width,
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.8,
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
           ),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
@@ -2576,23 +2584,8 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Icon
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
                 // Title
                 const Text(
                   'Edit Personal Details',
@@ -2601,7 +2594,6 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF1A1A1A),
                   ),
-                  textAlign: TextAlign.center,
                 ),
 
                 const SizedBox(height: 24),

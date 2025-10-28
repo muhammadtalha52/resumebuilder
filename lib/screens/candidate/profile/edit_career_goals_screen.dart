@@ -75,11 +75,11 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
         _originalLongTermGoalObjects = List.from(_longTermGoalObjects);
       }
 
-      // Load location preferences - extract locationType strings from objects
+      // Load location preferences - extract location strings from objects
       if (user.locationPreferences != null &&
           user.locationPreferences!.isNotEmpty) {
         _locationPreferences = user.locationPreferences!
-            .map((e) => e.locationType ?? '')
+            .map((e) => e.location ?? '')
             .where((s) => s.isNotEmpty)
             .toList();
         _originalLocationPreferences = List.from(_locationPreferences);

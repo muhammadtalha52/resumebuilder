@@ -809,13 +809,14 @@ class ProfileScreen extends ConsumerWidget {
       return 'Not provided';
     }
 
-    final workDescriptions = volunteerWork.map((work) {
-      final role = work.role ?? 'Volunteer';
-      final organization = work.organization ?? 'Unknown organization';
-      return '$role at $organization';
-    }).toList();
+    final workDescriptions = volunteerWork
+        .map((work) => work.description ?? '')
+        .where((desc) => desc.isNotEmpty)
+        .toList();
 
-    return workDescriptions.join(', ');
+    return workDescriptions.isEmpty
+        ? 'Not provided'
+        : workDescriptions.join(', ');
   }
 
   List<String> _extractHobbiesInterests(List<dynamic>? hobbiesInterests) {

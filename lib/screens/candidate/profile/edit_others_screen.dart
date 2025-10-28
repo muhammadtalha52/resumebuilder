@@ -87,7 +87,7 @@ class _EditOthersScreenState extends ConsumerState<EditOthersScreen> {
 
   List<String> _volunteerWorkStrings() {
     return _volunteerWorkObjects
-        .map((e) => e.organization ?? '')
+        .map((e) => e.description ?? '')
         .where((s) => s.isNotEmpty)
         .toList();
   }
@@ -132,17 +132,17 @@ class _EditOthersScreenState extends ConsumerState<EditOthersScreen> {
     final trimmed = tag.trim();
     if (trimmed.isEmpty) return;
 
-    if (_volunteerWorkObjects.any((obj) => obj.organization == trimmed)) return;
+    if (_volunteerWorkObjects.any((obj) => obj.description == trimmed)) return;
 
     setState(() {
-      _volunteerWorkObjects.add(VolunteerWork(organization: trimmed));
+      _volunteerWorkObjects.add(VolunteerWork(description: trimmed));
     });
     _volunteerWorkController.clear();
   }
 
   void _removeVolunteerWork(String tag) {
     setState(() {
-      _volunteerWorkObjects.removeWhere((obj) => obj.organization == tag);
+      _volunteerWorkObjects.removeWhere((obj) => obj.description == tag);
     });
   }
 
@@ -172,7 +172,7 @@ class _EditOthersScreenState extends ConsumerState<EditOthersScreen> {
     );
     final volunteerWorkChanged = !_listEquals(
       _volunteerWorkStrings(),
-      _originalVolunteerWorkObjects.map((e) => e.organization ?? '').toList(),
+      _originalVolunteerWorkObjects.map((e) => e.description ?? '').toList(),
     );
     final hobbiesChanged = !_listEquals(
       _hobbyStrings(),
@@ -211,7 +211,7 @@ class _EditOthersScreenState extends ConsumerState<EditOthersScreen> {
     );
     final volunteerWorkChanged = !_listEquals(
       _volunteerWorkStrings(),
-      _originalVolunteerWorkObjects.map((e) => e.organization ?? '').toList(),
+      _originalVolunteerWorkObjects.map((e) => e.description ?? '').toList(),
     );
     final hobbiesChanged = !_listEquals(
       _hobbyStrings(),

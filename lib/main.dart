@@ -7,10 +7,15 @@ import 'package:skillresy/config/app_theme.dart';
 import 'package:skillresy/constants/app_strings.dart';
 import 'package:skillresy/services/api_client.dart';
 import 'package:skillresy/services/app_logic.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await GetStorage.init();
+
+  // Enable wakelock to keep screen on while app is open
+  WakelockPlus.enable();
+
   registerSingletons();
   runApp(const ProviderScope(child: SkillResyApp()));
 }
