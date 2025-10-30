@@ -50,20 +50,32 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ref.invalidate(dashboardStatsProvider);
             },
             color: AppColors.primary,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 10),
-                  _buildWelcomeSection(ref),
-                  const SizedBox(height: 10),
-                  _buildProgressAndMetricsSection(ref),
-                  const SizedBox(height: 24),
-                  _buildRecentActivitySection(ref),
-                  const SizedBox(height: 20),
-                ],
-              ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 10),
+                          _buildWelcomeSection(ref),
+                          const SizedBox(height: 10),
+                          _buildProgressAndMetricsSection(ref),
+                          const SizedBox(height: 24),
+                          _buildRecentActivitySection(ref),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ],

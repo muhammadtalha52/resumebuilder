@@ -89,6 +89,7 @@ class _ScoutChatBottomSheetState extends ConsumerState<ScoutChatBottomSheet> {
 
           // Input area
           _buildInputArea(chatState),
+          SizedBox(height: 30),
         ],
       ),
     );

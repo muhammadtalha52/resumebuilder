@@ -21,7 +21,7 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
   String? _selectedInstitution;
   DateTime? _graduationDate;
   bool _degreeNotCompleted = false;
-  String? _selectedCertification;
+  List<String> _selectedCertifications = [];
 
   // Error state variables
   String? _degreeTypeError;
@@ -46,7 +46,9 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
             ? DateTime.parse(education['graduationDate'])
             : null;
         _degreeNotCompleted = education['degreeNotCompleted'] ?? false;
-        _selectedCertification = education['certification'];
+        _selectedCertifications = List<String>.from(
+          education['certifications'] ?? [],
+        );
       });
     }
   }
@@ -270,8 +272,8 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
       final institutionId = ref.read(
         getInstitutionIdProvider(_selectedInstitution),
       );
-      final certificationId = ref.read(
-        getCertificationIdProvider(_selectedCertification),
+      final certificationIds = ref.read(
+        getCertificationIdsProvider(_selectedCertifications),
       );
 
       // Save data with both names and IDs
@@ -286,8 +288,8 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
             institutionId: institutionId,
             graduationDate: _graduationDate,
             degreeNotCompleted: _degreeNotCompleted,
-            certification: _selectedCertification,
-            certificationId: certificationId,
+            certifications: _selectedCertifications,
+            certificationIds: certificationIds,
           );
 
       widget.onNext();
@@ -361,16 +363,17 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
         _buildCheckbox(),
         const SizedBox(height: 20),
         CustomPickerField(
-          labelText: 'Certification',
+          labelText: 'Certifications',
           isRequired: false,
-          value: _selectedCertification,
+          isMultiSelect: true,
+          selectedValues: _selectedCertifications,
           items: certifications,
-          hintText: 'Select certification (optional)',
-          pickerTitle: 'Select Certification',
+          hintText: 'Select certifications (optional)',
+          pickerTitle: 'Select Certifications',
           searchHint: 'Search certifications...',
-          onChanged: (value) {
+          onMultiChanged: (values) {
             setState(() {
-              _selectedCertification = value;
+              _selectedCertifications = values;
             });
           },
         ),

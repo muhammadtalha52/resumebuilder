@@ -136,8 +136,8 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     int? institutionId,
     DateTime? graduationDate,
     bool? degreeNotCompleted,
-    String? certification,
-    int? certificationId,
+    List<String>? certifications,
+    List<int>? certificationIds,
   }) {
     final educationData = {
       'degreeType': degreeType,
@@ -148,8 +148,8 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       'institutionId': institutionId,
       'graduationDate': DateHelpers.formatToApiDate(graduationDate),
       'degreeNotCompleted': degreeNotCompleted ?? false,
-      'certification': certification,
-      'certificationId': certificationId,
+      'certifications': certifications ?? [],
+      'certificationIds': certificationIds ?? [],
     };
     state = state.copyWith(education: educationData);
   }

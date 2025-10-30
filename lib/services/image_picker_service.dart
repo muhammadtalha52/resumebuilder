@@ -20,11 +20,23 @@ class ImagePickerService {
       final XFile? pickedFile = await _pickImage(sourceType);
       if (pickedFile == null) return null;
 
-      // Crop image
-      final CroppedFile? croppedFile = await _cropImage(pickedFile.path);
-      if (croppedFile == null) return null;
+      // Try to crop image
+      try {
+        final CroppedFile? croppedFile = await _cropImage(pickedFile.path);
 
-      return File(croppedFile.path);
+        // If cropping succeeds, return cropped image
+        if (croppedFile != null) {
+          return File(croppedFile.path);
+        }
+
+        // If user cancels cropping, return null
+        return null;
+      } catch (cropError) {
+        // If cropping crashes (Reply already submitted, NullPointerException, etc.)
+        // Return original image to keep the flow working
+        // Debug: Crop failed, using original image: $cropError
+        return File(pickedFile.path);
+      }
     } catch (e) {
       // Debug: Error in pickAndCropImage: $e
       rethrow;
@@ -271,34 +283,40 @@ class ImagePickerService {
   }
 
   Future<CroppedFile?> _cropImage(String imagePath) async {
-    return await ImageCropper().cropImage(
-      sourcePath: imagePath,
-      aspectRatio: const CropAspectRatio(
-        ratioX: 1,
-        ratioY: 1,
-      ), // Square aspect ratio for profile image
-      uiSettings: [
-        AndroidUiSettings(
-          toolbarTitle: 'Crop Profile Image',
-          toolbarColor: AppColors.primary,
-          toolbarWidgetColor: AppColors.white,
-          initAspectRatio: CropAspectRatioPreset.square,
-          lockAspectRatio: true,
-          backgroundColor: AppColors.white,
-          activeControlsWidgetColor: AppColors.primary,
-          cropGridColor: AppColors.primary.withValues(alpha: 0.5),
-          cropFrameColor: AppColors.primary,
-          statusBarColor: AppColors.primary,
-        ),
-        IOSUiSettings(
-          title: 'Crop Profile Image',
-          aspectRatioLockEnabled: true,
-          resetAspectRatioEnabled: false,
-          aspectRatioPickerButtonHidden: true,
-          rotateButtonsHidden: false,
-          rotateClockwiseButtonHidden: false,
-        ),
-      ],
-    );
+    try {
+      return await ImageCropper().cropImage(
+        sourcePath: imagePath,
+        aspectRatio: const CropAspectRatio(
+          ratioX: 1,
+          ratioY: 1,
+        ), // Square aspect ratio for profile image
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Profile Image',
+            toolbarColor: AppColors.primary,
+            toolbarWidgetColor: AppColors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+            backgroundColor: AppColors.white,
+            activeControlsWidgetColor: AppColors.primary,
+            cropGridColor: AppColors.primary.withValues(alpha: 0.5),
+            cropFrameColor: AppColors.primary,
+            statusBarColor: AppColors.primary,
+          ),
+          IOSUiSettings(
+            title: 'Crop Profile Image',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+            aspectRatioPickerButtonHidden: true,
+            rotateButtonsHidden: false,
+            rotateClockwiseButtonHidden: false,
+          ),
+        ],
+      );
+    } catch (e) {
+      // Handle "Reply already submitted" error or user cancellation
+      // Debug: Error cropping image: $e
+      return null;
+    }
   }
 }

@@ -42,25 +42,26 @@ class _StudentDashboardScreenState
             fit: BoxFit.cover,
           ),
         ),
-        child: RefreshIndicator(
-          onRefresh: () async {
-            // Invalidate student dashboard provider to trigger refresh
-            ref.invalidate(studentDashboardStatsProvider);
-          },
-          color: AppColors.primary,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 10),
-                _buildWelcomeSection(ref),
-                const SizedBox(height: 10),
-                _buildProgressAndMetricsSection(ref),
-                const SizedBox(height: 20),
-              ],
-            ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 10),
+              _buildWelcomeSection(ref),
+              const SizedBox(height: 10),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    // Invalidate student dashboard provider to trigger refresh
+                    ref.invalidate(studentDashboardStatsProvider);
+                  },
+                  color: AppColors.primary,
+                  child: _buildProgressAndMetricsSection(ref),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
       ),
@@ -119,128 +120,161 @@ class _StudentDashboardScreenState
     final dashboardStatsAsync = ref.watch(studentDashboardStatsProvider);
 
     return dashboardStatsAsync.when(
-      data: (stats) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Track Progress',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1A1A1A),
+      data: (stats) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Container(
+          constraints: BoxConstraints(
+            minHeight:
+                MediaQuery.of(context).size.height -
+                kToolbarHeight -
+                MediaQuery.of(context).padding.top -
+                MediaQuery.of(context).padding.bottom -
+                140, // Account for welcome section and padding
+          ),
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
               ),
-            ),
-            const SizedBox(height: 20),
-            _buildMetricCard(
-              icon: Icons.quiz_outlined,
-              title: 'Total Quizzes',
-              value: stats.data?.totalQuizzes?.toString() ?? '0',
-              color: const Color(0xFF6366F1),
-            ),
-            const SizedBox(height: 12),
-            _buildMetricCard(
-              icon: Icons.folder_outlined,
-              title: 'Total Subjects',
-              value: stats.data?.totalMainFolders?.toString() ?? '0',
-              color: const Color(0xFF8B5CF6),
-            ),
-            const SizedBox(height: 12),
-            _buildMetricCard(
-              icon: Icons.description_outlined,
-              title: 'Total Documents',
-              value: stats.data?.totalDocuments?.toString() ?? '0',
-              color: const Color(0xFF14B8A6),
-            ),
-          ],
-        ),
-      ),
-      loading: () => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Track Progress',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1A1A1A),
-              ),
-            ),
-            const SizedBox(height: 20),
-            ...List.generate(
-              3,
-              (index) => Padding(
-                padding: EdgeInsets.only(bottom: index < 2 ? 12 : 0),
-                child: _buildMetricCardShimmer(),
-              ),
-            ),
-          ],
-        ),
-      ),
-      error: (error, _) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Track Progress',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1A1A1A),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Center(
-              child: Text(
-                '--',
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Track Progress',
                 style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              _buildMetricCard(
+                icon: Icons.quiz_outlined,
+                title: 'Total Quizzes',
+                value: stats.data?.totalQuizzes?.toString() ?? '0',
+                color: const Color(0xFF6366F1),
+              ),
+              const SizedBox(height: 12),
+              _buildMetricCard(
+                icon: Icons.folder_outlined,
+                title: 'Total Subjects',
+                value: stats.data?.totalMainFolders?.toString() ?? '0',
+                color: const Color(0xFF8B5CF6),
+              ),
+              const SizedBox(height: 12),
+              _buildMetricCard(
+                icon: Icons.description_outlined,
+                title: 'Total Documents',
+                value: stats.data?.totalDocuments?.toString() ?? '0',
+                color: const Color(0xFF14B8A6),
+              ),
+            ],
+          ),
+        ),
+      ),
+      loading: () => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Container(
+          constraints: BoxConstraints(
+            minHeight:
+                MediaQuery.of(context).size.height -
+                kToolbarHeight -
+                MediaQuery.of(context).padding.top -
+                MediaQuery.of(context).padding.bottom -
+                140, // Account for welcome section and padding
+          ),
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Track Progress',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ...List.generate(
+                3,
+                (index) => Padding(
+                  padding: EdgeInsets.only(bottom: index < 2 ? 12 : 0),
+                  child: _buildMetricCardShimmer(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      error: (error, _) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Container(
+          constraints: BoxConstraints(
+            minHeight:
+                MediaQuery.of(context).size.height -
+                kToolbarHeight -
+                MediaQuery.of(context).padding.top -
+                MediaQuery.of(context).padding.bottom -
+                140, // Account for welcome section and padding
+          ),
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Track Progress',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Center(
+                child: Text(
+                  '--',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

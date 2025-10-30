@@ -88,12 +88,14 @@ class _BottomSheetPickerState extends State<BottomSheetPicker> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  widget.title,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
                 IconButton(
@@ -329,6 +331,8 @@ class _BottomSheetMultiPickerState extends State<BottomSheetMultiPicker> {
         tempSelectedItems.add(item);
       }
     });
+    // Automatically save the selection
+    widget.onItemsSelected(tempSelectedItems);
   }
 
   @override
@@ -357,33 +361,27 @@ class _BottomSheetMultiPickerState extends State<BottomSheetMultiPicker> {
             ),
           ),
 
-          // Title and Done button
+          // Title and Close button
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  widget.title,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    widget.onItemsSelected(tempSelectedItems);
-                    Navigator.pop(context);
-                  },
-                  child: const Text(
-                    'Done',
-                    style: TextStyle(
-                      fontSize: 16,
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: const TextStyle(
+                      fontSize: 20,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                      color: AppColors.textPrimary,
                     ),
                   ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
               ],
             ),

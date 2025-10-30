@@ -319,3 +319,62 @@ final getCertificationNameProvider = Provider.family<String?, int?>((ref, id) {
     error: (_, _) => null,
   );
 });
+
+// Multi-select certification providers
+final getCertificationIdsProvider = Provider.family<List<int>, List<String>>((
+  ref,
+  names,
+) {
+  if (names.isEmpty) return [];
+  final educationDataAsync = ref.watch(educationDataProvider);
+
+  return educationDataAsync.when(
+    data: (educationModel) {
+      final certificates = educationModel.data?.certificates ?? [];
+      final ids = <int>[];
+
+      for (final name in names) {
+        final certificate = certificates.firstWhere(
+          (c) => c.name == name,
+          orElse: () => Certificates(),
+        );
+        if (certificate.id != null) {
+          ids.add(certificate.id!);
+        }
+      }
+
+      return ids;
+    },
+    loading: () => [],
+    error: (_, _) => [],
+  );
+});
+
+final getCertificationNamesProvider = Provider.family<List<String>, List<int>>((
+  ref,
+  ids,
+) {
+  if (ids.isEmpty) return [];
+  final educationDataAsync = ref.watch(educationDataProvider);
+
+  return educationDataAsync.when(
+    data: (educationModel) {
+      final certificates = educationModel.data?.certificates ?? [];
+      final names = <String>[];
+
+      for (final id in ids) {
+        final certificate = certificates.firstWhere(
+          (c) => c.id == id,
+          orElse: () => Certificates(),
+        );
+        if (certificate.name != null) {
+          names.add(certificate.name!);
+        }
+      }
+
+      return names;
+    },
+    loading: () => [],
+    error: (_, _) => [],
+  );
+});

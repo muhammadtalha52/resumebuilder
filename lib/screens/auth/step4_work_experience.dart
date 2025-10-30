@@ -187,11 +187,8 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
   void _populateWorkExperiencesFromResume(ResumeParse resumeData) {
     if (resumeData.workExperience.isNotEmpty) {
       setState(() {
-        // Clear existing experiences if they're empty
-        if (_workExperiences.length == 1 &&
-            _workExperiences[0].jobTitle.text.isEmpty) {
-          _workExperiences.clear();
-        }
+        // Clear all existing experiences (both manual and previously parsed)
+        _workExperiences.clear();
 
         // Add work experiences from resume
         for (var exp in resumeData.workExperience) {

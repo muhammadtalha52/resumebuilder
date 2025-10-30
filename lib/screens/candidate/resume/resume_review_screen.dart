@@ -2130,73 +2130,229 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     }
   }
 
+  // Helper function to format date as "Month YYYY"
+  String _formatDateToMonthYear(DateTime? date) {
+    if (date == null) return '';
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return '${months[date.month - 1]} ${date.year}';
+  }
+
   Future<File> _createUserDataJsonFile() async {
     // Compile all user data into a map
     final userData = <String, dynamic>{};
+    final user = ref.read(authProvider).user!;
 
-    // Personal details
-    userData['personal'] = {
-      'name': _fullNameController.text.trim(),
-      'email': _emailController.text.trim(),
-      'phone': _completePhoneNumber,
-      'linkedin': _linkedInController.text.trim(),
-      'website': _websiteController.text.trim(),
-    };
+    // Personal details - only include non-empty fields
+    final personalDetails = <String, dynamic>{};
+    if (_fullNameController.text.trim().isNotEmpty) {
+      personalDetails['name'] = _fullNameController.text.trim();
+    }
+    if (_completePhoneNumber.isNotEmpty) {
+      personalDetails['phone'] = _completePhoneNumber;
+    }
+    if (_emailController.text.trim().isNotEmpty) {
+      personalDetails['email'] = _emailController.text.trim();
+    }
+    if (_linkedInController.text.trim().isNotEmpty) {
+      personalDetails['linkedin'] = _linkedInController.text.trim();
+    }
+    if (_websiteController.text.trim().isNotEmpty) {
+      personalDetails['personal_website'] = _websiteController.text.trim();
+    }
+    if (personalDetails.isNotEmpty) {
+      userData['personal'] = personalDetails;
+    }
 
-    // Career goals
-    userData['career_goals'] = {
-      'desired_job_titles': _jobTitles,
-      'preferred_industries': _industries,
-      'location_preference': _locationPreference,
-      'desired_salary_range': _desiredSalaryRange,
-      'long_term_goals': _longTermGoalsController.text.trim(),
-    };
+    // Summary - only include if not empty
+    final summary = user.professionalSummary ?? '';
+    if (summary.isNotEmpty) {
+      userData['summary'] = summary;
+    }
 
-    // Education
-    userData['education'] = {
-      'university': _universityController.text.trim(),
-      'degree': _degreeController.text.trim(),
-      'graduation_date': _graduationDate?.toIso8601String(),
-      'degree_not_completed': _degreeNotCompleted,
-    };
+    // Work experience - only include entries with actual data
+    final workExperienceList = _workExperiences
+        .where((exp) {
+          // Only include if has job title or company
+          return exp.jobTitle.text.trim().isNotEmpty ||
+              exp.company.text.trim().isNotEmpty;
+        })
+        .map((exp) {
+          final workExp = <String, dynamic>{};
 
-    // Work experience
-    userData['work_experience'] = _workExperiences
-        .map(
-          (exp) => {
-            'job_title': exp.jobTitle.text.trim(),
-            'company': exp.company.text.trim(),
-            'start_date': exp.startDate?.toIso8601String(),
-            'end_date': exp.endDate?.toIso8601String(),
-            'current_job': exp.currentJob,
-            'responsibilities': exp.responsibilities.text.trim(),
-          },
-        )
+          // Only include non-empty fields
+          final role = exp.jobTitle.text.trim();
+          if (role.isNotEmpty) {
+            workExp['role'] = role;
+          }
+
+          final company = exp.company.text.trim();
+          if (company.isNotEmpty) {
+            workExp['company'] = company;
+          }
+
+          // Don't include location if empty
+
+          final fromDate = _formatDateToMonthYear(exp.startDate);
+          if (fromDate.isNotEmpty) {
+            workExp['from_date'] = fromDate;
+          }
+
+          final toDate = exp.currentJob
+              ? 'Current'
+              : _formatDateToMonthYear(exp.endDate);
+          if (toDate.isNotEmpty) {
+            workExp['to_date'] = toDate;
+          }
+
+          // Split responsibilities by newline to create array
+          final responsibilitiesText = exp.responsibilities.text.trim();
+          if (responsibilitiesText.isNotEmpty) {
+            final descriptionArray = responsibilitiesText
+                .split('\n')
+                .map((line) => line.trim())
+                .where((line) => line.isNotEmpty)
+                .toList();
+            if (descriptionArray.isNotEmpty) {
+              workExp['description'] = descriptionArray;
+            }
+          }
+
+          return workExp;
+        })
         .toList();
 
-    // Skills
-    userData['skills'] = {
-      'hard_skills': _hardSkills,
-      'soft_skills': _softSkills,
-      'tools': _tools,
-    };
+    if (workExperienceList.isNotEmpty) {
+      userData['work_experience'] = workExperienceList;
+    }
 
-    // Optional info
-    userData['optional_info'] = {
-      'languages': _languages,
-      'hobbies': _hobbiesController.text.trim(),
-    };
+    // Projects - only include if we have project data (currently not collected)
+    // Don't include empty projects array
 
-    // Job targeting info from step 2
-    userData['job_targeting'] = {
-      'company': _companyController.text.trim(),
-      'job_title': _jobTitleController.text.trim(),
-      'linkedin_job_link': _linkedInJobLinkController.text.trim(),
-      'job_description': _jobDescriptionController.text.trim(),
-    };
+    // Skills - only include non-empty skill categories
+    final skillsMap = <String, dynamic>{};
+    if (_softSkills.isNotEmpty) {
+      skillsMap['soft_skills'] = _softSkills;
+    }
+    if (_hardSkills.isNotEmpty) {
+      skillsMap['hard_skills'] = _hardSkills;
+    }
+    if (_tools.isNotEmpty) {
+      skillsMap['tools_and_technologies'] = _tools;
+    }
+    if (skillsMap.isNotEmpty) {
+      userData['skills'] = skillsMap;
+    }
+
+    // Education - only include if has data
+    if (_universityController.text.trim().isNotEmpty ||
+        _degreeController.text.trim().isNotEmpty) {
+      final educationEntry = <String, dynamic>{};
+
+      final degree = _degreeController.text.trim();
+      if (degree.isNotEmpty) {
+        educationEntry['degree'] = degree;
+      }
+
+      final university = _universityController.text.trim();
+      if (university.isNotEmpty) {
+        educationEntry['university'] = university;
+      }
+
+      // Only include dates if graduation date exists
+      if (_graduationDate != null) {
+        final toDate = '${_graduationDate!.year}';
+        final fromDate = '${_graduationDate!.year - 4}';
+        educationEntry['from_date'] = fromDate;
+        educationEntry['to_date'] = toDate;
+      }
+
+      // Don't include empty courses array
+
+      if (educationEntry.isNotEmpty) {
+        userData['education'] = [educationEntry];
+      }
+    }
+
+    // Don't include certifications if empty
+    // Don't include achievements if empty
+
+    // Optional info - only include if has non-empty fields
+    final optionalInfo = <String, dynamic>{};
+
+    // Languages - only include if not empty
+    if (_languages.isNotEmpty) {
+      optionalInfo['languages'] = _languages;
+    }
+
+    // Volunteer work - only include if has data
+    if (user.volunteerWork != null && user.volunteerWork!.isNotEmpty) {
+      final volunteerWorkList = <String>[];
+      for (var work in user.volunteerWork!) {
+        final role = work.role ?? '';
+        final org = work.organization ?? '';
+        if (role.isNotEmpty && org.isNotEmpty) {
+          volunteerWorkList.add('$role, $org');
+        } else if (org.isNotEmpty) {
+          volunteerWorkList.add(org);
+        }
+      }
+      if (volunteerWorkList.isNotEmpty) {
+        optionalInfo['volunteer_work'] = volunteerWorkList;
+      }
+    }
+
+    // Hobbies - only include if not empty
+    final hobbiesText = _hobbiesController.text.trim();
+    if (hobbiesText.isNotEmpty) {
+      final hobbiesArray = hobbiesText
+          .split(',')
+          .map((hobby) => hobby.trim())
+          .where((hobby) => hobby.isNotEmpty)
+          .toList();
+      if (hobbiesArray.isNotEmpty) {
+        optionalInfo['hobbies_and_interests'] = hobbiesArray;
+      }
+    }
+
+    // References - only include if user has references (don't add default)
+    if (user.references != null && user.references!.isNotEmpty) {
+      optionalInfo['references'] = [user.references!];
+    }
+
+    // Only include optional_info if it has any data
+    if (optionalInfo.isNotEmpty) {
+      userData['optional_info'] = optionalInfo;
+    }
+
+    // Keywords - only include if has skills
+    final allSkills = <String>[];
+    allSkills.addAll(_hardSkills);
+    allSkills.addAll(_softSkills);
+    allSkills.addAll(_tools);
+    if (allSkills.isNotEmpty) {
+      final keywords = allSkills.join(', ');
+      if (keywords.isNotEmpty) {
+        userData['keywords'] = keywords;
+      }
+    }
 
     // Convert to JSON string
     final jsonString = jsonEncode(userData);
+
+    debugPrint('📄 Resume JSON created: ${jsonString.substring(0, 200)}...');
 
     // Create a temporary file
     final tempDir = await getTemporaryDirectory();
@@ -2323,6 +2479,8 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           generatedResumeData.pdfBase64 != null &&
           generatedResumeData.pdfBase64!.isNotEmpty) {
         final pdfBytes = base64Decode(generatedResumeData.pdfBase64!);
+        // Get version from provider for unique keys
+        final resumeVersion = ref.watch(resumeProvider).resumeVersion;
 
         return Container(
           width: double.infinity,
@@ -2382,11 +2540,11 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                       borderRadius: BorderRadius.circular(8),
                       child: Stack(
                         children: [
-                          // PDF viewer widget that handles dynamic updates
-                          // Use UniqueKey to force rebuild on every PDF change
+                          // PDF viewer widget - Use version as key to force rebuild
                           _DynamicPdfViewer(
-                            key: ValueKey(pdfBytes.length),
+                            key: ValueKey('resume_v$resumeVersion'),
                             pdfBytes: pdfBytes,
+                            version: resumeVersion,
                           ),
                           // Overlay with PDF info and tap hint
                           Positioned(
@@ -3014,44 +3172,32 @@ class _SaveDialogState extends State<_SaveDialog> {
 
 class _DynamicPdfViewer extends StatefulWidget {
   final Uint8List pdfBytes;
+  final int version;
 
-  const _DynamicPdfViewer({super.key, required this.pdfBytes});
+  const _DynamicPdfViewer({
+    super.key,
+    required this.pdfBytes,
+    required this.version,
+  });
 
   @override
   State<_DynamicPdfViewer> createState() => _DynamicPdfViewerState();
 }
 
 class _DynamicPdfViewerState extends State<_DynamicPdfViewer> {
-  late Uint8List _currentPdfBytes;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentPdfBytes = widget.pdfBytes;
-  }
-
-  @override
-  void didUpdateWidget(_DynamicPdfViewer oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Always update when widget receives new bytes reference
-    // Even if length is same, content might have changed
-    if (!identical(widget.pdfBytes, _currentPdfBytes)) {
-      print(
-        '📄 PDF bytes changed: ${_currentPdfBytes.length} -> ${widget.pdfBytes.length}',
-      );
-      print('📄 Force updating PDF viewer');
-      setState(() {
-        _currentPdfBytes = widget.pdfBytes;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    print('🔄 Building PDF viewer with version: ${widget.version}');
+    print('📄 PDF bytes length: ${widget.pdfBytes.length}');
+
     return PdfViewer.data(
-      _currentPdfBytes,
-      key: ValueKey(_currentPdfBytes.hashCode),
-      sourceName: 'resume.pdf',
+      widget.pdfBytes,
+      // Use version-based key to force recreation on edits
+      key: ValueKey(
+        'pdf_viewer_v${widget.version}_${widget.pdfBytes.hashCode}',
+      ),
+      // Use version-based source name to prevent caching
+      sourceName: 'resume_v${widget.version}.pdf',
       params: PdfViewerParams(
         textSelectionParams: PdfTextSelectionParams(enabled: true),
         maxScale: 3.0,

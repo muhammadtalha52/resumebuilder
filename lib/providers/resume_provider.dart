@@ -25,6 +25,7 @@ class ResumeState {
   final EducationModel? educationData; // Store education data for ID resolution
   final GenerateResumeResponse?
   generatedResumeData; // Store generated resume data
+  final int resumeVersion; // Track resume updates for UI refresh
 
   ResumeState({
     this.isLoading = false,
@@ -39,6 +40,7 @@ class ResumeState {
     this.isUsingProfileData = false,
     this.educationData,
     this.generatedResumeData,
+    this.resumeVersion = 0,
   });
 
   ResumeState copyWith({
@@ -54,6 +56,7 @@ class ResumeState {
     bool? isUsingProfileData,
     EducationModel? educationData,
     GenerateResumeResponse? generatedResumeData,
+    int? resumeVersion,
   }) {
     return ResumeState(
       isLoading: isLoading ?? this.isLoading,
@@ -69,6 +72,7 @@ class ResumeState {
       isUsingProfileData: isUsingProfileData ?? this.isUsingProfileData,
       educationData: educationData ?? this.educationData,
       generatedResumeData: generatedResumeData ?? this.generatedResumeData,
+      resumeVersion: resumeVersion ?? this.resumeVersion,
     );
   }
 }
@@ -495,6 +499,7 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
     print('📋 New PDF length: ${updatedResumeData.pdfBase64?.length ?? 0}');
     print('📋 Old object hashCode: ${state.generatedResumeData?.hashCode}');
     print('📋 New object hashCode: ${updatedResumeData.hashCode}');
+    print('📋 Old version: ${state.resumeVersion}');
 
     // Create a completely new instance to ensure Riverpod detects the change
     final newResumeData = GenerateResumeResponse(
@@ -503,12 +508,18 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
       regeneratedSections: updatedResumeData.regeneratedSections,
     );
 
+    // Increment version to force UI refresh
+    final newVersion = state.resumeVersion + 1;
+    print('📋 New version: $newVersion');
     print('📋 Final object hashCode: ${newResumeData.hashCode}');
 
-    state = state.copyWith(generatedResumeData: newResumeData);
+    state = state.copyWith(
+      generatedResumeData: newResumeData,
+      resumeVersion: newVersion,
+    );
 
     print(
-      '✅ State updated - generatedResumeData hashCode: ${state.generatedResumeData?.hashCode}',
+      '✅ State updated - generatedResumeData hashCode: ${state.generatedResumeData?.hashCode}, version: ${state.resumeVersion}',
     );
   }
 
