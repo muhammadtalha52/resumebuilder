@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../constants/app_colors.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/education_data_provider.dart';
 import '../../../providers/profile_provider.dart';
 import '../../../utils/date_helpers.dart';
 import '../../../utils/snackbar_utils.dart';
-import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/custom_picker_field.dart';
-import '../../../widgets/common/tag_field.dart';
 
 class EditEducationScreen extends ConsumerStatefulWidget {
   const EditEducationScreen({super.key});
@@ -27,7 +26,7 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
   String? _selectedInstitution;
   DateTime? _graduationDate;
   bool _degreeNotCompleted = false;
-  String? _selectedCertification;
+  List<String> _selectedCertifications = [];
 
   // Error state variables
   String? _degreeTypeError;
@@ -43,7 +42,7 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
   String? _originalInstitution;
   DateTime? _originalGraduationDate;
   bool _originalDegreeNotCompleted = false;
-  String? _originalCertification;
+  List<String> _originalCertifications = [];
 
   @override
   void initState() {
@@ -72,9 +71,15 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
         getInstitutionNameProvider(user.institution),
       );
 
-      // Get certification name from ID
-      final certificationName = ref.read(
-        getCertificationNameProvider(user.certificationsTraining),
+      // Get certification names from list
+      final certificationIds =
+          user.certificationsTraining
+              ?.map((cert) => cert.id)
+              .whereType<int>()
+              .toList() ??
+          [];
+      final certificationNames = ref.read(
+        getCertificationNamesProvider(certificationIds),
       );
 
       setState(() {
@@ -87,8 +92,8 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
         _selectedInstitution = institutionName;
         _originalInstitution = institutionName;
 
-        _selectedCertification = certificationName;
-        _originalCertification = certificationName;
+        _selectedCertifications = certificationNames;
+        _originalCertifications = certificationNames;
 
         if (user.graduationDate != null && user.graduationDate!.isNotEmpty) {
           try {
@@ -275,15 +280,24 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
     final graduationDateChanged = _graduationDate != _originalGraduationDate;
     final degreeNotCompletedChanged =
         _degreeNotCompleted != _originalDegreeNotCompleted;
-    final certificationChanged =
-        _selectedCertification != _originalCertification;
+
+    // Compare lists by converting to sets
+    final certificationsChanged =
+        _selectedCertifications
+            .toSet()
+            .difference(_originalCertifications.toSet())
+            .isNotEmpty ||
+        _originalCertifications
+            .toSet()
+            .difference(_selectedCertifications.toSet())
+            .isNotEmpty;
 
     return degreeTypeChanged ||
         majorChanged ||
         institutionChanged ||
         graduationDateChanged ||
         degreeNotCompletedChanged ||
-        certificationChanged;
+        certificationsChanged;
   }
 
   void _handleSave() async {
@@ -341,8 +355,8 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
       final institutionId = ref.read(
         getInstitutionIdProvider(_selectedInstitution),
       );
-      final certificationId = ref.read(
-        getCertificationIdProvider(_selectedCertification),
+      final certificationIds = ref.read(
+        getCertificationIdsProvider(_selectedCertifications),
       );
 
       // Only add fields that have changed
@@ -364,8 +378,19 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
         );
       }
 
-      if (_selectedCertification != _originalCertification) {
-        updateData['certification'] = certificationId;
+      // Check if certifications have changed
+      final certificationsChanged =
+          _selectedCertifications
+              .toSet()
+              .difference(_originalCertifications.toSet())
+              .isNotEmpty ||
+          _originalCertifications
+              .toSet()
+              .difference(_selectedCertifications.toSet())
+              .isNotEmpty;
+
+      if (certificationsChanged) {
+        updateData['certifications_training'] = certificationIds;
       }
 
       // Use profile provider to update
@@ -575,16 +600,17 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
                               const SizedBox(height: 20),
 
                               CustomPickerField(
-                                labelText: 'Certification',
+                                labelText: 'Certifications',
                                 isRequired: false,
-                                value: _selectedCertification,
+                                isMultiSelect: true,
+                                selectedValues: _selectedCertifications,
                                 items: certifications,
-                                hintText: 'Select certification (optional)',
-                                pickerTitle: 'Select Certification',
+                                hintText: 'Select certifications (optional)',
+                                pickerTitle: 'Select Certifications',
                                 searchHint: 'Search certifications...',
-                                onChanged: (value) {
+                                onMultiChanged: (values) {
                                   setState(() {
-                                    _selectedCertification = value;
+                                    _selectedCertifications = values;
                                   });
                                 },
                               ),

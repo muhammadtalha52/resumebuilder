@@ -315,6 +315,26 @@ class LocationPreference {
   }
 }
 
+class CertificationTraining {
+  final int? id;
+  final String? name;
+  final String? createdAt;
+
+  CertificationTraining({this.id, this.name, this.createdAt});
+
+  factory CertificationTraining.fromJson(Map<String, dynamic> json) {
+    return CertificationTraining(
+      id: json['id'],
+      name: json['name'],
+      createdAt: json['created_at'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'name': name, 'created_at': createdAt};
+  }
+}
+
 class UserWorkExperience {
   final int? id;
   final String? jobTitle;
@@ -395,7 +415,7 @@ class User {
     int? major,
     int? institution,
     String? graduationDate,
-    int? certificationsTraining,
+    List<CertificationTraining>? certificationsTraining,
     List<UserWorkExperience>? workExperience,
     List<HardSkill>? hardSkills,
     List<SoftSkill>? softSkills,
@@ -511,7 +531,11 @@ class User {
     _major = json['major'];
     _institution = json['institution'];
     _graduationDate = json['graduation_date'];
-    _certificationsTraining = json['certifications_training'];
+    _certificationsTraining = json['certifications_training'] != null
+        ? (json['certifications_training'] as List)
+              .map((e) => CertificationTraining.fromJson(e))
+              .toList()
+        : null;
     _workExperience = json['work_experience'] != null
         ? (json['work_experience'] as List)
               .map((e) => UserWorkExperience.fromJson(e))
@@ -597,7 +621,7 @@ class User {
   int? _major;
   int? _institution;
   String? _graduationDate;
-  int? _certificationsTraining;
+  List<CertificationTraining>? _certificationsTraining;
   List<UserWorkExperience>? _workExperience;
   List<HardSkill>? _hardSkills;
   List<SoftSkill>? _softSkills;
@@ -672,7 +696,8 @@ class User {
 
   String? get graduationDate => _graduationDate;
 
-  int? get certificationsTraining => _certificationsTraining;
+  List<CertificationTraining>? get certificationsTraining =>
+      _certificationsTraining;
 
   List<UserWorkExperience>? get workExperience => _workExperience;
 
@@ -760,7 +785,11 @@ class User {
     map['major'] = _major;
     map['institution'] = _institution;
     map['graduation_date'] = _graduationDate;
-    map['certifications_training'] = _certificationsTraining;
+    if (_certificationsTraining != null) {
+      map['certifications_training'] = _certificationsTraining!
+          .map((e) => e.toJson())
+          .toList();
+    }
     if (_workExperience != null) {
       map['work_experience'] = _workExperience!.map((e) => e.toJson()).toList();
     }
@@ -840,7 +869,7 @@ class User {
     int? major,
     int? institution,
     String? graduationDate,
-    int? certificationsTraining,
+    List<CertificationTraining>? certificationsTraining,
     List<UserWorkExperience>? workExperience,
     List<HardSkill>? hardSkills,
     List<SoftSkill>? softSkills,

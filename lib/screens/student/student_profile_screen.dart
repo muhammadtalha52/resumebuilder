@@ -74,7 +74,7 @@ class StudentProfileScreen extends ConsumerWidget {
           _buildDetailRowWithDivider(
             'assets/icons/user.png',
             'Full Name',
-            user?.fullName ?? 'Not provided',
+            user?.fullName ?? '',
             showDivider: true,
           ),
           _buildDetailRowWithDivider(
@@ -86,13 +86,13 @@ class StudentProfileScreen extends ConsumerWidget {
           _buildDetailRowWithDivider(
             'assets/icons/whatsapp.png',
             'Phone Number',
-            user?.phoneNumber ?? 'Not provided',
+            user?.phoneNumber ?? '',
             showDivider: true,
           ),
           _buildDetailRowWithDivider(
             'assets/icons/work.png',
             'Home Town',
-            user?.homeTown ?? 'Not provided',
+            user?.homeTown ?? '',
             showDivider: false,
           ),
         ],
@@ -107,7 +107,7 @@ class StudentProfileScreen extends ConsumerWidget {
     // Extract titles from IdealJobTitle objects
     final idealJobTitles =
         user?.idealJobTitles?.map((job) => job.title ?? 'Unknown').toList() ??
-        ['Not provided'];
+        [];
 
     return ProfileCard(
       title: '🎯 Career Goals',
@@ -151,9 +151,9 @@ class StudentProfileScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildEducationDetailRow(
-            user?.schoolMajor ?? 'Not provided',
-            user?.schoolName ?? 'Not provided',
-            user?.schoolGraduationDate ?? 'Not provided',
+            user?.schoolMajor ?? '',
+            user?.schoolName ?? '',
+            user?.schoolGraduationDate ?? '',
             showDivider: false,
           ),
         ],

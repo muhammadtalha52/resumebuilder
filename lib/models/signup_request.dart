@@ -249,11 +249,11 @@ class SignUpRequest {
       phoneNumber: state.phone ?? '',
       // Default values for required fields not collected in onboarding
       dateOfBirth: '1990-01-01',
-      address: 'Not provided',
-      city: 'Not provided',
-      userState: 'Not provided',
-      country: 'USA',
-      postalCode: '00000',
+      address: '',
+      city: '',
+      userState: '',
+      country: '',
+      postalCode: '',
       // Optional fields
       linkedinUrl: state.linkedIn,
       portfolioUrl: state.website,

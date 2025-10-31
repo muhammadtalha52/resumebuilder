@@ -293,6 +293,8 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
           );
 
       widget.onNext();
+    } else {
+      print("Errro");
     }
   }
 

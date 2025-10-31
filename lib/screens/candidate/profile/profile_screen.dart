@@ -87,7 +87,7 @@ class ProfileScreen extends ConsumerWidget {
             'LinkedIn Profile',
             (user?.linkedinUrl != null && user!.linkedinUrl!.isNotEmpty)
                 ? user.linkedinUrl!
-                : 'Not provided',
+                : '',
             showDivider: true,
           ),
           _buildDetailRowWithDivider(
@@ -160,6 +160,10 @@ class ProfileScreen extends ConsumerWidget {
       getInstitutionNameProvider(user?.institution),
     );
 
+    // Get certification names
+    final certifications = _extractCertifications(user?.certificationsTraining);
+    final hasCertifications = certifications.isNotEmpty;
+
     // Format degree with major
     final degreeText = _formatDegreeText(degreeTypeName, majorName);
 
@@ -174,8 +178,15 @@ class ProfileScreen extends ConsumerWidget {
             degreeText,
             institutionName ?? '',
             user?.graduationDate ?? '',
-            showDivider: false,
+            showDivider: hasCertifications,
           ),
+          if (hasCertifications)
+            _buildCareerDetailRow(
+              'assets/icons/goals.png',
+              'Certifications & Training',
+              certifications,
+              showDivider: false,
+            ),
         ],
       ),
     );
@@ -202,10 +213,10 @@ class ProfileScreen extends ConsumerWidget {
           final isLast = index == workExperiences.length - 1;
 
           return _buildWorkExperienceDetailRow(
-            workExp['title'] ?? 'Not provided',
-            workExp['company'] ?? 'Not provided',
-            workExp['duration'] ?? 'Not provided',
-            workExp['responsibilities'] ?? 'Not provided',
+            workExp['title'] ?? '',
+            workExp['company'] ?? '',
+            workExp['duration'] ?? '',
+            workExp['responsibilities'] ?? '',
             showDivider: !isLast,
           );
         }).toList(),
@@ -275,7 +286,7 @@ class ProfileScreen extends ConsumerWidget {
             'References',
             (user?.references != null && user!.references!.isNotEmpty)
                 ? user.references!
-                : 'Not provided',
+                : '',
             showDivider: false,
           ),
         ],
@@ -646,7 +657,7 @@ class ProfileScreen extends ConsumerWidget {
 
   String _formatDegreeText(String? degreeType, String? major) {
     if (degreeType == null || degreeType.isEmpty) {
-      return 'Not provided';
+      return '';
     }
 
     if (major == null || major.isEmpty) {
@@ -662,12 +673,7 @@ class ProfileScreen extends ConsumerWidget {
     // If no data exists, show a single "Not provided" entry
     if (workExperienceArray == null || workExperienceArray.isEmpty) {
       return [
-        {
-          'title': 'Not provided',
-          'company': 'Not provided',
-          'duration': 'Not provided',
-          'responsibilities': 'Not provided',
-        },
+        {'title': '', 'company': '', 'duration': '', 'responsibilities': ''},
       ];
     }
 
@@ -676,7 +682,7 @@ class ProfileScreen extends ConsumerWidget {
     // Create entries from the work experience array
     for (final exp in workExperienceArray) {
       // Format duration string
-      String duration = 'Not provided';
+      String duration = '';
       if (exp.workStartDate != null) {
         try {
           final startDate = DateTime.parse(exp.workStartDate!);
@@ -697,15 +703,15 @@ class ProfileScreen extends ConsumerWidget {
       }
 
       // Format responsibilities
-      String responsibilities = 'Not provided';
+      String responsibilities = '';
       if (exp.keyResponsibilities != null &&
           exp.keyResponsibilities!.isNotEmpty) {
         responsibilities = exp.keyResponsibilities!.join(', ');
       }
 
       workExperiences.add({
-        'title': exp.jobTitle ?? 'Not provided',
-        'company': exp.companyName ?? 'Not provided',
+        'title': exp.jobTitle ?? '',
+        'company': exp.companyName ?? '',
         'duration': duration,
         'responsibilities': responsibilities,
       });
@@ -735,7 +741,7 @@ class ProfileScreen extends ConsumerWidget {
   // Helper functions for extracting data from new object structures
   List<String> _extractJobTitles(List<dynamic>? desiredJobTitles) {
     if (desiredJobTitles == null || desiredJobTitles.isEmpty) {
-      return ['Not provided'];
+      return [];
     }
     return desiredJobTitles
         .map((job) => job.title ?? 'Unknown')
@@ -745,7 +751,7 @@ class ProfileScreen extends ConsumerWidget {
 
   List<String> _extractIndustryPreferences(List<dynamic>? industryPreferences) {
     if (industryPreferences == null || industryPreferences.isEmpty) {
-      return ['Not provided'];
+      return [];
     }
     return industryPreferences
         .map((industry) => industry.industry ?? 'Unknown')
@@ -755,7 +761,7 @@ class ProfileScreen extends ConsumerWidget {
 
   List<String> _extractCareerGoals(List<dynamic>? careerGoals) {
     if (careerGoals == null || careerGoals.isEmpty) {
-      return ['Not provided'];
+      return [];
     }
     return careerGoals
         .map((goal) => goal.goal ?? 'Unknown')
@@ -781,12 +787,12 @@ class ProfileScreen extends ConsumerWidget {
       );
     }
 
-    return combined.isEmpty ? ['Not provided'] : combined;
+    return combined.isEmpty ? [] : combined;
   }
 
   List<String> _extractToolsTechnologies(List<dynamic>? toolsTechnologies) {
     if (toolsTechnologies == null || toolsTechnologies.isEmpty) {
-      return ['Not provided'];
+      return [];
     }
     return toolsTechnologies
         .map((tool) => tool.tool ?? 'Unknown')
@@ -796,7 +802,7 @@ class ProfileScreen extends ConsumerWidget {
 
   List<String> _extractLanguages(List<dynamic>? languages) {
     if (languages == null || languages.isEmpty) {
-      return ['Not provided'];
+      return [];
     }
     return languages
         .map((language) => language.language ?? 'Unknown')
@@ -806,7 +812,7 @@ class ProfileScreen extends ConsumerWidget {
 
   String _extractVolunteerWork(List<dynamic>? volunteerWork) {
     if (volunteerWork == null || volunteerWork.isEmpty) {
-      return 'Not provided';
+      return '';
     }
 
     final workDescriptions = volunteerWork
@@ -814,14 +820,12 @@ class ProfileScreen extends ConsumerWidget {
         .where((desc) => desc.isNotEmpty)
         .toList();
 
-    return workDescriptions.isEmpty
-        ? 'Not provided'
-        : workDescriptions.join(', ');
+    return workDescriptions.isEmpty ? '' : workDescriptions.join(', ');
   }
 
   List<String> _extractHobbiesInterests(List<dynamic>? hobbiesInterests) {
     if (hobbiesInterests == null || hobbiesInterests.isEmpty) {
-      return ['Not provided'];
+      return [];
     }
     return hobbiesInterests
         .map((hobby) => hobby.hobbyInterest ?? 'Unknown')
@@ -831,10 +835,20 @@ class ProfileScreen extends ConsumerWidget {
 
   List<String> _extractLocationPreferences(List<dynamic>? locationPreferences) {
     if (locationPreferences == null || locationPreferences.isEmpty) {
-      return ['Not provided'];
+      return [];
     }
     return locationPreferences
         .map((location) => location.location ?? 'Unknown')
+        .cast<String>()
+        .toList();
+  }
+
+  List<String> _extractCertifications(List<dynamic>? certifications) {
+    if (certifications == null || certifications.isEmpty) {
+      return [];
+    }
+    return certifications
+        .map((cert) => cert.name ?? 'Unknown')
         .cast<String>()
         .toList();
   }
