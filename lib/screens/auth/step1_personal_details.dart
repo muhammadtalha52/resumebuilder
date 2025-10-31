@@ -6,6 +6,7 @@ import 'package:intl_phone_field/intl_phone_field.dart';
 
 import '../../constants/app_colors.dart';
 import '../../providers/onboarding_provider.dart';
+import '../../providers/education_data_provider.dart';
 import '../../utils/validators.dart';
 import '../../widgets/common/custom_text_field.dart';
 import '../../widgets/common/password_strength_indicator.dart';
@@ -40,6 +41,13 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
   void initState() {
     super.initState();
     _loadExistingData();
+    _prefetchEducationData();
+  }
+
+  // Prefetch education data in background for Step 3
+  void _prefetchEducationData() {
+    // This triggers the API call and caches the result
+    ref.read(educationDataProvider);
   }
 
   void _loadExistingData() {

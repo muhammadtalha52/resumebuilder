@@ -176,7 +176,7 @@ const List<String> _fallbackCertifications = [
 
 // Helper providers to get IDs from selected names
 final getDegreeTypeIdProvider = Provider.family<int?, String?>((ref, name) {
-  if (name == null) return null;
+  if (name == null) return 1; // Default to first option
   final educationDataAsync = ref.watch(educationDataProvider);
 
   return educationDataAsync.when(
@@ -184,12 +184,12 @@ final getDegreeTypeIdProvider = Provider.family<int?, String?>((ref, name) {
       final degreeTypes = educationModel.data?.degreeTypes ?? [];
       final degreeType = degreeTypes.firstWhere(
         (dt) => dt.name == name,
-        orElse: () => DegreeTypes(),
+        orElse: () => DegreeTypes(id: 1), // Default to first option if no match
       );
-      return degreeType.id;
+      return degreeType.id ?? 1;
     },
-    loading: () => null,
-    error: (_, _) => null,
+    loading: () => 1, // Default to first option while loading
+    error: (_, _) => 1, // Default to first option on error
   );
 });
 

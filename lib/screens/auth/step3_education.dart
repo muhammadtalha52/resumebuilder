@@ -293,18 +293,34 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
           );
 
       widget.onNext();
-    } else {
-      print("Errro");
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Get data from providers (already cached from GetStartedScreen)
+    // Get data from providers (should be cached from Step 1 prefetch)
+    final educationDataAsync = ref.watch(educationDataProvider);
     final degreeTypes = ref.watch(degreeTypesProvider);
     final majors = ref.watch(majorsProvider);
     final institutions = ref.watch(institutionsProvider);
     final certifications = ref.watch(certificationsProvider);
+
+    // Show loading if data not ready yet (shouldn't happen if Step 1 prefetch worked)
+    if (educationDataAsync.isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: AppColors.primary),
+            SizedBox(height: 16),
+            Text(
+              'Loading education options...',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
