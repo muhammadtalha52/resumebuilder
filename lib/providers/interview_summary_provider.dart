@@ -136,7 +136,9 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
         print('[SAVE] Duration: $durationMinutes min, DateTime: $nowDateTime');
 
         var dataToApi = {
-          'company_name': sessionData.companyName,
+          'company_name': sessionData.companyName.isEmpty
+              ? "Test"
+              : sessionData.companyName,
           'position_title': sessionData.positionTitle,
           'interview_type': sessionData.interviewType.toLowerCase(),
           'role_industry': sessionData.roleIndustry,
@@ -164,21 +166,21 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
         final result = await _interviewService.saveInterview(dataToApi);
 
         if (result['status'] == 'success') {
-          print('Interview saved successfully: ${result['message']}');
+          print('Meeting saved successfully: ${result['message']}');
           _ref.read(interviewSessionProvider.notifier).markAsSaved();
           state = state.copyWith(isSaving: false, hasSaved: true);
         } else {
-          print('Failed to save interview: ${result['message']}');
+          print('Failed to save : ${result['message']}');
           state = state.copyWith(
             isSaving: false,
-            error: result['message'] ?? 'Failed to save interview',
+            error: result['message'] ?? 'Failed to save',
           );
         }
       } catch (e) {
-        print('Error saving interview: $e');
+        print('Error saving : $e');
         state = state.copyWith(
           isSaving: false,
-          error: 'Error saving interview: ${e.toString()}',
+          error: 'Error saving : ${e.toString()}',
         );
       }
     } else {

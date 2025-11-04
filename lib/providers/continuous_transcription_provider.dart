@@ -902,9 +902,11 @@ class ContinuousTranscriptionNotifier
         return;
       }
 
-      state = state.copyWith(
-        sessionDuration: state.sessionDuration + const Duration(seconds: 1),
-      );
+      // Calculate actual elapsed time from session start
+      if (_sessionStartTime != null) {
+        final elapsed = DateTime.now().difference(_sessionStartTime!);
+        state = state.copyWith(sessionDuration: elapsed);
+      }
     });
   }
 

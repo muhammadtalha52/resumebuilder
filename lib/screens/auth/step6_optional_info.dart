@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../constants/app_colors.dart';
 import '../../../../providers/onboarding_provider.dart';
+import '../../../../utils/url_launcher_utils.dart';
 import '../../../../widgets/common/tag_field.dart';
 
 class Step6OptionalInfo extends ConsumerStatefulWidget {
@@ -25,7 +25,9 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
   List<String> _languages = [];
   List<String> _volunteerWork = [];
   List<String> _hobbies = [];
-  bool _agreedToTerms = false;
+  bool _agreedToShareProfile = false;
+  bool _agreedToPrivacyPolicy = false;
+  bool _agreedToOptOut = false;
   String? _termsError;
 
   @override
@@ -160,10 +162,10 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
     // Dismiss keyboard before validation
     FocusScope.of(context).requestFocus(FocusNode());
 
-    // Check if user agreed to terms
-    if (!_agreedToTerms) {
+    // Check if all required consents are given
+    if (!_agreedToShareProfile || !_agreedToPrivacyPolicy || !_agreedToOptOut) {
       setState(() {
-        _termsError = 'Please accept our terms to continue';
+        _termsError = 'Please accept all required consents to continue';
       });
       return;
     }
@@ -182,9 +184,6 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
 
   @override
   Widget build(BuildContext context) {
-    final resumeData = ref.read(onboardingProvider.notifier).parsedResumeData;
-    final hasResumeData = resumeData != null;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -224,16 +223,53 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
           maxLines: 4,
         ),
         const SizedBox(height: 32),
-        // Terms and Privacy Checkbox
+        // Consent Checkboxes
+        // 1. Share Profile Checkbox
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Checkbox(
-              value: _agreedToTerms,
+              value: _agreedToShareProfile,
               onChanged: (value) {
                 setState(() {
-                  _agreedToTerms = value ?? false;
-                  if (_agreedToTerms) {
+                  _agreedToShareProfile = value ?? false;
+                  if (_agreedToShareProfile &&
+                      _agreedToPrivacyPolicy &&
+                      _agreedToOptOut) {
+                    _termsError = null;
+                  }
+                });
+              },
+              activeColor: AppColors.primary,
+              visualDensity: VisualDensity.compact,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12.0),
+                child: Text(
+                  'I agree to share my profile and resume with potential employers.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // 2. Privacy Policy Checkbox
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(
+              value: _agreedToPrivacyPolicy,
+              onChanged: (value) {
+                setState(() {
+                  _agreedToPrivacyPolicy = value ?? false;
+                  if (_agreedToShareProfile &&
+                      _agreedToPrivacyPolicy &&
+                      _agreedToOptOut) {
                     _termsError = null;
                   }
                 });
@@ -247,7 +283,7 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
                 child: Wrap(
                   children: [
                     Text(
-                      'I agree to the ',
+                      'I have read and agree to the ',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                         fontSize: 13,
@@ -255,12 +291,7 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        context.push('/privacy-policy');
-                        // Auto-check the checkbox when user views the policy
-                        setState(() {
-                          _agreedToTerms = true;
-                          _termsError = null;
-                        });
+                        UrlLauncherUtils.launchPrivacyPolicy();
                       },
                       child: Text(
                         'Privacy Policy',
@@ -273,7 +304,45 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
                       ),
                     ),
                     Text(
-                      ' and ',
+                      '.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // 3. Opt-Out Policy Checkbox
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(
+              value: _agreedToOptOut,
+              onChanged: (value) {
+                setState(() {
+                  _agreedToOptOut = value ?? false;
+                  if (_agreedToShareProfile &&
+                      _agreedToPrivacyPolicy &&
+                      _agreedToOptOut) {
+                    _termsError = null;
+                  }
+                });
+              },
+              activeColor: AppColors.primary,
+              visualDensity: VisualDensity.compact,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12.0),
+                child: Wrap(
+                  children: [
+                    Text(
+                      'I understand I can withdraw my consent anytime via the ',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                         fontSize: 13,
@@ -281,21 +350,23 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        context.push('/terms-of-use');
-                        // Auto-check the checkbox when user views the terms
-                        setState(() {
-                          _agreedToTerms = true;
-                          _termsError = null;
-                        });
+                        UrlLauncherUtils.launchOptOutPolicy();
                       },
                       child: Text(
-                        'Terms of Use',
+                        'Opt-Out Policy',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.primary,
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                           decoration: TextDecoration.underline,
                         ),
+                      ),
+                    ),
+                    Text(
+                      '.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
                       ),
                     ),
                   ],
@@ -305,6 +376,7 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
           ],
         ),
         if (_termsError != null) ...[
+          const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.only(left: 40.0),
             child: Text(

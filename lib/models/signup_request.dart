@@ -55,7 +55,7 @@ class SignUpRequest {
   final int? major;
   final int? institution;
   final String? graduationDate;
-  final int? certificationsTraining;
+  final List<int>? certificationsTraining;
   final List<WorkExperience>? workExperience;
   final List<String>? hardSkills;
   final List<String>? softSkills;
@@ -138,7 +138,9 @@ class SignUpRequest {
     final degreeTypeId = education?['degreeTypeId'] as int?;
     final majorId = education?['majorId'] as int?;
     final institutionId = education?['institutionId'] as int?;
-    final certificationId = education?['certificationId'] as int?;
+    final certificationIds = education?['certificationIds'] != null
+        ? (education!['certificationIds'] as List<dynamic>).cast<int>()
+        : null;
 
     // Extract work experience data
     final workExp = state.workExperience;
@@ -264,7 +266,7 @@ class SignUpRequest {
       major: majorId,
       institution: institutionId,
       graduationDate: graduationDate,
-      certificationsTraining: certificationId,
+      certificationsTraining: certificationIds,
       workExperience: workExperienceList,
       hardSkills: hardSkills,
       softSkills: softSkills,
@@ -287,14 +289,12 @@ class SignUpRequest {
 
   // Helper method to map role string to ID
   static int _getRoleId(String? role) {
-    // TODO: Replace with actual role mapping
-    // For now returning default value
     switch (role?.toLowerCase()) {
-      case 'student':
+      case 'candidate':
         return 1;
-      case 'professional':
+      case 'student':
         return 2;
-      case 'freelancer':
+      case 'recruiter':
         return 3;
       default:
         return 1; // Default to student

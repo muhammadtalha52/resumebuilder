@@ -28,4 +28,9 @@ class UrlLauncherUtils {
   static Future<bool> launchTermsOfUse() async {
     return await launchExternalUrl('https://skillresy.com/terms-of-use/');
   }
+
+  /// Opens the SkillResy opt-out policy page
+  static Future<bool> launchOptOutPolicy() async {
+    return await launchExternalUrl('https://skillresy.com/opt-out-policy/');
+  }
 }

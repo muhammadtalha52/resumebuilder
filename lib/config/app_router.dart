@@ -83,13 +83,6 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const EditWorkExperienceScreen(),
     ),
     GoRoute(
-      path: '/privacy-policy',
-      builder: (context, state) => const LegalWebViewScreen(
-        url: 'https://skillresy.com/privacy-policy/',
-        title: 'Privacy Policy',
-      ),
-    ),
-    GoRoute(
       path: '/terms-of-use',
       builder: (context, state) => const LegalWebViewScreen(
         url: 'https://skillresy.com/terms-of-use/',

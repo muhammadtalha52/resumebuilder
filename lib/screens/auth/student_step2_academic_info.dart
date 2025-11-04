@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../constants/app_colors.dart';
 import '../../providers/student_signup_provider.dart';
+import '../../utils/url_launcher_utils.dart';
 import '../../widgets/common/custom_text_field.dart';
 import '../../widgets/common/tag_field.dart';
 
@@ -57,6 +57,8 @@ class _StudentStep2AcademicInfoState
   }
 
   Future<void> _selectGraduationDate() async {
+    FocusScope.of(context).requestFocus(FocusNode());
+
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedGraduationDate ?? DateTime.now(),
@@ -305,7 +307,9 @@ class _StudentStep2AcademicInfoState
                       ),
                       GestureDetector(
                         onTap: () {
-                          context.push('/privacy-policy');
+                          FocusScope.of(context).requestFocus(FocusNode());
+
+                          UrlLauncherUtils.launchPrivacyPolicy();
                           // Auto-check the checkbox when user views the policy
                           setState(() {
                             _agreedToTerms = true;
@@ -332,7 +336,9 @@ class _StudentStep2AcademicInfoState
                       ),
                       GestureDetector(
                         onTap: () {
-                          context.push('/terms-of-use');
+                          FocusScope.of(context).requestFocus(FocusNode());
+
+                          UrlLauncherUtils.launchTermsOfUse();
                           // Auto-check the checkbox when user views the terms
                           setState(() {
                             _agreedToTerms = true;

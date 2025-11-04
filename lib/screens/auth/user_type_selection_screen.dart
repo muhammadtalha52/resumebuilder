@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:skillresy/constants/app_colors.dart';
 import 'package:skillresy/constants/app_sizes.dart';
 import 'package:skillresy/providers/user_type_provider.dart';
+import 'package:skillresy/providers/onboarding_provider.dart';
 import 'package:skillresy/widgets/common/custom_button.dart';
 
 class UserTypeSelectionScreen extends ConsumerStatefulWidget {
@@ -21,6 +22,9 @@ class _UserTypeSelectionScreenState
   void _handleContinue() {
     if (_selectedUserType != null) {
       ref.read(userTypeProvider.notifier).state = _selectedUserType!;
+
+      // Store role in onboarding provider for signup request
+      ref.read(onboardingProvider.notifier).setRole(_selectedUserType!);
 
       // Navigate based on user type
       if (_selectedUserType == 'student') {
