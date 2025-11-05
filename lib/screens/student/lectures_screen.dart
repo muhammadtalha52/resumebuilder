@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
 import '../../models/all_folders_response.dart';
 import '../../providers/subfolder_provider.dart';
@@ -8,7 +9,6 @@ import '../../utils/snackbar_utils.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/dialogs/create_lecture_dialog.dart';
 import '../../widgets/dialogs/delete_confirmation_dialog.dart';
-import 'documents_screen.dart';
 
 class LecturesScreen extends ConsumerWidget {
   final String subjectId;
@@ -191,21 +191,14 @@ class LecturesScreen extends ConsumerWidget {
               emoji: '📁',
               name: subfolder.name ?? 'Unnamed Lecture',
               documents: documentCount,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => DocumentsScreen(
-                      lectureId: subfolder.id.toString(),
-                      lectureName: subfolder.name ?? 'Lecture',
-                    ),
-                  ),
-                ).then((_) {
-                  // Refresh lectures when coming back from documents screen
-                  ref
-                      .read(subfolderProvider(parentFolderId).notifier)
-                      .refreshSubfolders();
-                });
+              onTap: () async {
+                await context.push(
+                  '/student/documents?lectureId=${subfolder.id}&lectureName=${Uri.encodeComponent(subfolder.name ?? 'Lecture')}',
+                );
+                // Refresh lectures when coming back from documents screen
+                ref
+                    .read(subfolderProvider(parentFolderId).notifier)
+                    .refreshSubfolders();
               },
             ),
           );

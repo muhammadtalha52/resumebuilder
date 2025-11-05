@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_sizes.dart';
 import '../../../widgets/common/custom_app_bar.dart';
-import 'interview_setup_screen.dart';
 
 class MeetingScreen extends ConsumerWidget {
   const MeetingScreen({super.key});
@@ -106,9 +105,8 @@ class MeetingScreen extends ConsumerWidget {
   Widget _buildStartButton(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => const InterviewSetupScreen()),
-        );
+        // context.push('/plans');
+        context.push('/meeting/setup');
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 15),

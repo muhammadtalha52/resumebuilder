@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
+import '../common/custom_button.dart';
 
 class CreateSubjectDialog extends StatefulWidget {
   final String? initialName;
@@ -234,40 +235,12 @@ class _CreateSubjectDialogState extends State<CreateSubjectDialog> {
 
                   // Create button
                   Expanded(
-                    child: GestureDetector(
-                      onTap: _isLoading ? null : _handleCreate,
-                      child: Container(
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: _isLoading
-                              ? AppColors.primary.withOpacity(0.7)
-                              : AppColors.primary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : Text(
-                                  widget.initialName != null
-                                      ? 'Save'
-                                      : 'Create',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                        ),
-                      ),
+                    child: CustomButton(
+                      text: widget.initialName != null ? 'Save' : 'Create',
+                      height: 48,
+                      isLoading: _isLoading,
+                      useGradient: false,
+                      onPressed: _handleCreate,
                     ),
                   ),
                 ],

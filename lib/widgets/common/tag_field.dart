@@ -75,10 +75,15 @@ class TagField extends StatelessWidget {
                   onAdd(text);
                 }
               },
-              icon: const Icon(
-                Icons.add_circle,
-                color: AppColors.primary,
-                size: 30,
+              icon: ShaderMask(
+                shaderCallback: (bounds) =>
+                    AppColors.primaryGradientHorizontal.createShader(bounds),
+                blendMode: BlendMode.srcIn,
+                child: const Icon(
+                  Icons.add_circle,
+                  color: Colors.white,
+                  size: 30,
+                ),
               ),
             ),
             border: OutlineInputBorder(

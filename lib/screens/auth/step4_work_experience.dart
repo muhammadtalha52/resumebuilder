@@ -10,6 +10,7 @@ import '../../../../models/resume_parse_model.dart';
 import '../../../../utils/snackbar_utils.dart';
 import '../../../../providers/resume_service_provider.dart';
 import '../../../../services/resume_service.dart';
+import '../../widgets/common/custom_button.dart';
 
 class Step4WorkExperience extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -298,25 +299,7 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
           const SizedBox(height: 32),
 
           // Next button
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton(
-              onPressed: _handleSubmit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
-              child: const Text(
-                'Next',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
+          CustomButton(text: 'Next', onPressed: _handleSubmit, height: 56),
         ],
       ),
     );

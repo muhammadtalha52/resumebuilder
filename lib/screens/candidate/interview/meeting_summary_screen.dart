@@ -6,6 +6,7 @@ import '../../../constants/app_colors.dart';
 import '../../../providers/interview_summary_provider.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/custom_app_bar.dart';
+import '../../../widgets/common/custom_button.dart';
 import '../../../widgets/dialogs/confirmation_dialog.dart';
 
 class MeetingSummaryScreen extends ConsumerStatefulWidget {
@@ -729,7 +730,7 @@ class _InterviewSummaryScreenState extends ConsumerState<MeetingSummaryScreen> {
               Icon(Icons.check_circle, color: Colors.white, size: 24),
               SizedBox(width: 8),
               Text(
-                'Interview Saved Successfully',
+                'Meeting Saved Successfully',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -742,75 +743,31 @@ class _InterviewSummaryScreenState extends ConsumerState<MeetingSummaryScreen> {
       );
     }
 
-    return SizedBox(
-      width: double.infinity,
+    return CustomButton(
+      text: 'Save Meeting',
       height: 56,
-      child: ElevatedButton(
-        onPressed: summaryState.isSaving
-            ? null
-            : () async {
-                await ref
-                    .read(interviewSummaryProvider.notifier)
-                    .saveInterviewData();
+      isLoading: summaryState.isSaving,
+      onPressed: () async {
+        await ref.read(interviewSummaryProvider.notifier).saveInterviewData();
 
-                if (mounted) {
-                  final updatedState = ref.read(interviewSummaryProvider);
+        if (mounted) {
+          final updatedState = ref.read(interviewSummaryProvider);
 
-                  if (updatedState.hasSaved) {
-                    // Show success message and navigate home
-                    showSuccessSnackBar(
-                      context: context,
-                      message: 'Meeting saved successfully!',
-                    );
-
-                    // Navigate back to home like the back button does
-                    Future.delayed(const Duration(milliseconds: 500), () {
-                      if (mounted) {
-                        context.go('/home');
-                      }
-                    });
-                  } else if (updatedState.error != null) {
-                    showErrorSnackBar(
-                      context: context,
-                      message: 'Error: ${updatedState.error}',
-                    );
-                  }
-                }
-              },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: summaryState.isSaving
-              ? AppColors.primary.withValues(alpha: 0.6)
-              : AppColors.primary,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 0,
-        ),
-        child: summaryState.isSaving
-            ? const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Text(
-                    'Saving Meeting...',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              )
-            : const Text(
-                'Save Meeting',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-      ),
+          if (updatedState.hasSaved) {
+            // Navigate back to home like the back button does
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (mounted) {
+                context.go('/home');
+              }
+            });
+          } else if (updatedState.error != null) {
+            showErrorSnackBar(
+              context: context,
+              message: 'Error: ${updatedState.error}',
+            );
+          }
+        }
+      },
     );
   }
 }

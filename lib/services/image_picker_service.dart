@@ -71,7 +71,8 @@ class ImagePickerService {
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    gradient: AppColors.primaryGradientHorizontal,
+
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -142,7 +143,7 @@ class ImagePickerService {
                         child: Container(
                           height: 48,
                           decoration: BoxDecoration(
-                            color: AppColors.primary,
+                            gradient: AppColors.primaryGradientHorizontal,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Row(

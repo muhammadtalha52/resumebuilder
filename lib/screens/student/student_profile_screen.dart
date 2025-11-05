@@ -8,9 +8,6 @@ import '../../widgets/common/tag_list.dart';
 import '../../widgets/dialogs/confirmation_dialog.dart';
 import '../../widgets/profile_card.dart';
 import '../../widgets/profile_header.dart';
-import 'edit_student_personal_details_screen.dart';
-import 'edit_student_career_goals_screen.dart';
-import 'edit_student_education_screen.dart';
 
 class StudentProfileScreen extends ConsumerWidget {
   const StudentProfileScreen({super.key});
@@ -61,11 +58,7 @@ class StudentProfileScreen extends ConsumerWidget {
     return ProfileCard(
       title: '👤 Personal Details',
       onEdit: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const EditStudentPersonalDetailsScreen(),
-          ),
-        );
+        context.push('/student/profile/edit-personal-details');
       },
       showDividers: true,
       child: Column(
@@ -112,11 +105,7 @@ class StudentProfileScreen extends ConsumerWidget {
     return ProfileCard(
       title: '🎯 Career Goals',
       onEdit: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const EditStudentCareerGoalsScreen(),
-          ),
-        );
+        context.push('/student/profile/edit-career-goals');
       },
       showDividers: true,
       child: Column(
@@ -140,11 +129,7 @@ class StudentProfileScreen extends ConsumerWidget {
     return ProfileCard(
       title: '🎓 Education',
       onEdit: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const EditStudentEducationScreen(),
-          ),
-        );
+        context.push('/student/profile/edit-education');
       },
       showDividers: true,
       child: Column(

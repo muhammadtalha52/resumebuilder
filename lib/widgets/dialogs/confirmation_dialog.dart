@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../constants/app_colors.dart';
 
 class ConfirmationDialog extends StatelessWidget {
   final String title;
@@ -33,16 +32,20 @@ class ConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: theme.shadowColor.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, 4),
             ),
@@ -57,10 +60,10 @@ class ConfirmationDialog extends StatelessWidget {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: iconBackgroundColor ?? const Color(0xFF2C3E50),
+                  color: colorScheme.primary,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: Colors.white, size: 32),
+                child: Icon(icon, color: colorScheme.onPrimary, size: 32),
               ),
               const SizedBox(height: 24),
             ],
@@ -68,10 +71,8 @@ class ConfirmationDialog extends StatelessWidget {
             // Title
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 20,
+              style: textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1A1A1A),
               ),
               textAlign: TextAlign.center,
             ),
@@ -81,7 +82,7 @@ class ConfirmationDialog extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 subtitle!,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+                style: textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
             ],
@@ -98,7 +99,9 @@ class ConfirmationDialog extends StatelessWidget {
                     child: Container(
                       height: 48,
                       decoration: BoxDecoration(
-                        color: cancelButtonColor ?? const Color(0xFFE5E7EB),
+                        color:
+                            cancelButtonColor ??
+                            colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Center(
@@ -107,7 +110,8 @@ class ConfirmationDialog extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: cancelTextColor ?? const Color(0xFF6B7280),
+                            color:
+                                cancelTextColor ?? colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -124,7 +128,7 @@ class ConfirmationDialog extends StatelessWidget {
                     child: Container(
                       height: 48,
                       decoration: BoxDecoration(
-                        color: confirmButtonColor ?? const Color(0xFF2C3E50),
+                        color: confirmButtonColor ?? colorScheme.primary,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Center(
@@ -133,7 +137,7 @@ class ConfirmationDialog extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: confirmTextColor ?? Colors.white,
+                            color: confirmTextColor ?? colorScheme.onPrimary,
                           ),
                         ),
                       ),

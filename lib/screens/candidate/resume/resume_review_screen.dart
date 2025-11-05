@@ -1015,20 +1015,29 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
             const SizedBox(width: 12),
             // Download button
             Expanded(
-              child: ElevatedButton.icon(
-                onPressed: generatedResumeData != null ? _downloadResume : null,
-                icon: const Icon(Icons.download, size: 16),
-                label: const Text(
-                  'Download PDF',
-                  style: TextStyle(fontSize: 13),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradientHorizontal,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                child: ElevatedButton.icon(
+                  onPressed: generatedResumeData != null
+                      ? _downloadResume
+                      : null,
+                  icon: const Icon(Icons.download, size: 16),
+                  label: const Text(
+                    'Download PDF',
+                    style: TextStyle(fontSize: 13),
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
                 ),
               ),
             ),

@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../providers/continuous_transcription_provider.dart';
 import '../../../providers/interview_session_provider.dart';
 import '../../../widgets/common/custom_app_bar.dart';
+import '../../../widgets/common/custom_button.dart';
 import '../../../widgets/common/custom_picker_field.dart';
 import '../../../widgets/common/custom_text_field.dart';
-import 'interview_session_screen.dart';
 
-class InterviewSetupScreen extends ConsumerStatefulWidget {
-  const InterviewSetupScreen({super.key});
+class MeetingSetupScreen extends ConsumerStatefulWidget {
+  const MeetingSetupScreen({super.key});
 
   @override
-  ConsumerState<InterviewSetupScreen> createState() =>
-      _InterviewSetupScreenState();
+  ConsumerState<MeetingSetupScreen> createState() => _State();
 }
 
-class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
+class _State extends ConsumerState<MeetingSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _companyController = TextEditingController();
   final TextEditingController _jobDescriptionController =
@@ -138,9 +138,7 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
 
     // Navigate to session screen without API call
     if (mounted) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => const InterviewSessionScreen()),
-      );
+      context.push('/meeting/session');
     }
   }
 
@@ -575,24 +573,6 @@ class _InterviewSetupScreenState extends ConsumerState<InterviewSetupScreen> {
   }
 
   Widget _buildStartSessionButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: _validateAndContinue,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 0,
-        ),
-        child: const Text(
-          'Continue',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
-      ),
-    );
+    return CustomButton(text: 'Continue', onPressed: _validateAndContinue);
   }
 }

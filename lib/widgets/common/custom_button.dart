@@ -7,6 +7,7 @@ class CustomButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isLoading;
   final bool isOutlined;
+  final bool useGradient;
   final double? width;
   final double? height;
   final IconData? icon;
@@ -17,6 +18,7 @@ class CustomButton extends StatelessWidget {
     required this.onPressed,
     this.isLoading = false,
     this.isOutlined = false,
+    this.useGradient = true,
     this.width,
     this.height,
     this.icon,
@@ -24,24 +26,6 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final buttonStyle = isOutlined
-        ? OutlinedButton.styleFrom(
-            foregroundColor: AppColors.primary,
-            side: BorderSide(color: AppColors.primary),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSizes.radiusM),
-            ),
-            minimumSize: Size(width ?? double.infinity, height ?? 54),
-          )
-        : ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSizes.radiusM),
-            ),
-            minimumSize: Size(width ?? double.infinity, height ?? 54),
-          );
-
     final child = isLoading
         ? const SizedBox(
             width: 20,
@@ -69,17 +53,62 @@ class CustomButton extends StatelessWidget {
             ],
           );
 
+    // Gradient button
+    if (useGradient) {
+      return Container(
+        width: width ?? double.infinity,
+        height: height ?? 54,
+        decoration: BoxDecoration(
+          gradient: AppColors.primaryGradientHorizontal,
+          borderRadius: BorderRadius.circular(AppSizes.radiusM),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(AppSizes.radiusM),
+            child: Center(
+              child: DefaultTextStyle(
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+                child: child,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Outlined button
     if (isOutlined) {
       return OutlinedButton(
         onPressed: onPressed,
-        style: buttonStyle,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          side: const BorderSide(color: AppColors.primary),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusM),
+          ),
+          minimumSize: Size(width ?? double.infinity, height ?? 54),
+        ),
         child: child,
       );
     }
 
+    // Regular elevated button
     return ElevatedButton(
       onPressed: onPressed,
-      style: buttonStyle,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusM),
+        ),
+        minimumSize: Size(width ?? double.infinity, height ?? 54),
+      ),
       child: child,
     );
   }

@@ -6,6 +6,7 @@ import '../../../../constants/salary_ranges.dart';
 import '../../../../providers/onboarding_provider.dart';
 import '../../../../widgets/common/custom_picker_field.dart';
 import '../../../../widgets/common/tag_field.dart';
+import '../../widgets/common/custom_button.dart';
 
 class Step2CareerGoals extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -379,25 +380,7 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
           ),
           const SizedBox(height: 20),
           // Next button
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton(
-              onPressed: _handleSubmit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
-              child: const Text(
-                'Next',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
+          CustomButton(text: 'Next', onPressed: _handleSubmit, height: 56),
         ],
       ),
     );

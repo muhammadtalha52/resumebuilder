@@ -9,7 +9,6 @@ import '../../utils/snackbar_utils.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/dialogs/create_subject_dialog.dart';
 import '../../widgets/dialogs/delete_confirmation_dialog.dart';
-import 'lectures_screen.dart';
 
 class StudySpaceScreen extends ConsumerStatefulWidget {
   const StudySpaceScreen({super.key});
@@ -206,19 +205,12 @@ class _StudySpaceScreenState extends ConsumerState<StudySpaceScreen> {
               name: folder.name ?? 'Unnamed Folder',
               lectures: folder.subfolders?.length ?? 0,
               files: folder.itemsCount ?? 0,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => LecturesScreen(
-                      subjectId: folder.id.toString(),
-                      subjectName: folder.name ?? 'Folder',
-                    ),
-                  ),
-                ).then((_) {
-                  // Refresh folders when coming back from lectures screen
-                  ref.read(studySpaceProvider.notifier).refreshFolders();
-                });
+              onTap: () async {
+                await context.push(
+                  '/student/lectures?subjectId=${folder.id}&subjectName=${Uri.encodeComponent(folder.name ?? 'Folder')}',
+                );
+                // Refresh folders when coming back from lectures screen
+                ref.read(studySpaceProvider.notifier).refreshFolders();
               },
             ),
           );

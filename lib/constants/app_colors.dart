@@ -4,19 +4,14 @@ class AppColors {
   AppColors._();
 
   // Primary colors (Navy blue from design)
-  static const Color primary = Color(0xFF1E1B4B);
-  static const Color primaryLight = Color(0xFF312E81);
-  static const Color primaryDark = Color(0xFF1E1B4B);
+  static const Color primary = Color(0xFF8E2DE2);
 
   // Accent colors (Orange from logo)
   static const Color accent = Color(0xFFFF6B35);
   static const Color accentLight = Color(0xFFFF8C69);
   static const Color accentDark = Color(0xFFE5521A);
 
-  // Secondary colors
-  static const Color secondary = Color(0xFF64748B);
   static const Color secondaryLight = Color(0xFF94A3B8);
-  static const Color secondaryDark = Color(0xFF475569);
 
   // Neutral colors
   static const Color white = Color(0xFFFFFFFF);
@@ -60,4 +55,35 @@ class AppColors {
   static const Color googleRed = Color(0xFFEA4335);
   static const Color appleBlack = Color(0xFF000000);
   static const Color linkedInBlue = Color(0xFF0077B5);
+
+  // Gradient colors
+  static const Color gradientPurple1 = Color(0xFF4A00E0);
+  static const Color gradientPurple2 = Color(0xFF8E2DE2);
+  static const Color gradientPurple3 = Color(0xFF6F22BC);
+  static const Color gradientPurple4 = Color(0xFF03001E);
+
+  // Gradient definitions
+  static const LinearGradient primaryGradientVertical = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      gradientPurple1,
+      gradientPurple2,
+      gradientPurple3,
+      gradientPurple4,
+    ],
+    stops: [0.0, 0.25, 0.63, 1.0],
+  );
+
+  static const LinearGradient primaryGradientHorizontal = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [
+      gradientPurple1,
+      gradientPurple2,
+      gradientPurple3,
+      gradientPurple4,
+    ],
+    stops: [0.0, 0.25, 0.63, 1.0],
+  );
 }

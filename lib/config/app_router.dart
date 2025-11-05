@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skillresy/screens/auth/login_screen.dart';
 import 'package:skillresy/screens/common/splash_screen.dart';
@@ -6,6 +7,8 @@ import '../models/meeting_history_response.dart';
 import '../screens/auth/onboarding_step_screen.dart';
 import '../screens/auth/student_onboarding_step_screen.dart';
 import '../screens/auth/user_type_selection_screen.dart';
+import '../screens/candidate/interview/meeting_session_screen.dart';
+import '../screens/candidate/interview/meeting_setup_screen.dart';
 import '../screens/candidate/interview/meeting_detail_screen.dart';
 import '../screens/candidate/interview/meeting_history_screen.dart';
 import '../screens/candidate/interview/meeting_summary_screen.dart';
@@ -16,12 +19,19 @@ import '../screens/candidate/profile/edit_personal_details_screen.dart';
 import '../screens/candidate/profile/edit_skills_tools_screen.dart';
 import '../screens/candidate/profile/edit_work_experience_screen.dart';
 
+import '../screens/candidate/plans/candidate_plans_screen.dart';
 import '../screens/candidate/resume/resume_history_screen.dart';
 import '../screens/candidate/resume/resume_review_screen.dart';
 import '../screens/common/legal_webview_screen.dart';
 import '../screens/common/main_screen.dart';
 
 import '../screens/common/welcome_screen.dart';
+import '../screens/student/document_viewer_screen.dart';
+import '../screens/student/documents_screen.dart';
+import '../screens/student/edit_student_career_goals_screen.dart';
+import '../screens/student/edit_student_education_screen.dart';
+import '../screens/student/edit_student_personal_details_screen.dart';
+import '../screens/student/lectures_screen.dart';
 import '../screens/student/quiz_generation_loading_screen.dart';
 import '../screens/student/quiz_screen.dart';
 import '../screens/student/quiz_review_screen.dart';
@@ -182,6 +192,74 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/quiz/history',
       builder: (context, state) => const QuizHistoryScreen(),
+    ),
+    GoRoute(
+      path: '/plans',
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const CandidatePlansScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+          return SlideTransition(position: offsetAnimation, child: child);
+        },
+      ),
+    ),
+    GoRoute(
+      path: '/meeting/setup',
+      builder: (context, state) => const MeetingSetupScreen(),
+    ),
+    GoRoute(
+      path: '/meeting/session',
+      builder: (context, state) => const MeetingSessionScreen(),
+    ),
+    GoRoute(
+      path: '/student/profile/edit-personal-details',
+      builder: (context, state) => const EditStudentPersonalDetailsScreen(),
+    ),
+    GoRoute(
+      path: '/student/profile/edit-career-goals',
+      builder: (context, state) => const EditStudentCareerGoalsScreen(),
+    ),
+    GoRoute(
+      path: '/student/profile/edit-education',
+      builder: (context, state) => const EditStudentEducationScreen(),
+    ),
+    GoRoute(
+      path: '/student/document-viewer',
+      builder: (context, state) {
+        final params = state.uri.queryParameters;
+        final documentUrl = params['url'] ?? '';
+        final documentName = params['name'] ?? 'Document';
+        return DocumentViewerScreen(
+          documentUrl: documentUrl,
+          documentName: documentName,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/student/lectures',
+      builder: (context, state) {
+        final params = state.uri.queryParameters;
+        final subjectId = params['subjectId'] ?? '';
+        final subjectName = params['subjectName'] ?? 'Folder';
+        return LecturesScreen(subjectId: subjectId, subjectName: subjectName);
+      },
+    ),
+    GoRoute(
+      path: '/student/documents',
+      builder: (context, state) {
+        final params = state.uri.queryParameters;
+        final lectureId = params['lectureId'] ?? '';
+        final lectureName = params['lectureName'] ?? 'Lecture';
+        return DocumentsScreen(lectureId: lectureId, lectureName: lectureName);
+      },
     ),
   ],
 );

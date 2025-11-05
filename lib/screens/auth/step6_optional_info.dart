@@ -5,6 +5,7 @@ import '../../../../constants/app_colors.dart';
 import '../../../../providers/onboarding_provider.dart';
 import '../../../../utils/url_launcher_utils.dart';
 import '../../../../widgets/common/tag_field.dart';
+import '../../widgets/common/custom_button.dart';
 
 class Step6OptionalInfo extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -390,25 +391,7 @@ class _Step6OptionalInfoState extends ConsumerState<Step6OptionalInfo> {
         ],
         const SizedBox(height: 24),
         // Next button
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton(
-            onPressed: _handleSubmit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 0,
-            ),
-            child: const Text(
-              'Next',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ),
+        CustomButton(text: 'Next', onPressed: _handleSubmit, height: 56),
       ],
     );
   }

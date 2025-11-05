@@ -8,6 +8,7 @@ import '../../../providers/education_data_provider.dart';
 import '../../../providers/profile_provider.dart';
 import '../../../utils/date_helpers.dart';
 import '../../../utils/snackbar_utils.dart';
+import '../../../widgets/common/custom_button.dart';
 import '../../../widgets/common/custom_picker_field.dart';
 
 class EditEducationScreen extends ConsumerStatefulWidget {
@@ -617,44 +618,13 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
                               const SizedBox(height: 32),
 
                               // Update button
-                              SizedBox(
-                                width: double.infinity,
+                              CustomButton(
+                                text: 'Update',
+                                onPressed: ref.watch(profileProvider).isLoading
+                                    ? null
+                                    : _handleSave,
+                                isLoading: ref.watch(profileProvider).isLoading,
                                 height: 56,
-                                child: ElevatedButton(
-                                  onPressed:
-                                      ref.watch(profileProvider).isLoading
-                                      ? null
-                                      : _handleSave,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    foregroundColor: AppColors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    elevation: 0,
-                                    disabledBackgroundColor: AppColors.primary
-                                        .withValues(alpha: 0.6),
-                                  ),
-                                  child: ref.watch(profileProvider).isLoading
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                  AppColors.white,
-                                                ),
-                                          ),
-                                        )
-                                      : const Text(
-                                          'Update',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                ),
                               ),
                             ],
                           ),

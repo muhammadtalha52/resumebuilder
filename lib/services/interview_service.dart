@@ -543,7 +543,7 @@ class InterviewService {
         return {
           'status': 'success',
           'data': response.data,
-          'message': 'Interview saved successfully',
+          'message': 'Meeting saved successfully',
         };
       } else {
         return {

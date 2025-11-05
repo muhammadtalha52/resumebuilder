@@ -327,14 +327,8 @@ class DocumentsScreen extends ConsumerWidget {
           print('🔗 S3 Filename: ${document.s3Filename}');
           print('🌐 Final URL: $urlString');
 
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DocumentViewerScreen(
-                documentUrl: urlString,
-                documentName: document.name ?? 'Document',
-              ),
-            ),
+          context.push(
+            '/student/document-viewer?url=${Uri.encodeComponent(urlString)}&name=${Uri.encodeComponent(document.name ?? 'Document')}',
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(

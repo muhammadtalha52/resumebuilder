@@ -11,8 +11,8 @@ import '../../../providers/continuous_transcription_provider.dart';
 import '../../../providers/interview_session_provider.dart';
 import 'continuous_audio_transcriber.dart';
 
-class InterviewSessionScreen extends ConsumerWidget {
-  const InterviewSessionScreen({super.key});
+class MeetingSessionScreen extends ConsumerWidget {
+  const MeetingSessionScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -347,9 +347,7 @@ class InterviewSessionScreen extends ConsumerWidget {
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
-        color: isLoading
-            ? const Color(0xFF1A237E).withValues(alpha: 0.6)
-            : const Color(0xFF1A237E),
+        gradient: AppColors.primaryGradientHorizontal,
         borderRadius: BorderRadius.circular(12),
       ),
       child: ElevatedButton(
@@ -401,10 +399,9 @@ class InterviewSessionScreen extends ConsumerWidget {
                 }
               },
         style: ElevatedButton.styleFrom(
-          backgroundColor: isLoading
-              ? const Color(0xFF1A237E).withValues(alpha: 0.6)
-              : const Color(0xFF1A237E),
+          backgroundColor: Colors.transparent,
           foregroundColor: AppColors.white,
+          shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
