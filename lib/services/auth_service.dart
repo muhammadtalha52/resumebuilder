@@ -314,4 +314,139 @@ class AuthService {
       throw Exception('Registration failed: $e');
     }
   }
+
+  Future<Map<String, dynamic>> forgotPassword({required String email}) async {
+    try {
+      final response = await _apiClient.dio.post(
+        ApiEndpoints.forgotPassword,
+        data: {'email': email},
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data;
+      } else {
+        throw Exception(
+          response.data?['error'] ?? 'Failed to send reset email',
+        );
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final responseData = e.response!.data;
+        String errorMessage = 'Failed to send reset email';
+
+        // Handle different error response formats
+        if (responseData is Map) {
+          // Check for 'error' field
+          if (responseData.containsKey('error')) {
+            errorMessage = responseData['error'].toString();
+          }
+          // Check for 'message' field
+          else if (responseData.containsKey('message')) {
+            errorMessage = responseData['message'].toString();
+          }
+          // Check for 'errors' field (validation errors)
+          else if (responseData.containsKey('errors')) {
+            final errors = responseData['errors'];
+            if (errors is Map) {
+              // Collect all validation errors
+              final errorMessages = <String>[];
+              errors.forEach((field, messages) {
+                if (messages is List) {
+                  errorMessages.addAll(messages.map((m) => m.toString()));
+                } else {
+                  errorMessages.add(messages.toString());
+                }
+              });
+              errorMessage = errorMessages.join('\n');
+            } else if (errors is List) {
+              errorMessage = errors.join('\n');
+            } else {
+              errorMessage = errors.toString();
+            }
+          }
+          // Check for 'detail' field (common in some APIs)
+          else if (responseData.containsKey('detail')) {
+            errorMessage = responseData['detail'].toString();
+          }
+          // If none of the above, try to extract any meaningful message
+          else {
+            errorMessage = responseData.toString();
+          }
+        } else if (responseData is String) {
+          errorMessage = responseData;
+        }
+
+        // Add status code information for better debugging
+        if (e.response!.statusCode == 404) {
+          errorMessage = 'Email not found: $errorMessage';
+        } else if (e.response!.statusCode == 400) {
+          errorMessage = 'Bad Request: $errorMessage';
+        }
+
+        throw Exception(errorMessage);
+      } else {
+        throw Exception('Network error: ${e.message}');
+      }
+    } catch (e) {
+      // Only wrap in Exception if it's not already an Exception
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Failed to send reset email: $e');
+    }
+  }
+
+  Future<void> deleteAccount({required int userId}) async {
+    try {
+      final response = await _apiClient.dio.delete(
+        '${ApiEndpoints.deleteAccount}$userId/',
+        options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
+      );
+
+      if (response.statusCode == 204 || response.statusCode == 200) {
+        // Account deleted successfully
+        return;
+      } else {
+        throw Exception(response.data?['error'] ?? 'Failed to delete account');
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final responseData = e.response!.data;
+        String errorMessage = 'Failed to delete account';
+
+        // Handle different error response formats
+        if (responseData is Map) {
+          if (responseData.containsKey('error')) {
+            errorMessage = responseData['error'].toString();
+          } else if (responseData.containsKey('message')) {
+            errorMessage = responseData['message'].toString();
+          } else if (responseData.containsKey('detail')) {
+            errorMessage = responseData['detail'].toString();
+          } else {
+            errorMessage = responseData.toString();
+          }
+        } else if (responseData is String) {
+          errorMessage = responseData;
+        }
+
+        // Add status code information
+        if (e.response!.statusCode == 404) {
+          errorMessage = 'Account not found: $errorMessage';
+        } else if (e.response!.statusCode == 403) {
+          errorMessage = 'Access denied: $errorMessage';
+        } else if (e.response!.statusCode == 401) {
+          errorMessage = 'Unauthorized: $errorMessage';
+        }
+
+        throw Exception(errorMessage);
+      } else {
+        throw Exception('Network error: ${e.message}');
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Failed to delete account: $e');
+    }
+  }
 }

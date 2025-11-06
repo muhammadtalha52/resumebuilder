@@ -119,34 +119,59 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                     // Next/Finish button
                     Expanded(
                       flex: quizState.canGoPrevious() ? 1 : 2,
-                      child: ElevatedButton.icon(
-                        onPressed: currentQuestion.isAnswered
-                            ? () {
-                                if (quizState.isLastQuestion()) {
-                                  _navigateToSummary(context);
-                                } else {
-                                  ref
-                                      .read(quizProvider.notifier)
-                                      .nextQuestion();
-                                }
-                              }
-                            : null,
-                        icon: Icon(
-                          quizState.isLastQuestion()
-                              ? Icons.check_circle
-                              : Icons.arrow_forward,
-                          size: 20,
+                      child: Container(
+                        height: 54,
+                        decoration: BoxDecoration(
+                          gradient: currentQuestion.isAnswered
+                              ? AppColors.primaryGradientHorizontal
+                              : null,
+                          color: currentQuestion.isAnswered
+                              ? null
+                              : AppColors.textSecondary.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        label: Text(
-                          quizState.isLastQuestion() ? 'Finish Quiz' : 'Next',
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          disabledBackgroundColor: AppColors.textSecondary
-                              .withValues(alpha: 0.3),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: currentQuestion.isAnswered
+                                ? () {
+                                    if (quizState.isLastQuestion()) {
+                                      _navigateToSummary(context);
+                                    } else {
+                                      ref
+                                          .read(quizProvider.notifier)
+                                          .nextQuestion();
+                                    }
+                                  }
+                                : null,
                             borderRadius: BorderRadius.circular(12),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  quizState.isLastQuestion()
+                                      ? Icons.check_circle
+                                      : Icons.arrow_forward,
+                                  size: 20,
+                                  color: currentQuestion.isAnswered
+                                      ? Colors.white
+                                      : AppColors.textSecondary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  quizState.isLastQuestion()
+                                      ? 'Finish Quiz'
+                                      : 'Next',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: currentQuestion.isAnswered
+                                        ? Colors.white
+                                        : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),

@@ -6,6 +6,7 @@ import '../../providers/quiz_provider.dart';
 import '../../providers/quiz_history_provider.dart';
 import '../../providers/documents_provider.dart';
 import '../../widgets/common/custom_app_bar.dart';
+import '../../widgets/common/custom_button.dart';
 import '../../utils/snackbar_utils.dart' as snackbar;
 
 class QuizSummaryScreen extends ConsumerStatefulWidget {
@@ -124,115 +125,121 @@ class _QuizSummaryScreenState extends ConsumerState<QuizSummaryScreen> {
   Widget build(BuildContext context) {
     final summary = ref.read(quizProvider.notifier).getSummary();
 
-    return Scaffold(
-      backgroundColor: AppColors.scaffold,
-      appBar: BackNavigationAppBar(
-        title: 'Quiz Results',
-        onBackPressed: _handleBackPress,
-      ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/icons/background.png'),
-            fit: BoxFit.cover,
-          ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          await _handleBackPress();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.scaffold,
+        appBar: BackNavigationAppBar(
+          title: 'Quiz Results',
+          onBackPressed: _handleBackPress,
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/icons/background.png'),
+              fit: BoxFit.cover,
             ),
-            child: Column(
-              children: [
-                // Fox mascot image
-                Image.asset(_getResultImage(summary.percentage), height: 100),
-                const SizedBox(height: 24),
-                // Encouraging title
-                Text(
-                  _getEncouragingTitle(summary.percentage),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
                   ),
-                ),
-                const SizedBox(height: 12),
-                // Encouraging message
-                Text(
-                  _getEncouragingMessage(summary.percentage),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: AppColors.textSecondary,
-                    height: 1.5,
+                ],
+              ),
+              child: Column(
+                children: [
+                  // Fox mascot image
+                  Image.asset(_getResultImage(summary.percentage), height: 100),
+                  const SizedBox(height: 24),
+                  // Encouraging title
+                  Text(
+                    _getEncouragingTitle(summary.percentage),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
-                // Stats
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStatCard(
-                        icon: Icons.check_circle,
-                        color: Colors.green,
-                        label: 'Correct',
-                        value:
-                            '${summary.correctAnswers}/${summary.totalQuestions}',
-                      ),
+                  const SizedBox(height: 12),
+                  // Encouraging message
+                  Text(
+                    _getEncouragingMessage(summary.percentage),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: AppColors.textSecondary,
+                      height: 1.5,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildStatCard(
-                        icon: Icons.cancel,
-                        color: Colors.red.shade400,
-                        label: 'Incorrect',
-                        value:
-                            '${summary.incorrectAnswers}/${summary.totalQuestions}',
+                  ),
+                  const SizedBox(height: 32),
+                  // Stats
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatCard(
+                          icon: Icons.check_circle,
+                          color: Colors.green,
+                          label: 'Correct',
+                          value:
+                              '${summary.correctAnswers}/${summary.totalQuestions}',
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                // Action buttons
-                _buildActionButton(
-                  context: context,
-                  ref: ref,
-                  label: 'Review Answers',
-                  icon: Icons.rate_review,
-                  isPrimary: false,
-                  onTap: () {
-                    final quiz = ref.read(quizProvider).quiz;
-                    if (quiz != null) {
-                      context.push(
-                        '/quiz/review?lectureName=${Uri.encodeComponent(widget.lectureName)}',
-                        extra: quiz,
-                      );
-                    }
-                  },
-                ),
-                const SizedBox(height: 12),
-                _buildActionButton(
-                  context: context,
-                  label: 'Done',
-                  icon: Icons.home,
-                  isPrimary: true,
-                  onTap: _handleDonePress,
-                ),
-              ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildStatCard(
+                          icon: Icons.cancel,
+                          color: Colors.red.shade400,
+                          label: 'Incorrect',
+                          value:
+                              '${summary.incorrectAnswers}/${summary.totalQuestions}',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  // Action buttons
+                  CustomButton(
+                    text: 'Review Answers',
+                    onPressed: () {
+                      final quiz = ref.read(quizProvider).quiz;
+                      if (quiz != null) {
+                        context.push(
+                          '/quiz/review?lectureName=${Uri.encodeComponent(widget.lectureName)}',
+                          extra: quiz,
+                        );
+                      }
+                    },
+                    icon: Icons.rate_review,
+                    isOutlined: true,
+                    useGradient: false,
+                  ),
+                  const SizedBox(height: 12),
+                  CustomButton(
+                    text: 'Done',
+                    onPressed: _handleDonePress,
+                    icon: Icons.home,
+                    useGradient: true,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -275,56 +282,6 @@ class _QuizSummaryScreenState extends ConsumerState<QuizSummaryScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required BuildContext context,
-    WidgetRef? ref,
-    required String label,
-    required IconData icon,
-    required bool isPrimary,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: isPrimary ? AppColors.primary : AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: isPrimary
-              ? null
-              : Border.all(color: AppColors.primary, width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isPrimary ? AppColors.white : AppColors.primary,
-              size: 22,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: isPrimary ? AppColors.white : AppColors.primary,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

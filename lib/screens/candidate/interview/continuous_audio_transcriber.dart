@@ -286,18 +286,20 @@ class ContinuousAudioTranscriber extends ChangeNotifier {
       });
 
       // Send request with timeout using Dio
+      // Increased timeout to handle OpenAI API latency + network delays
+      // 5-sec audio typically takes 2-7 seconds to transcribe + network overhead
       final response = await _dio
           .post(
             'https://api.openai.com/v1/audio/transcriptions',
             data: formData,
             options: Options(
               headers: {'Authorization': 'Bearer ${AppKeys.openAiApiKey}'},
-              sendTimeout: Duration(seconds: 10),
-              receiveTimeout: Duration(seconds: 10),
+              sendTimeout: Duration(seconds: 30),
+              receiveTimeout: Duration(seconds: 30),
             ),
           )
           .timeout(
-            Duration(seconds: 15),
+            Duration(seconds: 45),
             onTimeout: () {
               throw TimeoutException(
                 'Transcription timeout for chunk ${chunk.chunkIndex}',
@@ -523,9 +525,19 @@ class ContinuousAudioTranscriber extends ChangeNotifier {
       final dir = await getTemporaryDirectory();
       final files = dir.listSync().where((f) => f.path.contains('chunk_'));
       for (final file in files) {
-        await file.delete();
+        try {
+          // Check if file exists before attempting deletion
+          if (await file.exists()) {
+            await file.delete();
+          }
+        } catch (deleteError) {
+          // Ignore individual file deletion errors
+          _log('⚠️ Could not delete file ${file.path}: $deleteError');
+        }
       }
-    } catch (e) {}
+    } catch (e) {
+      _log('⚠️ Cleanup error: $e');
+    }
   }
 
   // Reset state for fresh start

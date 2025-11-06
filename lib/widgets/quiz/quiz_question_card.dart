@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../constants/app_colors.dart';
 import '../../models/quize_model.dart';
 import '../../providers/quiz_provider.dart';
+import '../common/custom_button.dart';
 import 'quiz_option_tile.dart';
 
 class QuizQuestionCard extends ConsumerWidget {
@@ -108,34 +109,15 @@ class QuizQuestionCard extends ConsumerWidget {
   Widget _buildCheckAnswerButton(BuildContext context, WidgetRef ref) {
     final hasSelected = question.selectedLabel != null;
 
-    return SizedBox(
+    return CustomButton(
+      text: hasSelected ? 'Check Answer' : 'Select an option',
+      onPressed: hasSelected
+          ? () {
+              ref.read(quizProvider.notifier).checkAnswer();
+            }
+          : null,
       width: double.infinity,
-      child: ElevatedButton(
-        onPressed: hasSelected
-            ? () {
-                ref.read(quizProvider.notifier).checkAnswer();
-              }
-            : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          disabledBackgroundColor: AppColors.textSecondary.withValues(
-            alpha: 0.3,
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: hasSelected ? 2 : 0,
-        ),
-        child: Text(
-          hasSelected ? 'Check Answer' : 'Select an option',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: hasSelected ? AppColors.white : AppColors.textSecondary,
-          ),
-        ),
-      ),
+      useGradient: true,
     );
   }
 

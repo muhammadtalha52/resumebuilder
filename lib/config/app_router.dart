@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skillresy/screens/auth/login_screen.dart';
+import 'package:skillresy/screens/auth/forgot_password_screen.dart';
 import 'package:skillresy/screens/common/splash_screen.dart';
 
 import '../models/meeting_history_response.dart';
@@ -48,6 +49,10 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const WelcomeScreen(),
     ),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+    GoRoute(
+      path: '/forgot-password',
+      builder: (context, state) => const ForgotPasswordScreen(),
+    ),
     GoRoute(
       path: '/user-type-selection',
       builder: (context, state) => const UserTypeSelectionScreen(),

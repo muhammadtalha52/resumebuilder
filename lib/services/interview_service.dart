@@ -19,11 +19,9 @@ class InterviewService {
     _dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 5),
-        // Reduced for faster failure
-        receiveTimeout: const Duration(seconds: 10),
-        // 10 seconds max for help response
-        sendTimeout: const Duration(seconds: 5), // Fast send timeout
+        connectTimeout: const Duration(minutes: 5),
+        receiveTimeout: const Duration(minutes: 5),
+        sendTimeout: const Duration(minutes: 5), // Fast send timeout
       ),
     );
 

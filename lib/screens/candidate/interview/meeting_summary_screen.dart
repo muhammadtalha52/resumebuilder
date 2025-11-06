@@ -127,457 +127,468 @@ class _InterviewSummaryScreenState extends ConsumerState<MeetingSummaryScreen> {
   Widget build(BuildContext context) {
     final summaryState = ref.watch(interviewSummaryProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.scaffold,
-      appBar: BackNavigationAppBar(
-        title: 'Meeting Summary',
-        onBackPressed: _handleBackNavigation,
-        showFoxIcon: true,
-      ),
-      body: SafeArea(
-        child: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/icons/background.png'),
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
-            child: Container(
-              width: double.infinity,
-              height: double.infinity,
-              padding: const EdgeInsets.only(top: 15, bottom: 15),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: AppColors.scaffold,
+        appBar: BackNavigationAppBar(
+          title: 'Meeting Summary',
+          onBackPressed: _handleBackNavigation,
+          showFoxIcon: true,
+        ),
+        body: SafeArea(
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/icons/background.png'),
+                fit: BoxFit.cover,
               ),
-              child: summaryState.isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                    )
-                  : summaryState.error != null &&
-                        summaryState.meetingSummaryModel == null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.error_outline,
-                              size: 64,
-                              color: Colors.red,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Error Loading Summary',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                padding: const EdgeInsets.only(top: 15, bottom: 15),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: summaryState.isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      )
+                    : summaryState.error != null &&
+                          summaryState.meetingSummaryModel == null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                size: 64,
+                                color: Colors.red,
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              summaryState.error!,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            ElevatedButton(
-                              onPressed: () => context.go('/home'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 32,
-                                  vertical: 12,
+                              const SizedBox(height: 16),
+                              Text(
+                                'Error Loading Summary',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
                                 ),
                               ),
-                              child: const Text('Go to Home'),
+                              const SizedBox(height: 8),
+                              Text(
+                                summaryState.error!,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              ElevatedButton(
+                                onPressed: () => context.go('/home'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 32,
+                                    vertical: 12,
+                                  ),
+                                ),
+                                child: const Text('Go to Home'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(15),
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFFFFF3E0),
+                                          Color(0xFFFFE0B2),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Image.asset(
+                                          'assets/icons/fox-for-success.png',
+                                          height: 130,
+                                          width: 130,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                                return Container(
+                                                  height: 130,
+                                                  width: 130,
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        Colors.orange.shade300,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.celebration,
+                                                    size: 40,
+                                                    color: Colors.white,
+                                                  ),
+                                                );
+                                              },
+                                        ),
+                                        const SizedBox(height: 16),
+                                        const Text(
+                                          'Meeting Completed',
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        const Text(
+                                          'Your meeting summary is ready to view',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black54,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(height: 10),
+                                  const Text(
+                                    'Meeting Overview',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  IntrinsicHeight(
+                                    child: Row(
+                                      children: [
+                                        _buildOverviewCard(
+                                          icon: Icons.mic,
+                                          label: 'Type',
+                                          value: widget.sessionType,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        _buildOverviewCard(
+                                          icon: Icons.calendar_today,
+                                          label: 'Date & Time',
+                                          value: _formatDateTime(
+                                            widget.startTime,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        _buildOverviewCard(
+                                          icon: Icons.timer,
+                                          label: 'Duration',
+                                          value: _formatDuration(
+                                            widget.duration,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (summaryState.meetingSummaryModel !=
+                                          null &&
+                                      summaryState
+                                              .meetingSummaryModel!
+                                              .summary !=
+                                          null)
+                                    ...() {
+                                      final summaryData = summaryState
+                                          .meetingSummaryModel!
+                                          .summary!;
+                                      return [
+                                        // Key Discussion Points (for meetings) or Top Moments (for interviews)
+                                        if (summaryData.keyDiscussionPoints !=
+                                                null &&
+                                            summaryData
+                                                .keyDiscussionPoints!
+                                                .isNotEmpty) ...[
+                                          const SizedBox(height: 24),
+                                          _buildSection(
+                                            widget.sessionType
+                                                    .toLowerCase()
+                                                    .contains('meeting')
+                                                ? 'Key Discussion Points'
+                                                : 'Key Topics Discussed',
+                                            summaryData.keyDiscussionPoints!,
+                                            Colors.blue,
+                                          ),
+                                        ],
+
+                                        // Top Moments in Interview
+                                        if (summaryData.topMomentsInInterview !=
+                                                null &&
+                                            summaryData
+                                                .topMomentsInInterview!
+                                                .isNotEmpty) ...[
+                                          const SizedBox(height: 24),
+                                          _buildSection(
+                                            'Top Moments in Interview',
+                                            summaryData.topMomentsInInterview!,
+                                            Colors.indigo,
+                                          ),
+                                        ],
+
+                                        // Decisions Made (mainly for meetings)
+                                        if (summaryData.decisionsMade != null &&
+                                            summaryData
+                                                .decisionsMade!
+                                                .isNotEmpty) ...[
+                                          const SizedBox(height: 24),
+                                          _buildSection(
+                                            'Decisions Made',
+                                            summaryData.decisionsMade!,
+                                            Colors.teal,
+                                            isCheckmark: true,
+                                          ),
+                                        ],
+
+                                        // Strengths Highlighted
+                                        if (summaryData.strengthsHighlighted !=
+                                                null &&
+                                            summaryData
+                                                .strengthsHighlighted!
+                                                .isNotEmpty) ...[
+                                          const SizedBox(height: 24),
+                                          _buildSection(
+                                            'Strengths Highlighted',
+                                            summaryData.strengthsHighlighted!,
+                                            Colors.green,
+                                            isCheckmark: true,
+                                          ),
+                                        ],
+
+                                        // Potential Weaknesses or Strengths
+                                        if (summaryData
+                                                    .potentialWeaknessOrStrengths !=
+                                                null &&
+                                            summaryData
+                                                .potentialWeaknessOrStrengths!
+                                                .isNotEmpty) ...[
+                                          const SizedBox(height: 24),
+                                          _buildSection(
+                                            'Potential Weaknesses or Strengths',
+                                            summaryData
+                                                .potentialWeaknessOrStrengths!,
+                                            Colors.amber,
+                                            isCheckmark: false,
+                                          ),
+                                        ],
+
+                                        // Areas for Improvement
+                                        if (summaryData.areasOfImprovement !=
+                                                null &&
+                                            summaryData
+                                                .areasOfImprovement!
+                                                .isNotEmpty) ...[
+                                          const SizedBox(height: 24),
+                                          _buildSection(
+                                            'Areas for Improvement',
+                                            summaryData.areasOfImprovement!,
+                                            Colors.orange,
+                                            isCheckmark: false,
+                                            isWarning: true,
+                                          ),
+                                        ],
+
+                                        // AI-Driven Interview Analytics
+                                        if (summaryData
+                                                    .aiDrivenInterviewAnalytics !=
+                                                null &&
+                                            summaryData
+                                                .aiDrivenInterviewAnalytics!
+                                                .isNotEmpty) ...[
+                                          const SizedBox(height: 24),
+                                          _buildSection(
+                                            'AI-Driven Interview Analytics',
+                                            summaryData
+                                                .aiDrivenInterviewAnalytics!,
+                                            Colors.deepPurple,
+                                          ),
+                                        ],
+
+                                        // Action Items
+                                        if ((summaryData.candidateActionItems !=
+                                                    null &&
+                                                summaryData
+                                                    .candidateActionItems!
+                                                    .isNotEmpty) ||
+                                            (summaryData.actionItems != null &&
+                                                summaryData
+                                                    .actionItems!
+                                                    .isNotEmpty)) ...[
+                                          const SizedBox(height: 24),
+                                          _buildSection(
+                                            'Action Items',
+                                            summaryData.candidateActionItems !=
+                                                        null &&
+                                                    summaryData
+                                                        .candidateActionItems!
+                                                        .isNotEmpty
+                                                ? summaryData
+                                                      .candidateActionItems!
+                                                : summaryData.actionItems!,
+                                            Colors.purple,
+                                            isCheckmark: true,
+                                          ),
+                                        ],
+                                      ];
+                                    }(),
+                                  const SizedBox(height: 24),
+                                  // Container(
+                                  //   padding: const EdgeInsets.all(16),
+                                  //   decoration: BoxDecoration(
+                                  //     color: Colors.grey[50],
+                                  //     borderRadius: BorderRadius.circular(12),
+                                  //     border: Border.all(
+                                  //       color: Colors.grey[300]!,
+                                  //     ),
+                                  //   ),
+                                  //   child: Column(
+                                  //     crossAxisAlignment:
+                                  //         CrossAxisAlignment.start,
+                                  //     children: [
+                                  //       Row(
+                                  //         children: [
+                                  //           Image.asset(
+                                  //             'assets/icons/scout_avatar.png',
+                                  //             height: 32,
+                                  //             width: 32,
+                                  //             errorBuilder:
+                                  //                 (context, error, stackTrace) {
+                                  //                   return Container(
+                                  //                     height: 32,
+                                  //                     width: 32,
+                                  //                     decoration:
+                                  //                         const BoxDecoration(
+                                  //                           color: Colors.orange,
+                                  //                           shape:
+                                  //                               BoxShape.circle,
+                                  //                         ),
+                                  //                     child: const Icon(
+                                  //                       Icons.smart_toy,
+                                  //                       size: 20,
+                                  //                       color: Colors.white,
+                                  //                     ),
+                                  //                   );
+                                  //                 },
+                                  //           ),
+                                  //           const SizedBox(width: 8),
+                                  //           const Text(
+                                  //             'Ask Scout the fox',
+                                  //             style: TextStyle(
+                                  //               fontSize: 16,
+                                  //               fontWeight: FontWeight.bold,
+                                  //               color: Colors.black87,
+                                  //             ),
+                                  //           ),
+                                  //         ],
+                                  //       ),
+                                  //       const SizedBox(height: 12),
+                                  //       TextField(
+                                  //         controller: _questionController,
+                                  //         decoration: InputDecoration(
+                                  //           hintText:
+                                  //               'Ask me anything about session...',
+                                  //           hintStyle: TextStyle(
+                                  //             color: Colors.grey[400],
+                                  //             fontSize: 14,
+                                  //           ),
+                                  //           filled: true,
+                                  //           fillColor: Colors.white,
+                                  //           border: OutlineInputBorder(
+                                  //             borderRadius: BorderRadius.circular(
+                                  //               8,
+                                  //             ),
+                                  //             borderSide: BorderSide(
+                                  //               color: Colors.grey[300]!,
+                                  //             ),
+                                  //           ),
+                                  //           enabledBorder: OutlineInputBorder(
+                                  //             borderRadius: BorderRadius.circular(
+                                  //               8,
+                                  //             ),
+                                  //             borderSide: BorderSide(
+                                  //               color: Colors.grey[300]!,
+                                  //             ),
+                                  //           ),
+                                  //           focusedBorder: OutlineInputBorder(
+                                  //             borderRadius: BorderRadius.circular(
+                                  //               8,
+                                  //             ),
+                                  //             borderSide: const BorderSide(
+                                  //               color: Colors.orange,
+                                  //               width: 2,
+                                  //             ),
+                                  //           ),
+                                  //           suffixIcon: Container(
+                                  //             margin: const EdgeInsets.all(4),
+                                  //             decoration: BoxDecoration(
+                                  //               color: Colors.orange,
+                                  //               borderRadius:
+                                  //                   BorderRadius.circular(6),
+                                  //             ),
+                                  //             child: IconButton(
+                                  //               onPressed: () {
+                                  //                 // TODO: Implement Scout chat functionality
+                                  //               },
+                                  //               icon: const Icon(
+                                  //                 Icons.send,
+                                  //                 color: Colors.white,
+                                  //                 size: 20,
+                                  //               ),
+                                  //             ),
+                                  //           ),
+                                  //         ),
+                                  //       ),
+                                  //     ],
+                                  //   ),
+                                  // ),
+                                  // const SizedBox(height: 24),
+                                  // Save Button
+                                  _buildSaveButton(summaryState),
+                                  const SizedBox(height: 32),
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ),
-                    )
-                  : SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(15),
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFFFFF3E0),
-                                        Color(0xFFFFE0B2),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Image.asset(
-                                        'assets/icons/fox-for-success.png',
-                                        height: 130,
-                                        width: 130,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                              return Container(
-                                                height: 130,
-                                                width: 130,
-                                                decoration: BoxDecoration(
-                                                  color: Colors.orange.shade300,
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: const Icon(
-                                                  Icons.celebration,
-                                                  size: 40,
-                                                  color: Colors.white,
-                                                ),
-                                              );
-                                            },
-                                      ),
-                                      const SizedBox(height: 16),
-                                      const Text(
-                                        'Meeting Completed',
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                      const Text(
-                                        'Your meeting summary is ready to view',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.black54,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                SizedBox(height: 10),
-                                const Text(
-                                  'Meeting Overview',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                IntrinsicHeight(
-                                  child: Row(
-                                    children: [
-                                      _buildOverviewCard(
-                                        icon: Icons.mic,
-                                        label: 'Type',
-                                        value: widget.sessionType,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _buildOverviewCard(
-                                        icon: Icons.calendar_today,
-                                        label: 'Date & Time',
-                                        value: _formatDateTime(
-                                          widget.startTime,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _buildOverviewCard(
-                                        icon: Icons.timer,
-                                        label: 'Duration',
-                                        value: _formatDuration(widget.duration),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (summaryState.meetingSummaryModel != null &&
-                                    summaryState.meetingSummaryModel!.summary !=
-                                        null)
-                                  ...() {
-                                    final summaryData = summaryState
-                                        .meetingSummaryModel!
-                                        .summary!;
-                                    return [
-                                      // Key Discussion Points (for meetings) or Top Moments (for interviews)
-                                      if (summaryData.keyDiscussionPoints !=
-                                              null &&
-                                          summaryData
-                                              .keyDiscussionPoints!
-                                              .isNotEmpty) ...[
-                                        const SizedBox(height: 24),
-                                        _buildSection(
-                                          widget.sessionType
-                                                  .toLowerCase()
-                                                  .contains('meeting')
-                                              ? 'Key Discussion Points'
-                                              : 'Key Topics Discussed',
-                                          summaryData.keyDiscussionPoints!,
-                                          Colors.blue,
-                                        ),
-                                      ],
-
-                                      // Top Moments in Interview
-                                      if (summaryData.topMomentsInInterview !=
-                                              null &&
-                                          summaryData
-                                              .topMomentsInInterview!
-                                              .isNotEmpty) ...[
-                                        const SizedBox(height: 24),
-                                        _buildSection(
-                                          'Top Moments in Interview',
-                                          summaryData.topMomentsInInterview!,
-                                          Colors.indigo,
-                                        ),
-                                      ],
-
-                                      // Decisions Made (mainly for meetings)
-                                      if (summaryData.decisionsMade != null &&
-                                          summaryData
-                                              .decisionsMade!
-                                              .isNotEmpty) ...[
-                                        const SizedBox(height: 24),
-                                        _buildSection(
-                                          'Decisions Made',
-                                          summaryData.decisionsMade!,
-                                          Colors.teal,
-                                          isCheckmark: true,
-                                        ),
-                                      ],
-
-                                      // Strengths Highlighted
-                                      if (summaryData.strengthsHighlighted !=
-                                              null &&
-                                          summaryData
-                                              .strengthsHighlighted!
-                                              .isNotEmpty) ...[
-                                        const SizedBox(height: 24),
-                                        _buildSection(
-                                          'Strengths Highlighted',
-                                          summaryData.strengthsHighlighted!,
-                                          Colors.green,
-                                          isCheckmark: true,
-                                        ),
-                                      ],
-
-                                      // Potential Weaknesses or Strengths
-                                      if (summaryData
-                                                  .potentialWeaknessOrStrengths !=
-                                              null &&
-                                          summaryData
-                                              .potentialWeaknessOrStrengths!
-                                              .isNotEmpty) ...[
-                                        const SizedBox(height: 24),
-                                        _buildSection(
-                                          'Potential Weaknesses or Strengths',
-                                          summaryData
-                                              .potentialWeaknessOrStrengths!,
-                                          Colors.amber,
-                                          isCheckmark: false,
-                                        ),
-                                      ],
-
-                                      // Areas for Improvement
-                                      if (summaryData.areasOfImprovement !=
-                                              null &&
-                                          summaryData
-                                              .areasOfImprovement!
-                                              .isNotEmpty) ...[
-                                        const SizedBox(height: 24),
-                                        _buildSection(
-                                          'Areas for Improvement',
-                                          summaryData.areasOfImprovement!,
-                                          Colors.orange,
-                                          isCheckmark: false,
-                                          isWarning: true,
-                                        ),
-                                      ],
-
-                                      // AI-Driven Interview Analytics
-                                      if (summaryData
-                                                  .aiDrivenInterviewAnalytics !=
-                                              null &&
-                                          summaryData
-                                              .aiDrivenInterviewAnalytics!
-                                              .isNotEmpty) ...[
-                                        const SizedBox(height: 24),
-                                        _buildSection(
-                                          'AI-Driven Interview Analytics',
-                                          summaryData
-                                              .aiDrivenInterviewAnalytics!,
-                                          Colors.deepPurple,
-                                        ),
-                                      ],
-
-                                      // Action Items
-                                      if ((summaryData.candidateActionItems !=
-                                                  null &&
-                                              summaryData
-                                                  .candidateActionItems!
-                                                  .isNotEmpty) ||
-                                          (summaryData.actionItems != null &&
-                                              summaryData
-                                                  .actionItems!
-                                                  .isNotEmpty)) ...[
-                                        const SizedBox(height: 24),
-                                        _buildSection(
-                                          'Action Items',
-                                          summaryData.candidateActionItems !=
-                                                      null &&
-                                                  summaryData
-                                                      .candidateActionItems!
-                                                      .isNotEmpty
-                                              ? summaryData
-                                                    .candidateActionItems!
-                                              : summaryData.actionItems!,
-                                          Colors.purple,
-                                          isCheckmark: true,
-                                        ),
-                                      ],
-                                    ];
-                                  }(),
-                                const SizedBox(height: 24),
-                                // Container(
-                                //   padding: const EdgeInsets.all(16),
-                                //   decoration: BoxDecoration(
-                                //     color: Colors.grey[50],
-                                //     borderRadius: BorderRadius.circular(12),
-                                //     border: Border.all(
-                                //       color: Colors.grey[300]!,
-                                //     ),
-                                //   ),
-                                //   child: Column(
-                                //     crossAxisAlignment:
-                                //         CrossAxisAlignment.start,
-                                //     children: [
-                                //       Row(
-                                //         children: [
-                                //           Image.asset(
-                                //             'assets/icons/scout_avatar.png',
-                                //             height: 32,
-                                //             width: 32,
-                                //             errorBuilder:
-                                //                 (context, error, stackTrace) {
-                                //                   return Container(
-                                //                     height: 32,
-                                //                     width: 32,
-                                //                     decoration:
-                                //                         const BoxDecoration(
-                                //                           color: Colors.orange,
-                                //                           shape:
-                                //                               BoxShape.circle,
-                                //                         ),
-                                //                     child: const Icon(
-                                //                       Icons.smart_toy,
-                                //                       size: 20,
-                                //                       color: Colors.white,
-                                //                     ),
-                                //                   );
-                                //                 },
-                                //           ),
-                                //           const SizedBox(width: 8),
-                                //           const Text(
-                                //             'Ask Scout the fox',
-                                //             style: TextStyle(
-                                //               fontSize: 16,
-                                //               fontWeight: FontWeight.bold,
-                                //               color: Colors.black87,
-                                //             ),
-                                //           ),
-                                //         ],
-                                //       ),
-                                //       const SizedBox(height: 12),
-                                //       TextField(
-                                //         controller: _questionController,
-                                //         decoration: InputDecoration(
-                                //           hintText:
-                                //               'Ask me anything about session...',
-                                //           hintStyle: TextStyle(
-                                //             color: Colors.grey[400],
-                                //             fontSize: 14,
-                                //           ),
-                                //           filled: true,
-                                //           fillColor: Colors.white,
-                                //           border: OutlineInputBorder(
-                                //             borderRadius: BorderRadius.circular(
-                                //               8,
-                                //             ),
-                                //             borderSide: BorderSide(
-                                //               color: Colors.grey[300]!,
-                                //             ),
-                                //           ),
-                                //           enabledBorder: OutlineInputBorder(
-                                //             borderRadius: BorderRadius.circular(
-                                //               8,
-                                //             ),
-                                //             borderSide: BorderSide(
-                                //               color: Colors.grey[300]!,
-                                //             ),
-                                //           ),
-                                //           focusedBorder: OutlineInputBorder(
-                                //             borderRadius: BorderRadius.circular(
-                                //               8,
-                                //             ),
-                                //             borderSide: const BorderSide(
-                                //               color: Colors.orange,
-                                //               width: 2,
-                                //             ),
-                                //           ),
-                                //           suffixIcon: Container(
-                                //             margin: const EdgeInsets.all(4),
-                                //             decoration: BoxDecoration(
-                                //               color: Colors.orange,
-                                //               borderRadius:
-                                //                   BorderRadius.circular(6),
-                                //             ),
-                                //             child: IconButton(
-                                //               onPressed: () {
-                                //                 // TODO: Implement Scout chat functionality
-                                //               },
-                                //               icon: const Icon(
-                                //                 Icons.send,
-                                //                 color: Colors.white,
-                                //                 size: 20,
-                                //               ),
-                                //             ),
-                                //           ),
-                                //         ),
-                                //       ),
-                                //     ],
-                                //   ),
-                                // ),
-                                // const SizedBox(height: 24),
-                                // Save Button
-                                _buildSaveButton(summaryState),
-                                const SizedBox(height: 32),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+              ),
             ),
           ),
         ),

@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../constants/app_colors.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/education_data_provider.dart';
+import '../../../services/auth_service.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/tag_list.dart';
 import '../../../widgets/dialogs/confirmation_dialog.dart';
@@ -160,12 +162,14 @@ class ProfileScreen extends ConsumerWidget {
       getInstitutionNameProvider(user?.institution),
     );
 
+    // Replace "Other" with "Not Specified" for display
+    final displayDegreeType = _replaceOtherWithNotSpecified(degreeTypeName);
+    final displayMajor = _replaceOtherWithNotSpecified(majorName);
+    final displayInstitution = _replaceOtherWithNotSpecified(institutionName);
+
     // Get certification names
     final certifications = _extractCertifications(user?.certificationsTraining);
     final hasCertifications = certifications.isNotEmpty;
-
-    // Format degree with major
-    final degreeText = _formatDegreeText(degreeTypeName, majorName);
 
     return ProfileCard(
       title: '🎓 Education',
@@ -175,8 +179,9 @@ class ProfileScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildEducationDetailRow(
-            degreeText,
-            institutionName ?? '',
+            displayDegreeType,
+            displayMajor,
+            displayInstitution,
             user?.graduationDate ?? '',
             showDivider: hasCertifications,
           ),
@@ -398,11 +403,15 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildEducationDetailRow(
-    String degree,
+    String degreeType,
+    String major,
     String institution,
     String date, {
     required bool showDivider,
   }) {
+    // Check if degree is not completed (no graduation date)
+    final isDegreeCompleted = date.isNotEmpty;
+
     return Column(
       children: [
         Padding(
@@ -420,46 +429,98 @@ class ProfileScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 2),
-                    Text(
-                      degree,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      institution,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.smallCard,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          date,
+                    if (degreeType.isNotEmpty) ...[
+                      RichText(
+                        text: TextSpan(
+                          text: 'Degree Type: ',
                           style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
                             color: AppColors.textPrimary,
                           ),
+                          children: [
+                            TextSpan(
+                              text: degreeType,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 4),
+                    ],
+                    if (major.isNotEmpty) ...[
+                      RichText(
+                        text: TextSpan(
+                          text: 'Major: ',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: major,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                    if (institution.isNotEmpty) ...[
+                      RichText(
+                        text: TextSpan(
+                          text: 'Institute: ',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: institution,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                    // Show graduation date only if completed
+                    if (isDegreeCompleted) ...[
+                      RichText(
+                        text: TextSpan(
+                          text: 'Graduation: ',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: date,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -628,6 +689,99 @@ class ProfileScreen extends ConsumerWidget {
               ref.read(authProvider.notifier).signOut();
               context.go('/login');
             }
+          } else if (value == 'delete_account') {
+            // Show delete account confirmation dialog
+            final confirmed = await showConfirmationDialog(
+              context: context,
+              title: 'Delete Account?',
+              subtitle:
+                  'This action cannot be undone. All your data will be permanently deleted.',
+              icon: Icons.warning_outlined,
+              iconBackgroundColor: AppColors.error,
+              confirmText: 'Delete',
+              cancelText: 'Cancel',
+              confirmButtonColor: AppColors.error,
+              confirmTextColor: Colors.white,
+            );
+
+            if (confirmed == true && context.mounted) {
+              final authState = ref.read(authProvider);
+              final userId = authState.user?.id;
+
+              if (userId != null) {
+                // Show loading
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => PopScope(
+                    canPop: false,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(color: AppColors.error),
+                            SizedBox(height: 16),
+                            Text(
+                              'Deleting account...',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+
+                try {
+                  // Call delete account API
+                  final authService = AuthService();
+                  await authService.deleteAccount(userId: userId);
+
+                  // Close loading
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+
+                  // Sign out and redirect to login
+                  if (context.mounted) {
+                    ref.read(authProvider.notifier).signOut();
+                    context.go('/login');
+                    showSuccessSnackBar(
+                      context: context,
+                      message: 'Account deleted successfully',
+                    );
+                  }
+                } catch (e) {
+                  // Close loading
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+
+                  if (context.mounted) {
+                    showErrorSnackBar(
+                      context: context,
+                      message: e.toString().replaceAll('Exception: ', ''),
+                    );
+                  }
+                }
+              } else {
+                if (context.mounted) {
+                  showErrorSnackBar(
+                    context: context,
+                    message: 'User ID not found',
+                  );
+                }
+              }
+            }
           }
         },
         itemBuilder: (context) => [
@@ -647,24 +801,28 @@ class ProfileScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const PopupMenuItem<String>(
+            value: 'delete_account',
+            child: Row(
+              children: [
+                Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                SizedBox(width: 12),
+                Text(
+                  'Delete Account',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         elevation: 8,
         offset: const Offset(0, 8),
       ),
     );
-  }
-
-  String _formatDegreeText(String? degreeType, String? major) {
-    if (degreeType == null || degreeType.isEmpty) {
-      return '';
-    }
-
-    if (major == null || major.isEmpty) {
-      return degreeType;
-    }
-
-    return '$degreeType in $major';
   }
 
   List<Map<String, String?>> _createWorkExperienceEntriesFromArray(
@@ -851,5 +1009,17 @@ class ProfileScreen extends ConsumerWidget {
         .map((cert) => cert.name ?? 'Unknown')
         .cast<String>()
         .toList();
+  }
+
+  // Helper function to replace "Other" with "Not Specified" for display
+  String _replaceOtherWithNotSpecified(String? value) {
+    if (value == null || value.isEmpty) {
+      return '';
+    }
+    // Case-insensitive check for "other"
+    if (value.toLowerCase() == 'other') {
+      return 'Not Specified';
+    }
+    return value;
   }
 }

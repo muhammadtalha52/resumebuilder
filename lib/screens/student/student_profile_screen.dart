@@ -255,6 +255,9 @@ class StudentProfileScreen extends ConsumerWidget {
     String date, {
     required bool showDivider,
   }) {
+    // Check if degree is not completed (no graduation date)
+    final isDegreeCompleted = date.isNotEmpty;
+
     return Column(
       children: [
         Padding(
@@ -272,46 +275,75 @@ class StudentProfileScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 2),
-                    Text(
-                      major,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      school,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.smallCard,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          date,
+                    if (major.isNotEmpty) ...[
+                      RichText(
+                        text: TextSpan(
+                          text: 'Major: ',
                           style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
                             color: AppColors.textPrimary,
                           ),
+                          children: [
+                            TextSpan(
+                              text: major,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 4),
+                    ],
+                    if (school.isNotEmpty) ...[
+                      RichText(
+                        text: TextSpan(
+                          text: 'Institute: ',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: school,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                    // Show graduation date only if completed
+                    if (isDegreeCompleted) ...[
+                      RichText(
+                        text: TextSpan(
+                          text: 'Graduation: ',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: date,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

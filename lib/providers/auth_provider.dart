@@ -171,15 +171,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
+      final authService = _ref.read(authServiceProvider);
+      await authService.forgotPassword(email: email);
 
-      // TODO: Implement actual forgot password logic
       state = state.copyWith(isLoading: false, error: null);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Failed to send reset email. Please try again.',
+        error: e.toString().replaceAll('Exception: ', ''),
       );
     }
   }

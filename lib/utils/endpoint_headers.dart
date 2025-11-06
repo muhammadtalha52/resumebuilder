@@ -17,8 +17,10 @@ class ApiEndpoints {
   static const String quizBaseUrl = 'https://quiz-dev.skillresy.com';
   static const String register = '/auth/register/';
   static const String login = '/auth/login/';
+  static const String forgotPassword = '/auth/forgot-password/';
   static const String profileUpdate = '/auth/profile/';
   static const String uploadProfilePhoto = '/auth/upload-profile-image/';
+  static const String deleteAccount = '/auth/users/'; // Append user ID
   static const String educationData =
       '/resume/degree-types-subject-institutes/';
   static const String sessionStart = '/session/start';

@@ -21,9 +21,9 @@ class APIClient {
     dio = Dio(
       BaseOptions(
         baseUrl: ApiEndpoints.baseUrl,
-        connectTimeout: Duration(seconds: 180),
-        receiveTimeout: Duration(seconds: 180),
-        sendTimeout: Duration(seconds: 180),
+        connectTimeout: Duration(minutes: 10),
+        receiveTimeout: Duration(minutes: 10),
+        sendTimeout: Duration(minutes: 10),
         validateStatus: (status) => true,
       ),
     );

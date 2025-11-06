@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +11,7 @@ import '../../../constants/app_colors.dart';
 import '../../../models/conversation_models.dart';
 import '../../../providers/continuous_transcription_provider.dart';
 import '../../../providers/interview_session_provider.dart';
+import '../../../widgets/dialogs/confirmation_dialog.dart';
 import 'continuous_audio_transcriber.dart';
 
 class MeetingSessionScreen extends ConsumerWidget {
@@ -41,6 +44,79 @@ class MeetingSessionScreen extends ConsumerWidget {
         _showPermissionDialog(context, sessionNotifier);
       });
     }
+
+    // Listen for 5-minute warning (at 55 minutes)
+    ref.listen(
+      continuousTranscriptionProvider.select((data) => data.sessionWarning5Min),
+      (previous, current) {
+        if (current && !(previous ?? false)) {
+          // Show warning dialog
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            showConfirmationDialog(
+              context: context,
+              title: 'Time Warning',
+              subtitle: 'You have 5 minutes remaining in your session',
+              icon: Icons.access_time,
+              iconBackgroundColor: Colors.orange,
+              confirmText: 'Got it',
+              confirmButtonColor: Colors.orange,
+              confirmTextColor: Colors.white,
+            );
+          });
+        }
+      },
+    );
+
+    // Listen for auto-end (at 60 minutes)
+    ref.listen(
+      continuousTranscriptionProvider.select((data) => data.sessionAutoEnd),
+      (previous, current) async {
+        if (current && !(previous ?? false)) {
+          // Auto-end session
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            // Capture session data before stopping
+            final sessionId = sessionData.sessionId;
+            final sessionType = sessionData.sessionType ?? 'Interview';
+            final startTime =
+                sessionNotifier.sessionStartTime ?? DateTime.now();
+            final duration = sessionData.sessionDuration;
+
+            // Stop the session
+            await sessionNotifier.stopSession();
+
+            // Show auto-end dialog
+            if (context.mounted) {
+              await showConfirmationDialog(
+                context: context,
+                title: 'Session Time Limit Reached',
+                subtitle:
+                    'Your session has reached the 1-hour limit and has been automatically ended',
+                icon: Icons.timer_off,
+                iconBackgroundColor: Colors.red,
+                confirmText: 'View Summary',
+                confirmButtonColor: AppColors.primary,
+                confirmTextColor: Colors.white,
+              );
+            }
+
+            // Navigate to summary screen
+            if (context.mounted) {
+              if (sessionId != null && sessionId.isNotEmpty) {
+                context.go(
+                  '/interview/summary?sessionId=$sessionId'
+                  '&sessionType=$sessionType'
+                  '&startTime=${startTime.toIso8601String()}'
+                  '&duration=${duration.inSeconds}',
+                );
+              } else {
+                // If no session ID, just go back home
+                context.go('/home');
+              }
+            }
+          });
+        }
+      },
+    );
 
     return PopScope(
       canPop: false,
@@ -112,36 +188,53 @@ class MeetingSessionScreen extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: GestureDetector(
-                                onTap: () {
-                                  // Capture session data before stopping
-                                  final sessionId = sessionData.sessionId;
-                                  final sessionType =
-                                      sessionData.sessionType ?? 'Interview';
-                                  final startTime =
-                                      sessionNotifier.sessionStartTime ??
-                                      DateTime.now();
-                                  final duration = sessionData.sessionDuration;
+                                onTap: () async {
+                                  // Show confirmation dialog before ending session
+                                  final confirmed = await showConfirmationDialog(
+                                    context: context,
+                                    title: 'End Session?',
+                                    subtitle:
+                                        'Your session will end and you\'ll see the summary',
+                                    icon: Icons.stop_circle,
+                                    iconBackgroundColor: Colors.red,
+                                    confirmText: 'End Session',
+                                    cancelText: 'Cancel',
+                                    confirmButtonColor: Colors.red,
+                                    confirmTextColor: Colors.white,
+                                  );
 
-                                  // Stop the session
-                                  sessionNotifier.stopSession();
+                                  if (confirmed == true && context.mounted) {
+                                    // Capture session data before stopping
+                                    final sessionId = sessionData.sessionId;
+                                    final sessionType =
+                                        sessionData.sessionType ?? 'Interview';
+                                    final startTime =
+                                        sessionNotifier.sessionStartTime ??
+                                        DateTime.now();
+                                    final duration =
+                                        sessionData.sessionDuration;
 
-                                  // Navigate to summary screen
-                                  if (sessionId != null &&
-                                      sessionId.isNotEmpty) {
-                                    final transcriptionData = ref.read(
-                                      continuousTranscriptionProvider,
-                                    );
+                                    // Stop the session
+                                    sessionNotifier.stopSession();
 
-                                    print(transcriptionData);
-                                    context.go(
-                                      '/interview/summary?sessionId=$sessionId'
-                                      '&sessionType=$sessionType'
-                                      '&startTime=${startTime.toIso8601String()}'
-                                      '&duration=${duration.inSeconds}',
-                                    );
-                                  } else {
-                                    // If no session ID, just go back home
-                                    context.go('/home');
+                                    // Navigate to summary screen
+                                    if (sessionId != null &&
+                                        sessionId.isNotEmpty) {
+                                      final transcriptionData = ref.read(
+                                        continuousTranscriptionProvider,
+                                      );
+
+                                      print(transcriptionData);
+                                      context.go(
+                                        '/interview/summary?sessionId=$sessionId'
+                                        '&sessionType=$sessionType'
+                                        '&startTime=${startTime.toIso8601String()}'
+                                        '&duration=${duration.inSeconds}',
+                                      );
+                                    } else {
+                                      // If no session ID, just go back home
+                                      context.go('/home');
+                                    }
                                   }
                                 },
                                 child: const Text(
@@ -273,22 +366,129 @@ class MeetingSessionScreen extends ConsumerWidget {
               errorBuilder: (context, error, stackTrace) =>
                   const Icon(Icons.pets, color: AppColors.accent, size: 60),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 32),
+
+            // Instructions Card
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primary.withValues(alpha: 0.08),
+                      AppColors.accent.withValues(alpha: 0.08),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    // Header
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Icon(
+                            Icons.tips_and_updates,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Before You Start',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Instructions list
+                    _buildInstructionItem(
+                      icon: Icons.volume_up,
+                      text: 'Find a quiet place for best results',
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildInstructionItem(
+                      icon: Icons.phone_android,
+                      text: 'Place phone close to speaker',
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildInstructionItem(
+                      icon: Icons.hearing,
+                      text: 'Scout will listen and help in real-time',
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildInstructionItem(
+                      icon: Icons.access_time,
+                      text: 'Maximum session duration: 1 hour',
+                      color: AppColors.accent,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                'Start a session to receive real-time AI coaching',
+                'Tap "Start Session" when you\'re ready',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 14,
                   color: AppColors.textSecondary.withValues(alpha: 0.7),
                   height: 1.5,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // Helper to build instruction item
+  Widget _buildInstructionItem({
+    required IconData icon,
+    required String text,
+    required Color color,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.textPrimary.withValues(alpha: 0.85),
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -354,47 +554,92 @@ class MeetingSessionScreen extends ConsumerWidget {
         onPressed: isLoading
             ? null
             : () async {
-                // Check if we already have a session ID from startSessionWithAPI
-                if (sessionData.sessionId != null) {
-                  print(
-                    '[START-BTN] Session ID exists, starting audio transcription only',
-                  );
-                  await sessionNotifier.startSession();
-                } else {
-                  print(
-                    '[START-BTN] No session ID, using data from InterviewSessionProvider',
-                  );
-                  // Get interview session data from the global provider
-                  final interviewSession = ref.read(interviewSessionProvider);
-                  final authState = ref.watch(authProvider);
-                  final user = authState.user;
+                // Check internet connectivity first to avoid wasting credits
+                bool hasInternet = false;
+                try {
+                  // Try to lookup a reliable DNS address
+                  final result = await InternetAddress.lookup(
+                    'google.com',
+                  ).timeout(const Duration(seconds: 5));
+                  hasInternet =
+                      result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+                } catch (e) {
+                  hasInternet = false;
+                }
 
-                  // Start session with API using data from InterviewSessionProvider
-                  final success = await sessionNotifier.startSessionWithAPI(
-                    sessionType: interviewSession.interviewType.isNotEmpty
-                        ? interviewSession.interviewType.toLowerCase()
-                        : 'interview',
-                    role: interviewSession.positionTitle.isNotEmpty
-                        ? interviewSession.positionTitle
-                        : 'Software Developer',
-                    companyName: interviewSession.companyName.isNotEmpty
-                        ? interviewSession.companyName
-                        : 'Company',
-                    jobDescription: interviewSession.jobDescription.isNotEmpty
-                        ? interviewSession.jobDescription
-                        : 'Software development position',
-                    agenda: interviewSession.meetingAgenda,
-                    language: "en",
-                    resumeText: user?.toJson().toString(),
+                // Show error if no internet connection
+                if (!hasInternet && ref.context.mounted) {
+                  await showConfirmationDialog(
+                    context: ref.context,
+                    title: 'No Internet Connection',
+                    subtitle:
+                        'Please check your internet connection and try again. Your credits will not be used.',
+                    icon: Icons.wifi_off,
+                    iconBackgroundColor: Colors.red,
+                    confirmText: 'OK',
+                    confirmButtonColor: Colors.red,
+                    confirmTextColor: Colors.white,
                   );
+                  return;
+                }
 
-                  if (success) {
+                // Show confirmation dialog before starting session
+                final confirmed = await showConfirmationDialog(
+                  context: ref.context,
+                  title: 'Ready to Start?',
+                  subtitle:
+                      'Your session will begin and Scout will start listening',
+                  icon: Icons.play_circle,
+                  iconBackgroundColor: AppColors.primary,
+                  confirmText: 'Start Session',
+                  cancelText: 'Cancel',
+                  confirmButtonColor: AppColors.primary,
+                  confirmTextColor: Colors.white,
+                );
+
+                if (confirmed == true) {
+                  // Check if we already have a session ID from startSessionWithAPI
+                  if (sessionData.sessionId != null) {
                     print(
-                      '[START-BTN] API session started, now starting audio transcription',
+                      '[START-BTN] Session ID exists, starting audio transcription only',
                     );
                     await sessionNotifier.startSession();
                   } else {
-                    print('[START-BTN] Failed to start API session');
+                    print(
+                      '[START-BTN] No session ID, using data from InterviewSessionProvider',
+                    );
+                    // Get interview session data from the global provider
+                    final interviewSession = ref.read(interviewSessionProvider);
+                    final authState = ref.watch(authProvider);
+                    final user = authState.user;
+
+                    // Start session with API using data from InterviewSessionProvider
+                    final success = await sessionNotifier.startSessionWithAPI(
+                      sessionType: interviewSession.interviewType.isNotEmpty
+                          ? interviewSession.interviewType.toLowerCase()
+                          : 'interview',
+                      role: interviewSession.positionTitle.isNotEmpty
+                          ? interviewSession.positionTitle
+                          : 'Software Developer',
+                      companyName: interviewSession.companyName.isNotEmpty
+                          ? interviewSession.companyName
+                          : 'Company',
+                      jobDescription: interviewSession.jobDescription.isNotEmpty
+                          ? interviewSession.jobDescription
+                          : 'Software development position',
+                      agenda: interviewSession.meetingAgenda,
+                      language: "en",
+                      resumeText: user?.toJson().toString(),
+                    );
+
+                    if (success) {
+                      print(
+                        '[START-BTN] API session started, now starting audio transcription',
+                      );
+                      await sessionNotifier.startSession();
+                    } else {
+                      print('[START-BTN] Failed to start API session');
+                    }
                   }
                 }
               },

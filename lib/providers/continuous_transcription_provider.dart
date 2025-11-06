@@ -77,6 +77,10 @@ class InterviewSessionData {
   final String? helpResponse; // AI help response
   final DateTime? helpTimestamp; // When help was received
 
+  // Session time limit flags
+  final bool sessionWarning5Min; // Warning at 55 minutes
+  final bool sessionAutoEnd; // Auto-end at 60 minutes
+
   InterviewSessionData({
     this.state = InterviewSessionState.idle,
     this.sessionDuration = Duration.zero,
@@ -101,6 +105,8 @@ class InterviewSessionData {
     this.isGettingHelp = false,
     this.helpResponse,
     this.helpTimestamp,
+    this.sessionWarning5Min = false,
+    this.sessionAutoEnd = false,
   }) : conversation = conversation ?? ConversationData();
 
   InterviewSessionData copyWith({
@@ -127,6 +133,8 @@ class InterviewSessionData {
     bool? isGettingHelp,
     String? helpResponse,
     DateTime? helpTimestamp,
+    bool? sessionWarning5Min,
+    bool? sessionAutoEnd,
   }) {
     return InterviewSessionData(
       state: state ?? this.state,
@@ -152,6 +160,8 @@ class InterviewSessionData {
       isGettingHelp: isGettingHelp ?? this.isGettingHelp,
       helpResponse: helpResponse ?? this.helpResponse,
       helpTimestamp: helpTimestamp ?? this.helpTimestamp,
+      sessionWarning5Min: sessionWarning5Min ?? this.sessionWarning5Min,
+      sessionAutoEnd: sessionAutoEnd ?? this.sessionAutoEnd,
     );
   }
 }
@@ -895,7 +905,7 @@ class ContinuousTranscriptionNotifier
 
   // Timer management
   void _startTimer() {
-    _sessionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _sessionTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       // Check if provider is still mounted before updating state
       if (!mounted) {
         timer.cancel();
@@ -905,7 +915,29 @@ class ContinuousTranscriptionNotifier
       // Calculate actual elapsed time from session start
       if (_sessionStartTime != null) {
         final elapsed = DateTime.now().difference(_sessionStartTime!);
-        state = state.copyWith(sessionDuration: elapsed);
+
+        // TESTING: Check for 5-minute warning (only trigger once)
+        // TODO: Change to 3300 seconds (55 minutes) for production
+        if (elapsed.inSeconds >= 3300 && !state.sessionWarning5Min) {
+          print('[SESSION-TIMER] 5 minutes elapsed - triggering warning');
+          state = state.copyWith(
+            sessionDuration: elapsed,
+            sessionWarning5Min: true,
+          );
+        }
+        // TESTING: Check for 10-minute auto-end (only trigger once)
+        // TODO: Change to 3600 seconds (60 minutes) for production
+        else if (elapsed.inSeconds >= 3600 && !state.sessionAutoEnd) {
+          print('[SESSION-TIMER] 10 minutes elapsed - triggering auto-end');
+          state = state.copyWith(
+            sessionDuration: elapsed,
+            sessionAutoEnd: true,
+          );
+        }
+        // Normal duration update
+        else {
+          state = state.copyWith(sessionDuration: elapsed);
+        }
       }
     });
   }
