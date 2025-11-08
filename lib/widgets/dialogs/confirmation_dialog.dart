@@ -95,7 +95,7 @@ class ConfirmationDialog extends StatelessWidget {
                 // Cancel button
                 Expanded(
                   child: GestureDetector(
-                    onTap: onCancel ?? () => Navigator.of(context).pop(),
+                    onTap: onCancel ?? () => Navigator.of(context).pop(false),
                     child: Container(
                       height: 48,
                       decoration: BoxDecoration(

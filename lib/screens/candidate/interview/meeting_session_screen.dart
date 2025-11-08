@@ -12,6 +12,7 @@ import '../../../models/conversation_models.dart';
 import '../../../providers/continuous_transcription_provider.dart';
 import '../../../providers/interview_session_provider.dart';
 import '../../../widgets/dialogs/confirmation_dialog.dart';
+import '../../../widgets/dialogs/notification_dialog.dart';
 import 'continuous_audio_transcriber.dart';
 
 class MeetingSessionScreen extends ConsumerWidget {
@@ -52,15 +53,15 @@ class MeetingSessionScreen extends ConsumerWidget {
         if (current && !(previous ?? false)) {
           // Show warning dialog
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            showConfirmationDialog(
+            showNotificationDialog(
               context: context,
               title: 'Time Warning',
               subtitle: 'You have 5 minutes remaining in your session',
               icon: Icons.access_time,
-              iconBackgroundColor: Colors.orange,
-              confirmText: 'Got it',
-              confirmButtonColor: Colors.orange,
-              confirmTextColor: Colors.white,
+              iconBackgroundColor: AppColors.primary,
+              buttonText: 'Got it',
+              buttonColor: AppColors.primary,
+              buttonTextColor: Colors.white,
             );
           });
         }
@@ -86,16 +87,16 @@ class MeetingSessionScreen extends ConsumerWidget {
 
             // Show auto-end dialog
             if (context.mounted) {
-              await showConfirmationDialog(
+              await showNotificationDialog(
                 context: context,
                 title: 'Session Time Limit Reached',
                 subtitle:
                     'Your session has reached the 1-hour limit and has been automatically ended',
                 icon: Icons.timer_off,
                 iconBackgroundColor: Colors.red,
-                confirmText: 'View Summary',
-                confirmButtonColor: AppColors.primary,
-                confirmTextColor: Colors.white,
+                buttonText: 'View Summary',
+                buttonColor: AppColors.primary,
+                buttonTextColor: Colors.white,
               );
             }
 

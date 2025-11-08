@@ -40,109 +40,196 @@ import '../screens/student/quiz_summary_screen.dart';
 import '../screens/student/quiz_history_screen.dart';
 import '../models/quize_model.dart';
 
+// Helper function to create pages without swipe-back gesture
+Page<dynamic> buildPageWithoutSwipeBack({
+  required Widget child,
+  required LocalKey key,
+}) {
+  return CustomTransitionPage(
+    key: key,
+    child: child,
+    transitionsBuilder: (context, animation, secondaryAnimation, childWidget) {
+      return childWidget;
+    },
+    transitionDuration: Duration.zero,
+    reverseTransitionDuration: Duration.zero,
+  );
+}
+
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
   routes: [
-    GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
+    GoRoute(
+      path: '/',
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const SplashScreen(),
+        key: state.pageKey,
+      ),
+    ),
     GoRoute(
       path: '/welcome',
-      builder: (context, state) => const WelcomeScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const WelcomeScreen(),
+        key: state.pageKey,
+      ),
     ),
-    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+    GoRoute(
+      path: '/login',
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const LoginScreen(),
+        key: state.pageKey,
+      ),
+    ),
     GoRoute(
       path: '/forgot-password',
-      builder: (context, state) => const ForgotPasswordScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const ForgotPasswordScreen(),
+        key: state.pageKey,
+      ),
     ),
     GoRoute(
       path: '/user-type-selection',
-      builder: (context, state) => const UserTypeSelectionScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const UserTypeSelectionScreen(),
+        key: state.pageKey,
+      ),
     ),
     GoRoute(
       path: '/student-signup',
-      builder: (context, state) =>
-          const StudentOnboardingStepScreen(stepNumber: 1),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const StudentOnboardingStepScreen(stepNumber: 1),
+        key: state.pageKey,
+      ),
       routes: [
         GoRoute(
           path: 'step/:stepNumber',
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final stepNumber =
                 int.tryParse(state.pathParameters['stepNumber'] ?? '1') ?? 1;
-            return StudentOnboardingStepScreen(stepNumber: stepNumber);
+            return buildPageWithoutSwipeBack(
+              child: StudentOnboardingStepScreen(stepNumber: stepNumber),
+              key: state.pageKey,
+            );
           },
         ),
       ],
     ),
-    GoRoute(path: '/home', builder: (context, state) => const MainScreen()),
+    GoRoute(
+      path: '/home',
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const MainScreen(),
+        key: state.pageKey,
+      ),
+    ),
     GoRoute(
       path: '/profile/edit-personal-details',
-      builder: (context, state) => const EditPersonalDetailsScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const EditPersonalDetailsScreen(),
+        key: state.pageKey,
+      ),
     ),
     GoRoute(
       path: '/profile/edit-career-goals',
-      builder: (context, state) => const EditCareerGoalsScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const EditCareerGoalsScreen(),
+        key: state.pageKey,
+      ),
     ),
     GoRoute(
       path: '/profile/edit-skills-tools',
-      builder: (context, state) => const EditSkillsToolsScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const EditSkillsToolsScreen(),
+        key: state.pageKey,
+      ),
     ),
     GoRoute(
       path: '/profile/edit-others',
-      builder: (context, state) => const EditOthersScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const EditOthersScreen(),
+        key: state.pageKey,
+      ),
     ),
     GoRoute(
       path: '/profile/edit-education',
-      builder: (context, state) => const EditEducationScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const EditEducationScreen(),
+        key: state.pageKey,
+      ),
     ),
     GoRoute(
       path: '/profile/edit-work-experience',
-      builder: (context, state) => const EditWorkExperienceScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const EditWorkExperienceScreen(),
+        key: state.pageKey,
+      ),
     ),
     GoRoute(
       path: '/terms-of-use',
-      builder: (context, state) => const LegalWebViewScreen(
-        url: 'https://skillresy.com/terms-of-use/',
-        title: 'Terms of Use',
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const LegalWebViewScreen(
+          url: 'https://skillresy.com/terms-of-use/',
+          title: 'Terms of Use',
+        ),
+        key: state.pageKey,
       ),
     ),
     GoRoute(
       path: '/onboarding',
-      builder: (context, state) => const OnboardingStepScreen(stepNumber: 1),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const OnboardingStepScreen(stepNumber: 1),
+        key: state.pageKey,
+      ),
       routes: [
         GoRoute(
           path: 'step/:stepNumber',
-          builder: (context, state) {
+          pageBuilder: (context, state) {
             final stepNumber =
                 int.tryParse(state.pathParameters['stepNumber'] ?? '1') ?? 1;
-            return OnboardingStepScreen(stepNumber: stepNumber);
+            return buildPageWithoutSwipeBack(
+              child: OnboardingStepScreen(stepNumber: stepNumber),
+              key: state.pageKey,
+            );
           },
         ),
       ],
     ),
     GoRoute(
       path: '/resume/review',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final flowType = state.uri.queryParameters['flow'];
-        return ResumeReviewScreen(flowType: flowType);
+        return buildPageWithoutSwipeBack(
+          child: ResumeReviewScreen(flowType: flowType),
+          key: state.pageKey,
+        );
       },
     ),
     GoRoute(
       path: '/resume/history',
-      builder: (context, state) => const ResumeHistoryScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const ResumeHistoryScreen(),
+        key: state.pageKey,
+      ),
     ),
     GoRoute(
       path: '/meeting/history',
-      builder: (context, state) => const MeetingHistoryScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const MeetingHistoryScreen(),
+        key: state.pageKey,
+      ),
     ),
     GoRoute(
       path: '/meeting/detail',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final meeting = state.extra as MeetingHistoryItem;
-        return MeetingDetailScreen(meeting: meeting);
+        return buildPageWithoutSwipeBack(
+          child: MeetingDetailScreen(meeting: meeting),
+          key: state.pageKey,
+        );
       },
     ),
     GoRoute(
       path: '/interview/summary',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final params = state.uri.queryParameters;
         final sessionId = params['sessionId'] ?? '';
         final sessionType = params['sessionType'] ?? 'Interview';
@@ -153,117 +240,151 @@ final GoRouter appRouter = GoRouter(
             ? DateTime.tryParse(startTimeStr) ?? DateTime.now()
             : DateTime.now();
 
-        return MeetingSummaryScreen(
-          sessionId: sessionId,
-          sessionType: sessionType,
-          startTime: startTime,
-          duration: Duration(seconds: durationSeconds),
+        return buildPageWithoutSwipeBack(
+          child: MeetingSummaryScreen(
+            sessionId: sessionId,
+            sessionType: sessionType,
+            startTime: startTime,
+            duration: Duration(seconds: durationSeconds),
+          ),
+          key: state.pageKey,
         );
       },
     ),
     GoRoute(
       path: '/quiz/loading',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final params = state.uri.queryParameters;
         final sizeBytes =
             int.tryParse(params['sizeBytes'] ?? '1048576') ??
             1048576; // Default 1 MB
-        return QuizGenerationLoadingScreen(sizeBytes: sizeBytes);
+        return buildPageWithoutSwipeBack(
+          child: QuizGenerationLoadingScreen(sizeBytes: sizeBytes),
+          key: state.pageKey,
+        );
       },
     ),
     GoRoute(
       path: '/quiz/start',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final quiz = state.extra as QuizModel;
         final lectureName = state.uri.queryParameters['lectureName'] ?? 'Quiz';
-        return QuizScreen(quiz: quiz, lectureName: lectureName);
+        return buildPageWithoutSwipeBack(
+          child: QuizScreen(quiz: quiz, lectureName: lectureName),
+          key: state.pageKey,
+        );
       },
     ),
     GoRoute(
       path: '/quiz/summary',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final lectureName = state.uri.queryParameters['lectureName'] ?? 'Quiz';
-        return QuizSummaryScreen(lectureName: lectureName);
+        return buildPageWithoutSwipeBack(
+          child: QuizSummaryScreen(lectureName: lectureName),
+          key: state.pageKey,
+        );
       },
     ),
     GoRoute(
       path: '/quiz/review',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final quiz = state.extra as QuizModel;
         final lectureName = state.uri.queryParameters['lectureName'] ?? 'Quiz';
-        return QuizReviewScreen(quiz: quiz, lectureName: lectureName);
+        return buildPageWithoutSwipeBack(
+          child: QuizReviewScreen(quiz: quiz, lectureName: lectureName),
+          key: state.pageKey,
+        );
       },
     ),
     GoRoute(
       path: '/quiz/history',
-      builder: (context, state) => const QuizHistoryScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const QuizHistoryScreen(),
+        key: state.pageKey,
+      ),
     ),
     GoRoute(
       path: '/plans',
-      pageBuilder: (context, state) => CustomTransitionPage(
-        key: state.pageKey,
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
         child: const CandidatePlansScreen(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          const begin = Offset(0.0, 1.0);
-          const end = Offset.zero;
-          const curve = Curves.easeInOut;
-          var tween = Tween(
-            begin: begin,
-            end: end,
-          ).chain(CurveTween(curve: curve));
-          var offsetAnimation = animation.drive(tween);
-          return SlideTransition(position: offsetAnimation, child: child);
-        },
+        key: state.pageKey,
       ),
     ),
     GoRoute(
       path: '/meeting/setup',
-      builder: (context, state) => const MeetingSetupScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const MeetingSetupScreen(),
+        key: state.pageKey,
+      ),
     ),
     GoRoute(
       path: '/meeting/session',
-      builder: (context, state) => const MeetingSessionScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const MeetingSessionScreen(),
+        key: state.pageKey,
+      ),
     ),
     GoRoute(
       path: '/student/profile/edit-personal-details',
-      builder: (context, state) => const EditStudentPersonalDetailsScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const EditStudentPersonalDetailsScreen(),
+        key: state.pageKey,
+      ),
     ),
     GoRoute(
       path: '/student/profile/edit-career-goals',
-      builder: (context, state) => const EditStudentCareerGoalsScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const EditStudentCareerGoalsScreen(),
+        key: state.pageKey,
+      ),
     ),
     GoRoute(
       path: '/student/profile/edit-education',
-      builder: (context, state) => const EditStudentEducationScreen(),
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const EditStudentEducationScreen(),
+        key: state.pageKey,
+      ),
     ),
     GoRoute(
       path: '/student/document-viewer',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final params = state.uri.queryParameters;
         final documentUrl = params['url'] ?? '';
         final documentName = params['name'] ?? 'Document';
-        return DocumentViewerScreen(
-          documentUrl: documentUrl,
-          documentName: documentName,
+        return buildPageWithoutSwipeBack(
+          child: DocumentViewerScreen(
+            documentUrl: documentUrl,
+            documentName: documentName,
+          ),
+          key: state.pageKey,
         );
       },
     ),
     GoRoute(
       path: '/student/lectures',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final params = state.uri.queryParameters;
         final subjectId = params['subjectId'] ?? '';
         final subjectName = params['subjectName'] ?? 'Folder';
-        return LecturesScreen(subjectId: subjectId, subjectName: subjectName);
+        return buildPageWithoutSwipeBack(
+          child: LecturesScreen(subjectId: subjectId, subjectName: subjectName),
+          key: state.pageKey,
+        );
       },
     ),
     GoRoute(
       path: '/student/documents',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final params = state.uri.queryParameters;
         final lectureId = params['lectureId'] ?? '';
         final lectureName = params['lectureName'] ?? 'Lecture';
-        return DocumentsScreen(lectureId: lectureId, lectureName: lectureName);
+        return buildPageWithoutSwipeBack(
+          child: DocumentsScreen(
+            lectureId: lectureId,
+            lectureName: lectureName,
+          ),
+          key: state.pageKey,
+        );
       },
     ),
   ],
