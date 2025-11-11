@@ -166,7 +166,7 @@ class _StudentStep2AcademicInfoState
               Row(
                 children: const [
                   Text(
-                    'Expected Graduation Date',
+                    'Expected Graduation Year',
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w500,
@@ -207,7 +207,7 @@ class _StudentStep2AcademicInfoState
                         child: Text(
                           _selectedGraduationDate != null
                               ? _formatDate(_selectedGraduationDate!)
-                              : 'Select graduation date',
+                              : 'Select graduation year',
                           style: TextStyle(
                             color: _selectedGraduationDate != null
                                 ? AppColors.textPrimary

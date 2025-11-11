@@ -82,7 +82,7 @@ class _EditStudentEducationScreenState
         const Row(
           children: [
             Text(
-              'Graduation Date',
+              'Graduation Year',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w500,

@@ -1,20 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_sizes.dart';
 import '../../../models/plan_model.dart';
+import '../../../models/purchase_product_model.dart';
+import '../../../providers/iap_provider.dart';
 import '../../../widgets/plans/plan_card.dart';
 
-class CandidatePlansScreen extends StatefulWidget {
+class CandidatePlansScreen extends ConsumerStatefulWidget {
   const CandidatePlansScreen({super.key});
 
   @override
-  State<CandidatePlansScreen> createState() => _CandidatePlansScreenState();
+  ConsumerState<CandidatePlansScreen> createState() =>
+      _CandidatePlansScreenState();
 }
 
-class _CandidatePlansScreenState extends State<CandidatePlansScreen> {
+class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen> {
   final PageController _pageController = PageController(viewportFraction: 0.92);
   int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load plans mapping from backend when screen opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(iapProvider.notifier).loadPlansMapping();
+    });
+  }
 
   @override
   void dispose() {
@@ -22,30 +35,129 @@ class _CandidatePlansScreenState extends State<CandidatePlansScreen> {
     super.dispose();
   }
 
-  void _onPlanSelected(PlanModel plan) {
-    // TODO: Implement plan selection logic
-    // This will handle the subscription flow
-    debugPrint('Selected plan: ${plan.name}');
+  Future<void> _onPlanSelected(PlanModel plan) async {
+    // Check if IAP is initialized
+    final iapState = ref.read(iapProvider);
+
+    if (!iapState.isInitialized) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              iapState.error ?? 'In-app purchases are not available',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Map plan ID to product ID
+    String productId;
+    switch (plan.id) {
+      case 'basic':
+        productId = PurchaseProducts.basicProductId;
+        break;
+      case 'pro':
+        productId = PurchaseProducts.proProductId;
+        break;
+      case 'enterprise':
+        productId = PurchaseProducts.premiumProductId;
+        break;
+      default:
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Invalid plan selected')),
+          );
+        }
+        return;
+    }
+
+    print('[PlansScreen] Initiating purchase for product: $productId');
+
+    // Initiate purchase
+    await ref.read(iapProvider.notifier).purchaseProduct(productId);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.primaryGradientVertical,
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeaderWithTitleAndClose(context),
-              _buildSubtitle(),
-              Expanded(child: _buildPlansCarousel()),
-              _buildPageIndicator(),
-              const SizedBox(height: AppSizes.paddingL),
-            ],
+    // Listen to IAP state changes for success/error messages
+    ref.listen<IAPState>(iapProvider, (previous, next) {
+      if (next.successMessage != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.successMessage!),
+            backgroundColor: Colors.green,
           ),
-        ),
+        );
+        ref.read(iapProvider.notifier).clearSuccessMessage();
+
+        // Close plans screen after successful purchase
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (mounted) {
+            context.pop();
+          }
+        });
+      } else if (next.error != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.error!), backgroundColor: Colors.red),
+        );
+        ref.read(iapProvider.notifier).clearError();
+      }
+    });
+
+    final iapState = ref.watch(iapProvider);
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: AppColors.primaryGradientVertical,
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  _buildHeaderWithTitleAndClose(context),
+                  _buildSubtitle(),
+                  Expanded(child: _buildPlansCarousel()),
+                  _buildPageIndicator(),
+                  const SizedBox(height: AppSizes.paddingL),
+                ],
+              ),
+            ),
+          ),
+          // Loading overlay during purchase verification
+          if (iapState.isPurchasing)
+            Container(
+              color: Colors.black.withValues(alpha: 0.7),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(color: AppColors.primary),
+                      SizedBox(height: 20),
+                      Text(
+                        'Verifying your purchase...',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -161,10 +273,7 @@ class _CandidatePlansScreenState extends State<CandidatePlansScreen> {
       itemCount: PlanModel.allPlans.length,
       itemBuilder: (context, index) {
         final plan = PlanModel.allPlans[index];
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: PlanCard(plan: plan, onTap: () => _onPlanSelected(plan)),
-        );
+        return PlanCard(plan: plan, onTap: () => _onPlanSelected(plan));
       },
     );
   }

@@ -5,10 +5,12 @@ import 'package:go_router/go_router.dart';
 import '../../../constants/app_colors.dart';
 import '../../../providers/continuous_transcription_provider.dart';
 import '../../../providers/interview_session_provider.dart';
+import '../../../providers/usage_provider.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/custom_button.dart';
 import '../../../widgets/common/custom_picker_field.dart';
 import '../../../widgets/common/custom_text_field.dart';
+import '../../../widgets/dialogs/confirmation_dialog.dart';
 
 class MeetingSetupScreen extends ConsumerStatefulWidget {
   const MeetingSetupScreen({super.key});
@@ -31,6 +33,7 @@ class _State extends ConsumerState<MeetingSetupScreen> {
   bool _realTimeTranscription = true;
   bool _followUpQuestions = false;
   bool _summaryGeneration = true;
+  bool _isCheckingCredits = false; // Loading state for credit check
 
   // Error state variables
   String? _sessionTypeError;
@@ -116,29 +119,85 @@ class _State extends ConsumerState<MeetingSetupScreen> {
       return;
     }
 
-    // All validation passed, save data to provider and navigate
-    final provider = ref.read(interviewSessionProvider.notifier);
+    // Show loading state
+    setState(() {
+      _isCheckingCredits = true;
+    });
 
-    // Save the setup data to the provider
-    provider.updateSetupData(
-      positionTitle: _roleIndustryController.text.trim(),
-      companyName: _selectedSessionType?.toLowerCase() == 'interview'
-          ? _companyController.text.trim()
-          : '',
-      jobDescription: _selectedSessionType?.toLowerCase() == 'interview'
-          ? _jobDescriptionController.text.trim()
-          : '',
-      meetingAgenda: _selectedSessionType?.toLowerCase() == 'meeting'
-          ? _meetingAgendaController.text.trim()
-          : '',
-      languageSelector: _selectedLanguage ?? 'English',
-      interviewType: _selectedSessionType,
-      roleIndustry: _roleIndustryController.text.trim(),
-    );
+    try {
+      // Always fetch latest usage from API
+      await ref.read(usageProvider.notifier).fetchUsageAllocation();
 
-    // Navigate to session screen without API call
-    if (mounted) {
-      context.push('/meeting/session');
+      // Get remaining interview count
+      final remainingInterviews =
+          ref.read(usageProvider).usageAllocation?.remainingInterviewCount ?? 0;
+
+      // Hide loading state
+      if (mounted) {
+        setState(() {
+          _isCheckingCredits = false;
+        });
+      }
+
+      if (false && remainingInterviews <= 0) {
+        // Show dialog and redirect to plans
+        if (mounted) {
+          final shouldBuyPlan = await showConfirmationDialog(
+            context: context,
+            title: 'No Meeting Credits',
+            subtitle:
+                'You need meeting credits to start a session. Purchase a plan to continue.',
+            icon: Icons.info_outline,
+            iconBackgroundColor: AppColors.primary,
+            confirmText: 'View Plans',
+            cancelText: 'Cancel',
+            confirmButtonColor: AppColors.primary,
+            confirmTextColor: AppColors.white,
+          );
+
+          if (shouldBuyPlan == true && mounted) {
+            await context.push('/plans');
+            // Refresh usage after returning from plans
+            if (mounted) {
+              await ref.read(usageProvider.notifier).fetchUsageAllocation();
+            }
+          }
+        }
+        return; // Stop here, don't proceed to session
+      }
+
+      // All validation passed, save data to provider and navigate
+      final provider = ref.read(interviewSessionProvider.notifier);
+
+      // Save the setup data to the provider
+      provider.updateSetupData(
+        positionTitle: _roleIndustryController.text.trim(),
+        companyName: _selectedSessionType?.toLowerCase() == 'interview'
+            ? _companyController.text.trim()
+            : '',
+        jobDescription: _selectedSessionType?.toLowerCase() == 'interview'
+            ? _jobDescriptionController.text.trim()
+            : '',
+        meetingAgenda: _selectedSessionType?.toLowerCase() == 'meeting'
+            ? _meetingAgendaController.text.trim()
+            : '',
+        languageSelector: _selectedLanguage ?? 'English',
+        interviewType: _selectedSessionType,
+        roleIndustry: _roleIndustryController.text.trim(),
+      );
+
+      // Navigate to session screen
+      if (mounted) {
+        context.push('/meeting/session');
+      }
+    } catch (e) {
+      // Hide loading state on error
+      if (mounted) {
+        setState(() {
+          _isCheckingCredits = false;
+        });
+      }
+      // Error will be handled by the provider
     }
   }
 
@@ -573,6 +632,10 @@ class _State extends ConsumerState<MeetingSetupScreen> {
   }
 
   Widget _buildStartSessionButton() {
-    return CustomButton(text: 'Continue', onPressed: _validateAndContinue);
+    return CustomButton(
+      text: 'Continue',
+      onPressed: _isCheckingCredits ? null : _validateAndContinue,
+      isLoading: _isCheckingCredits,
+    );
   }
 }

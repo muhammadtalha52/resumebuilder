@@ -34,6 +34,7 @@ class _StudySpaceScreenState extends ConsumerState<StudySpaceScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
+      resizeToAvoidBottomInset: false,
       appBar: CustomAppBar(
         title: AppBarWidgets.foxWithTitle(title: 'Study Space'),
         actions: [

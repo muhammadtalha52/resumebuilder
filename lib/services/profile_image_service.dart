@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:skillresy/main.dart';
 import '../utils/endpoint_headers.dart';
 import 'api_client.dart';
 
@@ -18,6 +19,9 @@ class ProfileImageService {
         ),
       });
 
+      print(
+        "Logged Url ==============${ApiEndpoints.baseUrl}${ApiEndpoints.uploadProfilePhoto}",
+      );
       final response = await _apiClient.dio.post(
         ApiEndpoints.uploadProfilePhoto,
         data: formData,

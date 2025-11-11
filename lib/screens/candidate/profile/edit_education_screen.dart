@@ -121,7 +121,7 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
         Row(
           children: [
             Text(
-              'Graduation Date',
+              'Graduation Year',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w500,

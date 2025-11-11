@@ -50,6 +50,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Use release signing config for debug builds too
+            // This is required for testing IAP (In-App Purchases) in debug mode
+            // Google Play only recognizes apps signed with the upload keystore
+            signingConfig = signingConfigs.getByName("debug")
+        }
+
         release {
             // Use release signing config
             signingConfig = signingConfigs.getByName("release")

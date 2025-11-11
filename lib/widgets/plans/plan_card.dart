@@ -149,7 +149,7 @@ class PlanCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppSizes.radiusM),
           child: Center(
             child: Text(
-              plan.buttonText,
+              'Start for Free - 1 Resume Is On Us',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: AppColors.white,

@@ -9,14 +9,15 @@ import '../main.dart';
 import '../models/interview_session_models.dart';
 import '../models/meeting_history_response.dart';
 import '../utils/endpoint_headers.dart';
+import 'hmac_auth_service.dart';
 
 class InterviewService {
-  late final Dio _dio;
+  late final Dio _dioForInterview;
   static const String baseUrl =
       'https://ia-dev.skillresy.com/api/'; // Interview API base URL
 
   InterviewService() {
-    _dio = Dio(
+    _dioForInterview = Dio(
       BaseOptions(
         baseUrl: baseUrl,
         connectTimeout: const Duration(minutes: 5),
@@ -26,7 +27,8 @@ class InterviewService {
     );
 
     // Configure SSL/TLS for development server
-    (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+    (_dioForInterview.httpClientAdapter as IOHttpClientAdapter)
+        .createHttpClient = () {
       final client = HttpClient();
       // For development server - bypass certificate verification
       client.badCertificateCallback = (cert, host, port) {
@@ -36,6 +38,18 @@ class InterviewService {
       };
       return client;
     };
+
+    // Add HMAC authentication interceptor
+    _dioForInterview.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          // Add HMAC auth headers to every request
+          final authHeaders = HmacAuthService.buildAuthHeaders();
+          options.headers.addAll(authHeaders);
+          return handler.next(options);
+        },
+      ),
+    );
 
     // Note: Removed LogInterceptor to reduce console spam during streaming
   }
@@ -65,7 +79,7 @@ class InterviewService {
       );
 
       // Make API call with form data
-      final response = await _dio.post(
+      final response = await _dioForInterview.post(
         ApiEndpoints.sessionStart,
         data: formData,
         options: Options(
@@ -151,7 +165,7 @@ class InterviewService {
       final formData = request.toFormData();
 
       // Make streaming API call
-      final response = await _dio.post(
+      final response = await _dioForInterview.post(
         'interview/help',
         data: formData,
         options: Options(
@@ -254,7 +268,7 @@ class InterviewService {
       final formData = request.toFormData();
 
       // Make streaming API call to /next endpoint
-      final response = await _dio.post(
+      final response = await _dioForInterview.post(
         'meeting/next',
         data: formData,
         options: Options(
@@ -359,7 +373,7 @@ class InterviewService {
       final formData = request.toFormData();
 
       // Make streaming API call
-      final response = await _dio.post(
+      final response = await _dioForInterview.post(
         'interview/follow-up',
         data: formData,
         options: Options(
@@ -463,7 +477,7 @@ class InterviewService {
     try {
       final formData = {'session_id': sessionId};
 
-      final response = await _dio.post(
+      final response = await _dioForInterview.post(
         'session/end',
         data: formData,
         options: Options(
@@ -620,7 +634,7 @@ class InterviewService {
         'transcription': transcription,
       };
 
-      final response = await _dio.post(
+      final response = await _dioForInterview.post(
         'chat/start',
         data: formData,
         options: Options(
@@ -717,7 +731,7 @@ class InterviewService {
       print('Scout: Sending message to session $sessionId');
       print('Scout: Message: $message');
 
-      final response = await _dio.post(
+      final response = await _dioForInterview.post(
         'chat/query',
         data: formData,
         options: Options(

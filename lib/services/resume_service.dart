@@ -7,14 +7,14 @@ import '../models/resume_parse_model.dart';
 import '../models/generate_resume_response.dart';
 import '../utils/endpoint_headers.dart';
 import '../main.dart';
+import 'hmac_auth_service.dart';
 
 class ResumeService {
-  late final Dio _dio;
-  static const String baseUrl =
-      'https://skillresy-backend-dev-lb-2066517272.us-east-2.elb.amazonaws.com';
+  late final Dio _dioForResumes;
+  static const String baseUrl = 'https://ai-dev.skillresy.com';
 
   ResumeService() {
-    _dio = Dio(
+    _dioForResumes = Dio(
       BaseOptions(
         baseUrl: baseUrl,
         connectTimeout: const Duration(minutes: 10),
@@ -24,19 +24,32 @@ class ResumeService {
     );
 
     // Configure SSL/TLS for development server
-    (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
-      final client = HttpClient();
-      // For development server - bypass certificate verification
-      client.badCertificateCallback = (cert, host, port) {
-        // Only bypass for our specific development server
-        return host.contains('skillresy-backend-dev-lb') ||
-            host.contains('us-east-2.elb.amazonaws.com');
-      };
-      return client;
-    };
+    (_dioForResumes.httpClientAdapter as IOHttpClientAdapter).createHttpClient =
+        () {
+          final client = HttpClient();
+          // For development server - bypass certificate verification
+          client.badCertificateCallback = (cert, host, port) {
+            // Only bypass for our specific development server
+            return host.contains('skillresy-backend-dev-lb') ||
+                host.contains('us-east-2.elb.amazonaws.com');
+          };
+          return client;
+        };
+
+    // Add HMAC authentication interceptor
+    _dioForResumes.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          // Add HMAC auth headers to every request
+          final authHeaders = HmacAuthService.buildAuthHeaders();
+          options.headers.addAll(authHeaders);
+          return handler.next(options);
+        },
+      ),
+    );
 
     // Add logging interceptor for debugging
-    _dio.interceptors.add(
+    _dioForResumes.interceptors.add(
       LogInterceptor(
         requestBody: false, // Don't log file content
         responseBody: true,
@@ -71,7 +84,7 @@ class ResumeService {
       });
 
       // Make API request - matching curl headers exactly
-      final response = await _dio.post(
+      final response = await _dioForResumes.post(
         '/extract-resume-data/',
         data: formData,
         options: Options(
@@ -248,7 +261,7 @@ class ResumeService {
       formData.fields.add(MapEntry('template', template));
 
       // Make API call to regenerate sections endpoint
-      final response = await _dio.post(
+      final response = await _dioForResumes.post(
         '/regenerate-sections/',
         data: formData,
         options: Options(contentType: 'multipart/form-data'),
@@ -337,7 +350,7 @@ class ResumeService {
       formData.fields.add(MapEntry('template', template));
 
       // Make API request
-      final response = await _dio.post(
+      final response = await _dioForResumes.post(
         '/generate-resume/',
         data: formData,
         options: Options(
@@ -425,7 +438,7 @@ class ResumeService {
   }) async {
     try {
       // Make API call to convert-resume-to-pdf endpoint
-      final response = await _dio.post(
+      final response = await _dioForResumes.post(
         '/convert-resume-to-pdf/',
         data: {'resume_data': resumeData, 'template': template},
         options: Options(

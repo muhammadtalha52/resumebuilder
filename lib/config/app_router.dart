@@ -23,6 +23,7 @@ import '../screens/candidate/profile/edit_work_experience_screen.dart';
 import '../screens/candidate/plans/candidate_plans_screen.dart';
 import '../screens/candidate/resume/resume_history_screen.dart';
 import '../screens/candidate/resume/resume_review_screen.dart';
+import '../screens/candidate/usage/usage_screen.dart';
 import '../screens/common/legal_webview_screen.dart';
 import '../screens/common/main_screen.dart';
 
@@ -38,6 +39,7 @@ import '../screens/student/quiz_screen.dart';
 import '../screens/student/quiz_review_screen.dart';
 import '../screens/student/quiz_summary_screen.dart';
 import '../screens/student/quiz_history_screen.dart';
+import '../screens/student/student_plans_screen.dart';
 import '../models/quize_model.dart';
 
 // Helper function to create pages without swipe-back gesture
@@ -311,6 +313,13 @@ final GoRouter appRouter = GoRouter(
       ),
     ),
     GoRoute(
+      path: '/usage',
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const UsageScreen(),
+        key: state.pageKey,
+      ),
+    ),
+    GoRoute(
       path: '/meeting/setup',
       pageBuilder: (context, state) => buildPageWithoutSwipeBack(
         child: const MeetingSetupScreen(),
@@ -386,6 +395,13 @@ final GoRouter appRouter = GoRouter(
           key: state.pageKey,
         );
       },
+    ),
+    GoRoute(
+      path: '/student/plans',
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const StudentPlansScreen(),
+        key: state.pageKey,
+      ),
     ),
   ],
 );

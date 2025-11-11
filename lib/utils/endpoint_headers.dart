@@ -14,7 +14,7 @@ class ApiEndpoints {
   //static const String baseUrl = 'https://api.skillresy.com/api';
 
   //static const String baseUrl = 'http://192.168.12.16:8000/api';
-  static const String quizBaseUrl = 'https://quiz-dev.skillresy.com';
+
   static const String register = '/auth/register/';
   static const String login = '/auth/login/';
   static const String forgotPassword = '/auth/forgot-password/';
@@ -31,4 +31,15 @@ class ApiEndpoints {
   static const String viewS3Assets = '/auth/view-s3-assets/';
   static const String quizAttempts = '/auth/quiz-attempts/';
   static const String quizAttemptsList = '/auth/quiz-attempts/list/';
+
+  // In-App Purchase Endpoints
+  static const String verifyPurchase = '/subscription/verify-purchase/';
+  static const String getCredits = '/subscription/credits/';
+  static const String consumeCredit = '/subscription/consume-credit/';
+  static const String restorePurchases = '/subscription/restore/';
+
+  // Plan Payment Endpoints
+  static const String googlePayPayment = '/plan/payments/google-pay/';
+  static const String planAllocation = '/plan/allocation/';
+  static const String plans = '/plan/plans/';
 }

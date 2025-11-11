@@ -326,7 +326,7 @@ class AuthService {
         return response.data;
       } else {
         throw Exception(
-          response.data?['error'] ?? 'Failed to send reset email',
+          response.data?['message'] ?? 'Failed to send reset email',
         );
       }
     } on DioException catch (e) {

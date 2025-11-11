@@ -6,8 +6,35 @@ import '../models/quize_model.dart' as quiz;
 import '../utils/endpoint_headers.dart';
 import '../utils/s3_utils.dart';
 import '../utils/api_error_handler.dart';
+import 'hmac_auth_service.dart';
 
 class DocumentsService {
+  late final Dio _dioForQuiz;
+  static const String quizBaseUrl = 'https://quiz-dev.skillresy.com';
+
+  DocumentsService() {
+    _dioForQuiz = Dio(
+      BaseOptions(
+        baseUrl: quizBaseUrl,
+        connectTimeout: const Duration(minutes: 5),
+        receiveTimeout: const Duration(minutes: 5),
+        sendTimeout: const Duration(minutes: 5), // Fast send timeout
+      ),
+    );
+
+    // Add HMAC authentication interceptor
+    _dioForQuiz.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          // Add HMAC auth headers to every request
+          final authHeaders = HmacAuthService.buildAuthHeaders();
+          options.headers.addAll(authHeaders);
+          return handler.next(options);
+        },
+      ),
+    );
+  }
+
   Future<doc.DocumentsResponse> getFolderItems({required int folderId}) async {
     try {
       final response = await apiClient.dio.get(
@@ -103,18 +130,8 @@ class DocumentsService {
 
       print('🎯 [QUIZ] Generating quiz from URLs: $urls');
 
-      // Create separate Dio instance for quiz service
-      final quizDio = Dio(
-        BaseOptions(
-          baseUrl: ApiEndpoints.quizBaseUrl,
-          connectTimeout: const Duration(minutes: 10),
-          sendTimeout: const Duration(minutes: 10),
-          receiveTimeout: const Duration(minutes: 10),
-        ),
-      );
-
       // Make regular POST request
-      final response = await quizDio.post(
+      final response = await _dioForQuiz.post(
         ApiEndpoints.generateQuiz,
         data: {'urls': urls},
         options: Options(

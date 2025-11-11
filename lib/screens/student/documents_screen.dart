@@ -8,15 +8,17 @@ import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/documents_provider.dart';
 import '../../providers/resume_provider.dart';
+import '../../providers/usage_provider.dart';
 import '../../models/documents_response.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/dialogs/delete_confirmation_dialog.dart';
+import '../../widgets/dialogs/confirmation_dialog.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../utils/s3_utils.dart';
 import '../../providers/quiz_provider.dart';
 import 'document_viewer_screen.dart';
 
-class DocumentsScreen extends ConsumerWidget {
+class DocumentsScreen extends ConsumerStatefulWidget {
   final String lectureId;
   final String lectureName;
 
@@ -27,9 +29,23 @@ class DocumentsScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DocumentsScreen> createState() => _DocumentsScreenState();
+}
+
+class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Fetch usage allocation when screen opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(usageProvider.notifier).fetchUsageAllocation();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Parse lectureId to int for API call
-    final folderId = int.tryParse(lectureId) ?? 0;
+    final folderId = int.tryParse(widget.lectureId) ?? 0;
     final documentsAsync = ref.watch(folderDocumentsProvider(folderId));
     final selectionState = ref.watch(documentSelectionProvider);
 
@@ -74,7 +90,7 @@ class DocumentsScreen extends ConsumerWidget {
               ],
             )
           : BackNavigationAppBar(
-              title: lectureName,
+              title: widget.lectureName,
               onBackPressed: () => Navigator.pop(context),
             ),
       body: Container(
@@ -107,7 +123,7 @@ class DocumentsScreen extends ConsumerWidget {
                 final hasDocuments = documents.isNotEmpty;
                 return hasDocuments
                     ? FloatingActionButton(
-                        onPressed: () => _pickAndUploadFile(context, ref),
+                        onPressed: () => _checkCreditsAndUpload(context, ref),
                         backgroundColor: AppColors.primary,
                         shape: const CircleBorder(),
                         child: const Icon(Icons.add, color: AppColors.white),
@@ -125,7 +141,7 @@ class DocumentsScreen extends ConsumerWidget {
     List<Data> documents,
     DocumentSelectionState selectionState,
   ) {
-    final folderId = int.tryParse(lectureId) ?? 0;
+    final folderId = int.tryParse(widget.lectureId) ?? 0;
 
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -564,7 +580,7 @@ class DocumentsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 40),
             GestureDetector(
-              onTap: () => _pickAndUploadFile(context, ref),
+              onTap: () => _checkCreditsAndUpload(context, ref),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 decoration: BoxDecoration(
@@ -593,6 +609,66 @@ class DocumentsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _checkCreditsAndUpload(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    // Check if user has document upload credits
+    try {
+      // Always fetch latest usage from API
+      await ref.read(usageProvider.notifier).fetchUsageAllocation();
+
+      // Get remaining document upload count
+      final remainingUploads =
+          ref
+              .read(usageProvider)
+              .usageAllocation
+              ?.remainingDocumentUploadCount ??
+          0;
+
+      if (remainingUploads <= 0) {
+        // Show dialog and redirect to student plans
+        if (context.mounted) {
+          final shouldBuyPlan = await showConfirmationDialog(
+            context: context,
+            title: 'No Document Upload Credits',
+            subtitle:
+                'You need document upload credits to upload files. Purchase a plan to continue.',
+            icon: Icons.info_outline,
+            iconBackgroundColor: AppColors.primary,
+            confirmText: 'View Plans',
+            cancelText: 'Cancel',
+            confirmButtonColor: AppColors.primary,
+            confirmTextColor: AppColors.white,
+          );
+
+          if (shouldBuyPlan == true && context.mounted) {
+            await context.push('/student/plans');
+            // Refresh usage after returning from plans
+            if (context.mounted) {
+              await ref.read(usageProvider.notifier).fetchUsageAllocation();
+            }
+          }
+        }
+        return; // Stop here, don't upload
+      }
+
+      // Has credits, proceed with upload
+      await _pickAndUploadFile(context, ref);
+    } catch (e) {
+      // Show error message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to check credits: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _pickAndUploadFile(BuildContext context, WidgetRef ref) async {
@@ -678,7 +754,7 @@ class DocumentsScreen extends ConsumerWidget {
         final saveDocResponse = await resumeService.uploadDocsToS3(file);
 
         // Step 3: Save document metadata to API
-        final folderId = int.tryParse(lectureId) ?? 0;
+        final folderId = int.tryParse(widget.lectureId) ?? 0;
         await documentsService.saveFolderItem(
           folderId: folderId,
           name: fileName,
@@ -733,7 +809,43 @@ class DocumentsScreen extends ConsumerWidget {
   ) async {
     if (selectionState.selectedDocuments.isEmpty) return;
 
+    // Check if user has quiz generation credits
     try {
+      // Always fetch latest usage from API
+      await ref.read(usageProvider.notifier).fetchUsageAllocation();
+
+      // Get remaining quiz count
+      final remainingQuizCount =
+          ref.read(usageProvider).usageAllocation?.remainingQuizCount ?? 0;
+
+      if (remainingQuizCount <= 0) {
+        // Show dialog and redirect to student plans
+        if (context.mounted) {
+          final shouldBuyPlan = await showConfirmationDialog(
+            context: context,
+            title: 'No Quiz Generation Credits',
+            subtitle:
+                'You need quiz generation credits to create a quiz. Purchase a plan to continue.',
+            icon: Icons.info_outline,
+            iconBackgroundColor: AppColors.primary,
+            confirmText: 'View Plans',
+            cancelText: 'Cancel',
+            confirmButtonColor: AppColors.primary,
+            confirmTextColor: AppColors.white,
+          );
+
+          if (shouldBuyPlan == true && context.mounted) {
+            await context.push('/student/plans');
+            // Refresh usage after returning from plans
+            if (context.mounted) {
+              await ref.read(usageProvider.notifier).fetchUsageAllocation();
+            }
+          }
+        }
+        return; // Stop here, don't generate quiz
+      }
+
+      // Has credits, proceed with quiz generation
       // Reset progress
       ref.read(quizGenerationProgressProvider.notifier).reset();
 
@@ -754,7 +866,7 @@ class DocumentsScreen extends ConsumerWidget {
       // Navigate to quiz screen (replacing the loading screen)
       if (context.mounted) {
         context.pushReplacement(
-          '/quiz/start?lectureName=${Uri.encodeComponent(lectureName)}',
+          '/quiz/start?lectureName=${Uri.encodeComponent(widget.lectureName)}',
           extra: quizAsync,
         );
       }

@@ -8,16 +8,30 @@ import 'package:skillresy/constants/app_strings.dart';
 import 'package:skillresy/services/api_client.dart';
 import 'package:skillresy/services/app_logic.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await GetStorage.init();
-
   // Enable wakelock to keep screen on while app is open
   WakelockPlus.enable();
-
-  registerSingletons();
-  runApp(const ProviderScope(child: SkillResyApp()));
+  // Create ProviderContainer for dependency injection
+  final container = ProviderContainer();
+  registerSingletons(container);
+  // Load environment variables (API keys, etc.) - optional if file doesn't exist
+  try {
+    await dotenv.load(fileName: ".env");
+    print("Env loaded successfully");
+  } catch (e) {
+    print('⚠️ .env file not found - using fallback configuration');
+    // Continue without .env file - secure_keys.dart will handle key retrieval
+  }
+  runApp(
+    UncontrolledProviderScope(
+      container: container,
+      child: const SkillResyApp(),
+    ),
+  );
 }
 
 class SkillResyApp extends ConsumerWidget {
@@ -36,11 +50,11 @@ class SkillResyApp extends ConsumerWidget {
   }
 }
 
-void registerSingletons() {
+void registerSingletons(ProviderContainer container) {
   // Top level app controller
   GetIt.I.registerLazySingleton<AppLogic>(() => AppLogic());
   GetIt.I.registerLazySingleton<APIClient>(() => APIClient());
-  GetIt.I.get<APIClient>().init();
+  GetIt.I.get<APIClient>().init(container: container);
   GetIt.I.get<AppLogic>().init();
 }
 

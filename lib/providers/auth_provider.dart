@@ -10,10 +10,13 @@ import '../models/user_model.dart';
 import '../utils/keys.dart';
 import 'auth_service_provider.dart';
 import 'continuous_transcription_provider.dart';
+import 'credit_provider.dart';
 import 'dashboard_provider.dart';
 import 'documents_provider.dart';
 import 'history_provider.dart';
+import 'iap_provider.dart';
 import 'interview_session_provider.dart';
+import 'usage_provider.dart';
 import 'interview_summary_provider.dart';
 import 'lectures_provider.dart';
 import 'meeting_history_provider.dart';
@@ -279,6 +282,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _ref.invalidate(scoutChatProvider);
     _ref.invalidate(onboardingProvider);
     _ref.invalidate(studentSignupProvider);
+    _ref.invalidate(creditProvider);
+    _ref.invalidate(iapProvider);
+    _ref.invalidate(usageProvider);
 
     print(
       '[LOGOUT] All providers invalidated - clean state ready for next login',

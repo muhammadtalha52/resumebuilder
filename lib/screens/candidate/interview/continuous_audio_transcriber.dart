@@ -6,7 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
-import 'package:skillresy/utils/keys.dart';
+import 'package:skillresy/utils/secure_keys.dart';
 
 enum TranscriptionState {
   idle,
@@ -285,6 +285,9 @@ class ContinuousAudioTranscriber extends ChangeNotifier {
         ),
       });
 
+      // Get secure API key
+      final apiKey = await SecureKeys.getOpenAiKey();
+
       // Send request with timeout using Dio
       // Increased timeout to handle OpenAI API latency + network delays
       // 5-sec audio typically takes 2-7 seconds to transcribe + network overhead
@@ -293,7 +296,7 @@ class ContinuousAudioTranscriber extends ChangeNotifier {
             'https://api.openai.com/v1/audio/transcriptions',
             data: formData,
             options: Options(
-              headers: {'Authorization': 'Bearer ${AppKeys.openAiApiKey}'},
+              headers: {'Authorization': 'Bearer $apiKey'},
               sendTimeout: Duration(seconds: 30),
               receiveTimeout: Duration(seconds: 30),
             ),

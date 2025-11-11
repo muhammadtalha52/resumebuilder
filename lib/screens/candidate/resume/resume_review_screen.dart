@@ -16,6 +16,7 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/salary_ranges.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/resume_provider.dart';
+import '../../../providers/usage_provider.dart';
 import '../../../utils/phone_utils.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/custom_app_bar.dart';
@@ -23,6 +24,7 @@ import '../../../widgets/common/custom_button.dart' as button;
 import '../../../widgets/common/custom_picker_field.dart';
 import '../../../widgets/common/custom_text_field.dart';
 import '../../../widgets/common/tag_field.dart';
+import '../../../widgets/dialogs/confirmation_dialog.dart';
 import '../../../widgets/resume_edit_modal.dart';
 
 class WorkExperienceEntry {
@@ -137,6 +139,9 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
 
   // Step 3 - Template selection
   int _selectedTemplateIndex = 0;
+
+  // Loading state for credit check
+  bool _isCheckingCredits = false;
 
   @override
   void initState() {
@@ -583,7 +588,10 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                                   padding: const EdgeInsets.all(20),
                                   child: button.CustomButton(
                                     text: "Continue",
-                                    onPressed: _handleContinue,
+                                    onPressed: _isCheckingCredits
+                                        ? null
+                                        : _handleContinue,
+                                    isLoading: _isCheckingCredits,
                                   ),
                                 ),
                             ],
@@ -1443,7 +1451,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
             Row(
               children: [
                 Text(
-                  'Graduation Date',
+                  'Graduation Year',
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w500,
@@ -2109,7 +2117,70 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     }
 
     if (needsResumeGeneration) {
-      await _generateResume();
+      // Show loading state
+      setState(() {
+        _isCheckingCredits = true;
+      });
+
+      try {
+        // Always fetch latest usage from API
+        await ref.read(usageProvider.notifier).fetchUsageAllocation();
+
+        // Get remaining resume count
+        final remainingResumes =
+            ref.read(usageProvider).usageAllocation?.remainingResumeCount ?? 0;
+
+        // Hide loading state
+        if (mounted) {
+          setState(() {
+            _isCheckingCredits = false;
+          });
+        }
+
+        if (remainingResumes <= 0) {
+          // Show dialog and redirect to plans
+          if (mounted) {
+            final shouldBuyPlan = await showConfirmationDialog(
+              context: context,
+              title: 'No Resume Credits',
+              subtitle:
+                  'You need resume credits to generate a resume. Purchase a plan to continue.',
+              icon: Icons.info_outline,
+              iconBackgroundColor: AppColors.primary,
+              confirmText: 'View Plans',
+              cancelText: 'Cancel',
+              confirmButtonColor: AppColors.primary,
+              confirmTextColor: AppColors.white,
+            );
+
+            if (shouldBuyPlan == true && mounted) {
+              await context.push('/plans');
+              // Refresh usage after returning from plans
+              if (mounted) {
+                await ref.read(usageProvider.notifier).fetchUsageAllocation();
+              }
+            }
+          }
+          return; // Stop here, don't generate resume
+        }
+
+        // Has credits, proceed with resume generation
+        await _generateResume();
+      } catch (e) {
+        // Hide loading state on error
+        if (mounted) {
+          setState(() {
+            _isCheckingCredits = false;
+          });
+        }
+        if (mounted) {
+          showErrorSnackBar(
+            context: context,
+            message: 'Failed to check credits: ${e.toString()}',
+          );
+        }
+        return; // Stop here on error
+      }
     }
 
     if (_currentStep < _totalSteps) {

@@ -111,10 +111,28 @@ class AppBarWidgets {
     );
   }
 
-  static Widget premiumBadge() {
+  static Widget premiumBadge({BuildContext? context}) {
     return Padding(
-      padding: const EdgeInsets.only(right: 20.0),
-      child: Image.asset('assets/icons/crown.png', width: 40, height: 40),
+      padding: const EdgeInsets.only(right: 16.0),
+      child: GestureDetector(
+        onTap: () {
+          if (context != null) {
+            context.push('/usage');
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.3),
+              width: 2,
+            ),
+          ),
+          child: Image.asset('assets/icons/crown.png', width: 32, height: 32),
+        ),
+      ),
     );
   }
 

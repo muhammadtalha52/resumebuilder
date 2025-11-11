@@ -68,7 +68,7 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
         Row(
           children: [
             Text(
-              'Graduation Date',
+              'Graduation Year',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w500,

@@ -70,3 +70,8 @@ figma/
 
 # End of https://www.toptal.com/developers/gitignore/api/flutter
 .idea/
+
+# Security - API Keys and Secrets
+.env
+**/obfuscation/
+**/debug-info/

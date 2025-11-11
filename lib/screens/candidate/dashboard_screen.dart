@@ -34,7 +34,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       backgroundColor: AppColors.scaffold,
       appBar: CustomAppBar(
         title: AppBarWidgets.foxLogo(),
-        actions: [AppBarWidgets.premiumBadge()],
+        actions: [AppBarWidgets.premiumBadge(context: context)],
       ),
       body: Stack(
         children: [
