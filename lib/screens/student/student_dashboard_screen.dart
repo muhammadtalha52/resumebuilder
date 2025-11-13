@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_app_bar.dart';
@@ -161,6 +162,7 @@ class _StudentDashboardScreenState
                 title: 'Total Quizzes',
                 value: stats.data?.totalQuizzes?.toString() ?? '0',
                 color: const Color(0xFF6366F1),
+                onTap: () => context.push('/quiz/history'),
               ),
               const SizedBox(height: 12),
               _buildMetricCard(
@@ -168,6 +170,8 @@ class _StudentDashboardScreenState
                 title: 'Total Subjects',
                 value: stats.data?.totalMainFolders?.toString() ?? '0',
                 color: const Color(0xFF8B5CF6),
+                onTap: () =>
+                    ref.read(navigationIndexProvider.notifier).state = 1,
               ),
               const SizedBox(height: 12),
               _buildMetricCard(
@@ -175,6 +179,8 @@ class _StudentDashboardScreenState
                 title: 'Total Documents',
                 value: stats.data?.totalDocuments?.toString() ?? '0',
                 color: const Color(0xFF14B8A6),
+                onTap: () =>
+                    ref.read(navigationIndexProvider.notifier).state = 1,
               ),
             ],
           ),
@@ -285,52 +291,57 @@ class _StudentDashboardScreenState
     required String title,
     required String value,
     required Color color,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
-      ),
-      child: Row(
-        children: [
-          // Icon container with color
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+        ),
+        child: Row(
+          children: [
+            // Icon container with color
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 28, color: color),
             ),
-            child: Icon(icon, size: 28, color: color),
-          ),
-          const SizedBox(width: 16),
-          // Title and value
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
+            const SizedBox(width: 16),
+            // Title and value
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A1A1A),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A1A1A),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

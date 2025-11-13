@@ -130,8 +130,8 @@ class _StudentStep2AcademicInfoState
         children: [
           CustomTextField(
             controller: _hometownController,
-            labelText: 'Hometown',
-            hintText: 'Enter your hometown',
+            labelText: 'Your Hometown & State',
+            hintText: 'e.g Austin, Texas',
             keyboardType: TextInputType.text,
             textInputAction: TextInputAction.next,
             maxLength: 100,

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/auth_service.dart';
+import '../../utils/snackbar_utils.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/common/tag_list.dart';
 import '../../widgets/dialogs/confirmation_dialog.dart';
@@ -447,6 +449,99 @@ class StudentProfileScreen extends ConsumerWidget {
               ref.read(authProvider.notifier).signOut();
               context.go('/login');
             }
+          } else if (value == 'delete_account') {
+            // Show delete account confirmation dialog
+            final confirmed = await showConfirmationDialog(
+              context: context,
+              title: 'Delete Account?',
+              subtitle:
+                  'This action cannot be undone. All your data will be permanently deleted.',
+              icon: Icons.warning_outlined,
+              iconBackgroundColor: AppColors.error,
+              confirmText: 'Delete',
+              cancelText: 'Cancel',
+              confirmButtonColor: AppColors.error,
+              confirmTextColor: Colors.white,
+            );
+
+            if (confirmed == true && context.mounted) {
+              final authState = ref.read(authProvider);
+              final userId = authState.user?.id;
+
+              if (userId != null) {
+                // Show loading
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => PopScope(
+                    canPop: false,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(color: AppColors.error),
+                            SizedBox(height: 16),
+                            Text(
+                              'Deleting account...',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+
+                try {
+                  // Call delete account API
+                  final authService = AuthService();
+                  await authService.deleteAccount(userId: userId);
+
+                  // Close loading
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+
+                  // Sign out and redirect to login
+                  if (context.mounted) {
+                    ref.read(authProvider.notifier).signOut();
+                    context.go('/login');
+                    showSuccessSnackBar(
+                      context: context,
+                      message: 'Account deleted successfully',
+                    );
+                  }
+                } catch (e) {
+                  // Close loading
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+
+                  if (context.mounted) {
+                    showErrorSnackBar(
+                      context: context,
+                      message: e.toString().replaceAll('Exception: ', ''),
+                    );
+                  }
+                }
+              } else {
+                if (context.mounted) {
+                  showErrorSnackBar(
+                    context: context,
+                    message: 'User ID not found',
+                  );
+                }
+              }
+            }
           }
         },
         itemBuilder: (context) => [
@@ -458,6 +553,22 @@ class StudentProfileScreen extends ConsumerWidget {
                 SizedBox(width: 12),
                 Text(
                   'Logout',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const PopupMenuItem<String>(
+            value: 'delete_account',
+            child: Row(
+              children: [
+                Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                SizedBox(width: 12),
+                Text(
+                  'Delete Account',
                   style: TextStyle(
                     color: Colors.red,
                     fontWeight: FontWeight.w500,

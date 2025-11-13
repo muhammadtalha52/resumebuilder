@@ -8,6 +8,7 @@ import '../models/meeting_history_response.dart';
 import '../screens/auth/onboarding_step_screen.dart';
 import '../screens/auth/student_onboarding_step_screen.dart';
 import '../screens/auth/user_type_selection_screen.dart';
+import '../screens/candidate/activity/activity_history_screen.dart';
 import '../screens/candidate/interview/meeting_session_screen.dart';
 import '../screens/candidate/interview/meeting_setup_screen.dart';
 import '../screens/candidate/interview/meeting_detail_screen.dart';
@@ -216,6 +217,13 @@ final GoRouter appRouter = GoRouter(
       path: '/meeting/history',
       pageBuilder: (context, state) => buildPageWithoutSwipeBack(
         child: const MeetingHistoryScreen(),
+        key: state.pageKey,
+      ),
+    ),
+    GoRoute(
+      path: '/activity/history',
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const ActivityHistoryScreen(),
         key: state.pageKey,
       ),
     ),

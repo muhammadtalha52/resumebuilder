@@ -72,25 +72,29 @@ class _ScoutChatBottomSheetState extends ConsumerState<ScoutChatBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final chatState = ref.watch(scoutChatProvider);
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
+      height: MediaQuery.of(context).size.height * 0.9,
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        children: [
-          // Header
-          _buildHeader(context),
+      child: Padding(
+        padding: EdgeInsets.only(bottom: keyboardHeight),
+        child: Column(
+          children: [
+            // Header
+            _buildHeader(context),
 
-          // Chat messages area
-          Expanded(child: _buildChatArea(chatState)),
+            // Chat messages area
+            Expanded(child: _buildChatArea(chatState)),
 
-          // Input area
-          _buildInputArea(chatState),
-          SizedBox(height: 30),
-        ],
+            // Input area
+            _buildInputArea(chatState),
+            const SizedBox(height: 30),
+          ],
+        ),
       ),
     );
   }
@@ -375,56 +379,94 @@ class _ScoutChatBottomSheetState extends ConsumerState<ScoutChatBottomSheet> {
   }
 
   Widget _buildInputArea(ScoutChatState chatState) {
+    final isInputEnabled =
+        _isSessionSetup && !chatState.isLoading && !chatState.hasReachedLimit;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Colors.grey.shade200)),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Message input field
-          Expanded(
-            child: TextField(
-              controller: _messageController,
-              decoration: InputDecoration(
-                hintText: 'Ask Scout about your session...',
-                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-                filled: true,
-                fillColor: Colors.grey[50],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
+          // Question counter
+          if (_isSessionSetup) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Questions: ${chatState.questionCount}/${chatState.maxQuestions}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: chatState.hasReachedLimit
+                        ? Colors.red.shade600
+                        : Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
+                if (chatState.hasReachedLimit)
+                  Text(
+                    'Limit reached',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.red.shade600,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Input field and send button
+          Row(
+            children: [
+              // Message input field
+              Expanded(
+                child: TextField(
+                  controller: _messageController,
+                  decoration: InputDecoration(
+                    hintText: chatState.hasReachedLimit
+                        ? 'Question limit reached'
+                        : 'Ask Scout about your session...',
+                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                    filled: true,
+                    fillColor: chatState.hasReachedLimit
+                        ? Colors.grey[100]
+                        : Colors.grey[50],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                  ),
+                  maxLines: null,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => isInputEnabled ? _sendMessage() : null,
+                  enabled: isInputEnabled,
                 ),
               ),
-              maxLines: null,
-              textInputAction: TextInputAction.send,
-              onSubmitted: (_) => _sendMessage(),
-              enabled: _isSessionSetup && !chatState.isLoading,
-            ),
-          ),
-          const SizedBox(width: 12),
+              const SizedBox(width: 12),
 
-          // Send button
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: (_isSessionSetup && !chatState.isLoading)
-                  ? Colors.orange
-                  : Colors.grey.shade300,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              onPressed: (_isSessionSetup && !chatState.isLoading)
-                  ? _sendMessage
-                  : null,
-              icon: const Icon(Icons.send, color: Colors.white, size: 20),
-            ),
+              // Send button
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: isInputEnabled ? Colors.orange : Colors.grey.shade300,
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  onPressed: isInputEnabled ? _sendMessage : null,
+                  icon: const Icon(Icons.send, color: Colors.white, size: 20),
+                ),
+              ),
+            ],
           ),
         ],
       ),

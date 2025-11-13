@@ -6,6 +6,9 @@ import '../models/conversation_models.dart';
 import '../models/interview_session_models.dart';
 import '../screens/candidate/interview/continuous_audio_transcriber.dart';
 import '../services/interview_service.dart';
+import '../services/subscription_service.dart';
+import '../services/api_client.dart';
+import 'usage_provider.dart';
 
 enum InterviewSessionState {
   idle,
@@ -173,9 +176,15 @@ class ContinuousTranscriptionNotifier
   String _pendingScoutContent = '';
   ContinuousAudioTranscriber? _audioTranscriber;
   final InterviewService _interviewService = InterviewService();
+  late final SubscriptionService _subscriptionService;
+  final Ref _ref;
   DateTime? _sessionStartTime;
 
-  ContinuousTranscriptionNotifier() : super(InterviewSessionData()) {}
+  ContinuousTranscriptionNotifier(this._ref) : super(InterviewSessionData()) {
+    // Initialize subscription service
+    final apiClient = APIClient();
+    _subscriptionService = SubscriptionService(apiClient);
+  }
 
   // Listen to audio transcriber updates and sync with provider state
   void _onTranscriberUpdate() {
@@ -773,6 +782,38 @@ class ContinuousTranscriptionNotifier
           error: null,
         );
 
+        // Mark interview credit as used after successful session start
+        print('[CREDIT] Marking interview credit as used...');
+        _subscriptionService
+            .markCreditsUsed(
+              resourceType: 'interview',
+              count: 1,
+              description: sessionType.toLowerCase() == 'interview'
+                  ? 'Interview session started for $companyName'
+                  : 'Meeting session started for $role',
+              referenceId: response.sessionId,
+            )
+            .then((success) async {
+              if (success) {
+                print('✅ Interview credit marked as used successfully');
+                // Refresh usage allocation to show updated credits
+                try {
+                  await _ref
+                      .read(usageProvider.notifier)
+                      .fetchUsageAllocation();
+                  print('✅ Usage allocation refreshed after credit marking');
+                } catch (e) {
+                  print('⚠️ Failed to refresh usage allocation: $e');
+                }
+              } else {
+                print('⚠️ Failed to mark interview credit as used');
+              }
+            })
+            .catchError((e) {
+              print('⚠️ Error marking interview credit as used: $e');
+              // Silent fail - don't interrupt user experience
+            });
+
         return true;
       } else {
         print('[API] Session start failed: ${response.error}');
@@ -997,4 +1038,4 @@ final continuousTranscriptionProvider =
     StateNotifierProvider<
       ContinuousTranscriptionNotifier,
       InterviewSessionData
-    >((ref) => ContinuousTranscriptionNotifier());
+    >((ref) => ContinuousTranscriptionNotifier(ref));

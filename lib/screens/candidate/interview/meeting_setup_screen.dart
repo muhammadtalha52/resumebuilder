@@ -139,7 +139,7 @@ class _State extends ConsumerState<MeetingSetupScreen> {
         });
       }
 
-      if (false && remainingInterviews <= 0) {
+      if (remainingInterviews <= 0) {
         // Show dialog and redirect to plans
         if (mounted) {
           final shouldBuyPlan = await showConfirmationDialog(
@@ -427,7 +427,6 @@ class _State extends ConsumerState<MeetingSetupScreen> {
         hintText: 'Enter meeting agenda',
         labelText: 'Meeting Agenda',
         maxLines: 6,
-        maxLength: 300,
         textInputAction: TextInputAction.done,
         errorText: _meetingAgendaError,
         onChanged: (value) {

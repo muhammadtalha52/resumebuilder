@@ -5,10 +5,12 @@ import 'package:intl_phone_field/intl_phone_field.dart';
 
 import '../../constants/app_colors.dart';
 import '../../providers/student_signup_provider.dart';
+import '../../services/auth_service.dart';
 import '../../utils/validators.dart';
 import '../../widgets/common/custom_button.dart';
 import '../../widgets/common/custom_text_field.dart';
 import '../../widgets/common/password_strength_indicator.dart';
+import '../../widgets/dialogs/email_exists_dialog.dart';
 
 class StudentStep1BasicInfo extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -32,7 +34,9 @@ class _StudentStep1BasicInfoState extends ConsumerState<StudentStep1BasicInfo> {
   String _selectedCountryCode = 'US';
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isCheckingEmail = false;
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -76,27 +80,70 @@ class _StudentStep1BasicInfoState extends ConsumerState<StudentStep1BasicInfo> {
     super.dispose();
   }
 
-  void _handleSubmit() {
+  Future<void> _handleSubmit() async {
     setState(() {
       _autovalidateMode = AutovalidateMode.onUserInteraction;
     });
 
     if (_formKey.currentState!.validate()) {
-      final phoneNumber = _completePhoneNumber.isNotEmpty
-          ? _completePhoneNumber
-          : '+1${_phoneController.text.trim()}';
+      // Check if email already exists
+      setState(() {
+        _isCheckingEmail = true;
+      });
 
-      ref
-          .read(studentSignupProvider.notifier)
-          .updateStep1(
-            fullName: _fullNameController.text.trim(),
+      try {
+        final emailAvailable = await _authService.checkEmailAvailable(
+          _emailController.text.trim(),
+        );
+
+        if (!mounted) return;
+
+        setState(() {
+          _isCheckingEmail = false;
+        });
+
+        if (!emailAvailable) {
+          // Show professional dialog - email is not available
+          await showEmailExistsDialog(
+            context: context,
             email: _emailController.text.trim(),
-            phone: phoneNumber,
-            password: _passwordController.text.trim(),
           );
+          return;
+        }
 
-      // Don't call nextStep here - parent will handle it
-      widget.onNext();
+        // Email is available, proceed with signup
+        final phoneNumber = _completePhoneNumber.isNotEmpty
+            ? _completePhoneNumber
+            : '+1${_phoneController.text.trim()}';
+
+        ref
+            .read(studentSignupProvider.notifier)
+            .updateStep1(
+              fullName: _fullNameController.text.trim(),
+              email: _emailController.text.trim(),
+              phone: phoneNumber,
+              password: _passwordController.text.trim(),
+            );
+
+        widget.onNext();
+      } catch (e) {
+        if (!mounted) return;
+
+        setState(() {
+          _isCheckingEmail = false;
+        });
+
+        // Show error but allow user to continue
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Unable to verify email. Please check your connection and try again.',
+            ),
+            backgroundColor: AppColors.error,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -309,7 +356,12 @@ class _StudentStep1BasicInfoState extends ConsumerState<StudentStep1BasicInfo> {
           ),
           const SizedBox(height: 32),
           // Next button
-          CustomButton(text: 'Next', onPressed: _handleSubmit, height: 56),
+          CustomButton(
+            text: _isCheckingEmail ? 'Checking email...' : 'Next',
+            onPressed: _isCheckingEmail ? () {} : _handleSubmit,
+            height: 56,
+            isLoading: _isCheckingEmail,
+          ),
         ],
       ),
     );

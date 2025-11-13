@@ -42,7 +42,7 @@ class _ResumeHistoryScreenState extends ConsumerState<ResumeHistoryScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       appBar: CustomAppBar(
-        title: AppBarWidgets.foxWithTitle(title: "History"),
+        title: AppBarWidgets.foxWithTitle(title: "Resume History"),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => context.pop(),
@@ -99,110 +99,130 @@ class _ResumeHistoryScreenState extends ConsumerState<ResumeHistoryScreen> {
   }
 
   Widget _buildResumeList(HistoryState historyState, BuildContext context) {
-    return ListView.builder(
+    return Container(
+      margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.all(20),
-      itemCount: historyState.resumes.length,
-      itemBuilder: (context, index) {
-        final resume = historyState.resumes[index];
-        return _buildResumeCard(resume, context);
-      },
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        itemCount: historyState.resumes.length,
+        separatorBuilder: (context, index) => Divider(
+          height: 1,
+          thickness: 1,
+          color: Colors.grey.withValues(alpha: 0.2),
+        ),
+        itemBuilder: (context, index) {
+          final resume = historyState.resumes[index];
+          return _buildResumeCard(resume, context);
+        },
+      ),
     );
   }
 
   Widget _buildResumeCard(ResumeHistory resume, BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () async {
-            // Open resume URL if available
-            if (resume.resumeUrl.isNotEmpty) {
-              // Check if it's an S3 filename or a full URL
-              String urlString = resume.resumeUrl;
-              if (!urlString.startsWith('http')) {
-                // It's an S3 filename, construct the full URL
-                urlString = S3Utils.constructAssetUrl(resume.resumeUrl);
-              }
+    return InkWell(
+      onTap: () async {
+        // Open resume URL if available
+        if (resume.resumeUrl.isNotEmpty) {
+          // Check if it's an S3 filename or a full URL
+          String urlString = resume.resumeUrl;
+          if (!urlString.startsWith('http')) {
+            // It's an S3 filename, construct the full URL
+            urlString = S3Utils.constructAssetUrl(resume.resumeUrl);
+          }
 
-              final Uri url = Uri.parse(urlString);
-              if (await canLaunchUrl(url)) {
-                await launchUrl(url, mode: LaunchMode.externalApplication);
-              } else {
-                if (context.mounted) {
-                  showErrorSnackBar(
-                    context: context,
-                    message: 'Could not open resume',
-                  );
-                }
-              }
-            } else {
-              // Fallback to navigation if URL is not available
-              context.push('/resume/review?id=${resume.id}');
+          final Uri url = Uri.parse(urlString);
+          if (await canLaunchUrl(url)) {
+            await launchUrl(url, mode: LaunchMode.externalApplication);
+          } else {
+            if (context.mounted) {
+              showErrorSnackBar(
+                context: context,
+                message: 'Could not open resume',
+              );
             }
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        resume.title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _buildSubtitle(resume),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary.withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ],
+          }
+        } else {
+          // Fallback to navigation if URL is not available
+          context.push('/resume/review?id=${resume.id}');
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    resume.title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
+                    ),
                   ),
-                ),
-                if (resume.resumeUrl.isNotEmpty) ...[
-                  const SizedBox(width: 12),
-                  IconButton(
-                    onPressed: () => _downloadResume(resume, context),
-                    icon: const Icon(Icons.download, color: AppColors.primary),
-                    tooltip: 'Download Resume',
+                  const SizedBox(height: 4),
+                  Text(
+                    _buildCompanyOrJob(resume),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    DateHelpers.formatDateTimeToLocal(
+                      resume.createdAt,
+                      defaultValue: 'N/A',
+                    ),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textLight,
+                    ),
                   ),
                 ],
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (resume.resumeUrl.isNotEmpty)
+                  IconButton(
+                    onPressed: () => _downloadResume(resume, context),
+                    icon: const Icon(
+                      Icons.download,
+                      color: AppColors.textSecondary,
+                      size: 20,
+                    ),
+                    tooltip: 'Download Resume',
+                  ),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  String _buildSubtitle(ResumeHistory resume) {
-    final company = resume.companyName.isNotEmpty
-        ? resume.companyName
-        : resume.jobTitle.isNotEmpty
-        ? resume.jobTitle
-        : 'Resume';
-    return '$company, ${DateHelpers.formatDateTimeToLocal(resume.createdAt, defaultValue: 'N/A')}';
+  String _buildCompanyOrJob(ResumeHistory resume) {
+    if (resume.companyName.isNotEmpty) {
+      return resume.companyName;
+    } else if (resume.jobTitle.isNotEmpty) {
+      return resume.jobTitle;
+    }
+    return 'Resume';
   }
 
   Future<void> _downloadResume(

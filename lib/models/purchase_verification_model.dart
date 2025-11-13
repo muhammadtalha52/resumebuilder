@@ -227,3 +227,65 @@ class GooglePayPaymentResponse {
     };
   }
 }
+
+/// Request model for Apple Pay payment
+class ApplePayPaymentRequest {
+  final int planId;
+  final String receiptData;
+  final String transactionId;
+  final String? notes;
+
+  const ApplePayPaymentRequest({
+    required this.planId,
+    required this.receiptData,
+    required this.transactionId,
+    this.notes,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'plan_id': planId,
+      'receipt_data': receiptData,
+      'transaction_id': transactionId,
+      if (notes != null) 'notes': notes,
+    };
+  }
+
+  factory ApplePayPaymentRequest.fromJson(Map<String, dynamic> json) {
+    return ApplePayPaymentRequest(
+      planId: json['plan_id'] as int,
+      receiptData: json['receipt_data'] as String,
+      transactionId: json['transaction_id'] as String,
+      notes: json['notes'] as String?,
+    );
+  }
+}
+
+/// Response model for Apple Pay payment
+class ApplePayPaymentResponse {
+  final bool success;
+  final String? message;
+  final Map<String, dynamic>? data;
+
+  const ApplePayPaymentResponse({
+    required this.success,
+    this.message,
+    this.data,
+  });
+
+  factory ApplePayPaymentResponse.fromJson(Map<String, dynamic> json) {
+    return ApplePayPaymentResponse(
+      success: json['success'] as bool? ?? json['status'] == 'success' ?? false,
+      message: json['message'] as String?,
+      data: json['data'] as Map<String, dynamic>?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'success': success,
+      if (message != null) 'message': message,
+      if (data != null) 'data': data,
+    };
+  }
+}

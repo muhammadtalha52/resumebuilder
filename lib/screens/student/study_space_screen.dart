@@ -38,12 +38,33 @@ class _StudySpaceScreenState extends ConsumerState<StudySpaceScreen> {
       appBar: CustomAppBar(
         title: AppBarWidgets.foxWithTitle(title: 'Study Space'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.history, color: AppColors.textPrimary),
-            onPressed: () {
+          InkWell(
+            onTap: () {
               context.push('/quiz/history');
             },
-            tooltip: 'Quiz History',
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.history,
+                    color: AppColors.textPrimary,
+                    size: 24,
+                  ),
+                  const Text(
+                    'History',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

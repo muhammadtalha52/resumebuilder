@@ -16,10 +16,33 @@ class MeetingScreen extends ConsumerWidget {
       appBar: CustomAppBar(
         title: AppBarWidgets.foxWithTitle(title: 'Meetings'),
         actions: [
-          AppBarWidgets.historyButton(
-            onPressed: () {
+          InkWell(
+            onTap: () {
               context.push('/meeting/history');
             },
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.history,
+                    color: AppColors.textPrimary,
+                    size: 24,
+                  ),
+                  const Text(
+                    'History',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

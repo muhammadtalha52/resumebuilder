@@ -44,56 +44,6 @@ class SubscriptionService {
   }
 
   /// Get current credit status from backend
-  Future<Credits?> getCredits() async {
-    try {
-      final response = await apiClient.dio.get(
-        ApiEndpoints.getCredits,
-        options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
-      );
-
-      if (response.statusCode == 200) {
-        return Credits.fromJson(response.data);
-      } else {
-        return null;
-      }
-    } on DioException {
-      return null;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Consume a credit (resume or interview)
-  Future<ConsumeCreditsResponse> consumeCredit(String type) async {
-    try {
-      final request = ConsumeCreditsRequest(type: type);
-
-      final response = await apiClient.dio.post(
-        ApiEndpoints.consumeCredit,
-        data: request.toJson(),
-        options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return ConsumeCreditsResponse.fromJson(response.data);
-      } else {
-        return ConsumeCreditsResponse(
-          success: false,
-          message: response.data['message'] ?? 'Failed to consume credit',
-        );
-      }
-    } on DioException catch (e) {
-      return ConsumeCreditsResponse(
-        success: false,
-        message: e.response?.data['message'] ?? 'Network error occurred',
-      );
-    } catch (e) {
-      return ConsumeCreditsResponse(
-        success: false,
-        message: 'An unexpected error occurred',
-      );
-    }
-  }
 
   /// Restore purchases from App Store/Play Store
   /// Send list of purchase receipts to backend for verification
@@ -125,24 +75,6 @@ class SubscriptionService {
         success: false,
         message: 'An unexpected error occurred',
       );
-    }
-  }
-
-  /// Check if user has enough credits for an operation
-  Future<bool> hasCredits(String type) async {
-    try {
-      final credits = await getCredits();
-      if (credits == null) return false;
-
-      if (type == 'resume') {
-        return credits.resumeCredits > 0;
-      } else if (type == 'interview') {
-        return credits.interviewCredits > 0;
-      }
-
-      return false;
-    } catch (_) {
-      return false;
     }
   }
 
@@ -188,6 +120,52 @@ class SubscriptionService {
     } catch (e) {
       print('[SubscriptionService] Google Pay error: $e');
       return GooglePayPaymentResponse(
+        success: false,
+        message: 'An unexpected error occurred',
+      );
+    }
+  }
+
+  /// Process Apple Pay payment
+  Future<ApplePayPaymentResponse> processApplePayPayment(
+    ApplePayPaymentRequest request,
+  ) async {
+    try {
+      print('[SubscriptionService] Sending Apple Pay payment request:');
+      print('  - Plan ID: ${request.planId}');
+      print('  - Receipt Data: ${request.receiptData.substring(0, 50)}...');
+      print('  - Transaction ID: ${request.transactionId}');
+      print('  - Notes: ${request.notes}');
+
+      final response = await apiClient.dio.post(
+        ApiEndpoints.applePayPayment,
+        data: request.toJson(),
+        options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
+      );
+
+      print(
+        '[SubscriptionService] Apple Pay response status: ${response.statusCode}',
+      );
+      print('[SubscriptionService] Apple Pay response data: ${response.data}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return ApplePayPaymentResponse.fromJson(response.data);
+      } else {
+        return ApplePayPaymentResponse(
+          success: false,
+          message: response.data['message'] ?? 'Payment processing failed',
+        );
+      }
+    } on DioException catch (e) {
+      print('[SubscriptionService] Apple Pay DioException: ${e.message}');
+      print('[SubscriptionService] Response data: ${e.response?.data}');
+      return ApplePayPaymentResponse(
+        success: false,
+        message: e.response?.data['message'] ?? 'Network error occurred',
+      );
+    } catch (e) {
+      print('[SubscriptionService] Apple Pay error: $e');
+      return ApplePayPaymentResponse(
         success: false,
         message: 'An unexpected error occurred',
       );
@@ -241,5 +219,72 @@ class SubscriptionService {
       print('[SubscriptionService] Plans fetch error: $e');
       return {};
     }
+  }
+
+  /// Mark credits as used after successful operations
+  /// resourceType: 'quiz' or 'document'
+  /// count: number of credits used (typically 1)
+  /// description: brief description of the operation
+  /// referenceId: optional ID reference for the operation
+  /// Retries up to 2 times if the first attempt fails
+  Future<bool> markCreditsUsed({
+    required String resourceType,
+    required int count,
+    required String description,
+    String? referenceId,
+  }) async {
+    const maxRetries = 2;
+    int attemptCount = 0;
+
+    while (attemptCount <= maxRetries) {
+      try {
+        attemptCount++;
+        print(
+          '[SubscriptionService] Marking credits used (attempt $attemptCount/${maxRetries + 1})',
+        );
+
+        final response = await apiClient.dio.post(
+          ApiEndpoints.markCreditsUsed,
+          data: {
+            'resource_type': resourceType,
+            'count': count,
+            'description': description,
+            'reference_id': referenceId ?? '',
+          },
+          options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          print(
+            '[SubscriptionService] Successfully marked credits used on attempt $attemptCount',
+          );
+          return true;
+        }
+
+        // If status is not success, retry
+        print(
+          '[SubscriptionService] Failed with status ${response.statusCode}, retrying...',
+        );
+      } catch (e) {
+        print(
+          '[SubscriptionService] Error marking credits used (attempt $attemptCount): $e',
+        );
+
+        // If this was the last attempt, return false
+        if (attemptCount > maxRetries) {
+          print(
+            '[SubscriptionService] All retry attempts exhausted, marking as failed',
+          );
+          return false;
+        }
+
+        // Wait before retrying (exponential backoff: 1s, 2s)
+        final delaySeconds = attemptCount;
+        print('[SubscriptionService] Waiting ${delaySeconds}s before retry...');
+        await Future.delayed(Duration(seconds: delaySeconds));
+      }
+    }
+
+    return false;
   }
 }

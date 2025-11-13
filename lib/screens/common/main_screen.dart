@@ -12,7 +12,8 @@ import '../student/student_profile_screen.dart';
 import '../student/study_space_screen.dart';
 
 // Provider to track current navigation index
-final navigationIndexProvider = StateProvider<int>((ref) => 0);
+// Default to index 1 (Study Space for students, Resumes for candidates)
+final navigationIndexProvider = StateProvider<int>((ref) => 1);
 
 class MainScreen extends ConsumerWidget {
   const MainScreen({super.key});

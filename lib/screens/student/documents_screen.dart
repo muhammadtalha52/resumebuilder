@@ -16,6 +16,8 @@ import '../../widgets/dialogs/confirmation_dialog.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../utils/s3_utils.dart';
 import '../../providers/quiz_provider.dart';
+import '../../services/api_client.dart';
+import '../../services/subscription_service.dart';
 import 'document_viewer_screen.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
@@ -766,6 +768,22 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         // Step 4: Refresh documents list
         ref.invalidate(folderDocumentsProvider(folderId));
 
+        // Step 5: Mark credits as used ONLY after successful upload
+        // Run in background (non-blocking) - don't await
+        final apiClient = APIClient();
+        final subscriptionService = SubscriptionService(apiClient);
+        subscriptionService
+            .markCreditsUsed(
+              resourceType: 'document_upload',
+              count: 1,
+              description: 'Document uploaded: $fileName',
+              referenceId: saveDocResponse.s3FileName,
+            )
+            .catchError((e) {
+              print('Failed to mark credits used: $e');
+              // Silent fail - don't interrupt user experience
+            });
+
         // Dismiss loading dialog
         if (context.mounted) {
           Navigator.of(context).pop();
@@ -859,6 +877,23 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       final quizAsync = await service.generateQuiz(
         s3Filenames: selectionState.selectedFilenames,
       );
+
+      // Mark credits as used ONLY after successful quiz generation
+      // Run in background (non-blocking) - don't await
+      final apiClient = APIClient();
+      final subscriptionService = SubscriptionService(apiClient);
+      subscriptionService
+          .markCreditsUsed(
+            resourceType: 'quiz',
+            count: 1,
+            description:
+                'Quiz generated from ${selectionState.selectionCount} documents',
+            referenceId: widget.lectureName,
+          )
+          .catchError((e) {
+            print('Failed to mark credits used: $e');
+            // Silent fail - don't interrupt user experience
+          });
 
       // Clear selection
       ref.read(documentSelectionProvider.notifier).clearSelection();

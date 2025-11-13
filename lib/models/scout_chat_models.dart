@@ -38,6 +38,8 @@ class ScoutChatState {
   final String? error;
   final bool isSessionSetup;
   final int? sessionId;
+  final int questionCount;
+  final int maxQuestions;
 
   ScoutChatState({
     this.messages = const [],
@@ -45,7 +47,11 @@ class ScoutChatState {
     this.error,
     this.isSessionSetup = false,
     this.sessionId,
+    this.questionCount = 0,
+    this.maxQuestions = 7,
   });
+
+  bool get hasReachedLimit => questionCount >= maxQuestions;
 
   ScoutChatState copyWith({
     List<ChatMessage>? messages,
@@ -53,6 +59,7 @@ class ScoutChatState {
     String? error,
     bool? isSessionSetup,
     int? sessionId,
+    int? questionCount,
   }) {
     return ScoutChatState(
       messages: messages ?? this.messages,
@@ -60,6 +67,8 @@ class ScoutChatState {
       error: error,
       isSessionSetup: isSessionSetup ?? this.isSessionSetup,
       sessionId: sessionId ?? this.sessionId,
+      questionCount: questionCount ?? this.questionCount,
+      maxQuestions: maxQuestions,
     );
   }
 }

@@ -138,9 +138,14 @@ class IAPService {
       final androidDetails = purchase as GooglePlayPurchaseDetails;
       return androidDetails.billingClientPurchase.purchaseToken;
     } else if (Platform.isIOS) {
-      final iosDetails = purchase as AppStorePurchaseDetails;
-      // For iOS, we use the transaction receipt
-      return iosDetails.verificationData.serverVerificationData;
+      // Handle both StoreKit 1 and StoreKit 2
+      if (purchase is AppStorePurchaseDetails) {
+        // StoreKit 1
+        return purchase.verificationData.serverVerificationData;
+      } else if (purchase is SK2PurchaseDetails) {
+        // StoreKit 2
+        return purchase.verificationData.serverVerificationData;
+      }
     }
     return null;
   }

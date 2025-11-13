@@ -7,10 +7,12 @@ import 'package:intl_phone_field/intl_phone_field.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/onboarding_provider.dart';
 import '../../providers/education_data_provider.dart';
+import '../../services/auth_service.dart';
 import '../../utils/validators.dart';
 import '../../widgets/common/custom_button.dart';
 import '../../widgets/common/custom_text_field.dart';
 import '../../widgets/common/password_strength_indicator.dart';
+import '../../widgets/dialogs/email_exists_dialog.dart';
 
 class Step1PersonalDetails extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -36,7 +38,9 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
   String _selectedCountryCode = 'US'; // Default country code
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isCheckingEmail = false;
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -116,7 +120,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
     super.deactivate();
   }
 
-  void _handleSubmit() {
+  Future<void> _handleSubmit() async {
     // Dismiss keyboard before validation
     FocusScope.of(context).requestFocus(FocusNode());
 
@@ -126,31 +130,73 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
     });
 
     if (_formKey.currentState!.validate()) {
-      // Ensure we use the complete phone number with country code
-      final phoneNumber = _completePhoneNumber.isNotEmpty
-          ? _completePhoneNumber
-          : '+1${_phoneController.text.trim()}'; // Default to US country code if not set
+      // Check if email already exists
+      setState(() {
+        _isCheckingEmail = true;
+      });
 
-      ref
-          .read(onboardingProvider.notifier)
-          .updatePersonalDetails(
-            fullName: _fullNameController.text.trim(),
+      try {
+        final emailAvailable = await _authService.checkEmailAvailable(
+          _emailController.text.trim(),
+        );
+
+        if (!mounted) return;
+
+        setState(() {
+          _isCheckingEmail = false;
+        });
+
+        if (!emailAvailable) {
+          // Show professional dialog - email is not available
+          await showEmailExistsDialog(
+            context: context,
             email: _emailController.text.trim(),
-            phone: phoneNumber,
-            linkedIn: _linkedInController.text.trim(),
-            website: _websiteController.text.trim(),
           );
+          return;
+        }
 
-      // Also save password to onboarding provider
-      ref
-          .read(onboardingProvider.notifier)
-          .setUserDetails(
-            fullName: _fullNameController.text.trim(),
-            email: _emailController.text.trim(),
-            password: _passwordController.text.trim(),
-          );
+        // Email is available, proceed with signup
+        final phoneNumber = _completePhoneNumber.isNotEmpty
+            ? _completePhoneNumber
+            : '+1${_phoneController.text.trim()}';
 
-      widget.onNext();
+        ref
+            .read(onboardingProvider.notifier)
+            .updatePersonalDetails(
+              fullName: _fullNameController.text.trim(),
+              email: _emailController.text.trim(),
+              phone: phoneNumber,
+              linkedIn: _linkedInController.text.trim(),
+              website: _websiteController.text.trim(),
+            );
+
+        ref
+            .read(onboardingProvider.notifier)
+            .setUserDetails(
+              fullName: _fullNameController.text.trim(),
+              email: _emailController.text.trim(),
+              password: _passwordController.text.trim(),
+            );
+
+        widget.onNext();
+      } catch (e) {
+        if (!mounted) return;
+
+        setState(() {
+          _isCheckingEmail = false;
+        });
+
+        // Show error but allow user to continue
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Unable to verify email. Please check your connection and try again.',
+            ),
+            backgroundColor: AppColors.error,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -389,7 +435,12 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
           ),
           const SizedBox(height: 20),
           // Next button
-          CustomButton(text: 'Next', onPressed: _handleSubmit, height: 56),
+          CustomButton(
+            text: _isCheckingEmail ? 'Checking email...' : 'Next',
+            onPressed: _isCheckingEmail ? () {} : _handleSubmit,
+            height: 56,
+            isLoading: _isCheckingEmail,
+          ),
         ],
       ),
     );

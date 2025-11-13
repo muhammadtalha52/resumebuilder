@@ -120,17 +120,20 @@ class AppBarWidgets {
             context.push('/usage');
           }
         },
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.3),
-              width: 2,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset('assets/icons/crown.png', width: 28, height: 28),
+            const Text(
+              'View Credits',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-          child: Image.asset('assets/icons/crown.png', width: 32, height: 32),
+          ],
         ),
       ),
     );

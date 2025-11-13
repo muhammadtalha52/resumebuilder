@@ -10,6 +10,8 @@ import '../models/education_model.dart';
 import '../models/generate_resume_response.dart';
 import '../services/resume_service.dart';
 import '../services/education_service.dart';
+import '../services/subscription_service.dart';
+import '../services/api_client.dart';
 
 class ResumeState {
   final bool isLoading;
@@ -80,9 +82,13 @@ class ResumeState {
 class ResumeNotifier extends StateNotifier<ResumeState> {
   final ResumeService _resumeService;
   final EducationService _educationService;
+  final SubscriptionService _subscriptionService;
 
-  ResumeNotifier(this._resumeService, this._educationService)
-    : super(ResumeState());
+  ResumeNotifier(
+    this._resumeService,
+    this._educationService,
+    this._subscriptionService,
+  ) : super(ResumeState());
 
   /// Pick resume file and automatically parse it
   Future<bool> pickAndParseResumeFile() async {
@@ -473,10 +479,38 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
         template: template,
       );
 
+      print("ResumeGenerated json :${result.resumeData.toString()}");
+      print("ResumeGenerated base_64 :${result.pdfBase64}");
+
       state = state.copyWith(
         isGeneratingResume: false,
         generatedResumeData: result,
       );
+
+      // Mark resume credit as used after successful generation
+      print('✅ Resume generated successfully, marking credit as used');
+      _subscriptionService
+          .markCreditsUsed(
+            resourceType: 'resume',
+            count: 1,
+            description: jobUrl != null && jobUrl.isNotEmpty
+                ? 'Resume generated for job: $jobUrl'
+                : jobDescription != null && jobDescription.isNotEmpty
+                ? 'Resume generated with custom job description'
+                : 'Resume generated',
+            referenceId: file.path,
+          )
+          .then((success) {
+            if (success) {
+              print('✅ Resume credit marked as used successfully');
+            } else {
+              print('⚠️ Failed to mark resume credit as used');
+            }
+          })
+          .catchError((e) {
+            print('⚠️ Error marking resume credit as used: $e');
+            // Silent fail - don't interrupt user experience
+          });
 
       return result;
     } catch (e) {
@@ -618,10 +652,16 @@ final educationServiceProvider = Provider<EducationService>((ref) {
   return EducationService();
 });
 
+final subscriptionServiceProvider = Provider<SubscriptionService>((ref) {
+  final apiClient = APIClient();
+  return SubscriptionService(apiClient);
+});
+
 final resumeProvider = StateNotifierProvider<ResumeNotifier, ResumeState>((
   ref,
 ) {
   final resumeService = ref.watch(resumeServiceProvider);
   final educationService = ref.watch(educationServiceProvider);
-  return ResumeNotifier(resumeService, educationService);
+  final subscriptionService = ref.watch(subscriptionServiceProvider);
+  return ResumeNotifier(resumeService, educationService, subscriptionService);
 });

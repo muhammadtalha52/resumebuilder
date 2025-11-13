@@ -267,7 +267,7 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
 
                 // Get more button
                 CustomButton(
-                  text: 'Get More',
+                  text: 'Buy More',
                   onPressed: () async {
                     // Route to correct plans screen based on user type
                     final plansRoute = isStudent ? '/student/plans' : '/plans';

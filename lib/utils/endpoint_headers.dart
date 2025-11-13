@@ -17,6 +17,7 @@ class ApiEndpoints {
 
   static const String register = '/auth/register/';
   static const String login = '/auth/login/';
+  static const String isEmailExists = '/auth/is_email_exists/';
   static const String forgotPassword = '/auth/forgot-password/';
   static const String profileUpdate = '/auth/profile/';
   static const String uploadProfilePhoto = '/auth/upload-profile-image/';
@@ -34,12 +35,12 @@ class ApiEndpoints {
 
   // In-App Purchase Endpoints
   static const String verifyPurchase = '/subscription/verify-purchase/';
-  static const String getCredits = '/subscription/credits/';
-  static const String consumeCredit = '/subscription/consume-credit/';
   static const String restorePurchases = '/subscription/restore/';
 
   // Plan Payment Endpoints
   static const String googlePayPayment = '/plan/payments/google-pay/';
+  static const String applePayPayment = '/plan/payments/apple-pay/';
   static const String planAllocation = '/plan/allocation/';
   static const String plans = '/plan/plans/';
+  static const String markCreditsUsed = '/plan/allocation/use/';
 }

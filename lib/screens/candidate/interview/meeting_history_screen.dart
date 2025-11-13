@@ -93,230 +93,122 @@ class _MeetingHistoryScreenState extends ConsumerState<MeetingHistoryScreen> {
     MeetingHistoryState historyState,
     BuildContext context,
   ) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: historyState.meetings.length,
-      itemBuilder: (context, index) {
-        final meeting = historyState.meetings[index];
-        return meeting.isInterview
-            ? _buildInterviewCard(meeting, context)
-            : _buildMeetingCard(meeting, context);
-      },
-    );
-  }
-
-  Widget _buildInterviewCard(MeetingHistoryItem meeting, BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            context.push('/meeting/detail', extra: meeting);
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.work_outline,
-                        color: Colors.blue.shade700,
-                        size: 24,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      DateHelpers.formatDateTimeToLocal(
-                        meeting.createdAt,
-                        defaultValue: 'N/A',
-                      ),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                if (meeting.companyName != null &&
-                    meeting.companyName!.isNotEmpty)
-                  Text(
-                    meeting.companyName!,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                if (meeting.positionTitle != null &&
-                    meeting.positionTitle!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      meeting.positionTitle!,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textSecondary.withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ),
-                if (meeting.durationMinutes != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.timer_outlined,
-                          size: 16,
-                          color: AppColors.textSecondary.withValues(alpha: 0.5),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Duration: ${meeting.durationMinutes} minutes',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textSecondary.withValues(
-                              alpha: 0.6,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        itemCount: historyState.meetings.length,
+        separatorBuilder: (context, index) => Divider(
+          height: 1,
+          thickness: 1,
+          color: Colors.grey.withValues(alpha: 0.2),
         ),
+        itemBuilder: (context, index) {
+          final meeting = historyState.meetings[index];
+          return _buildMeetingCard(meeting, context);
+        },
       ),
     );
   }
 
   Widget _buildMeetingCard(MeetingHistoryItem meeting, BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            context.push('/meeting/detail', extra: meeting);
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.purple.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.groups,
-                        color: Colors.purple.shade700,
-                        size: 24,
-                      ),
+    // Determine title and subtitle based on meeting type
+    String title;
+    String subtitle;
+
+    if (meeting.isInterview) {
+      title = meeting.companyName ?? 'Interview';
+      subtitle = meeting.positionTitle ?? 'Position Interview';
+    } else {
+      title = meeting.roleIndustry ?? 'Meeting';
+      subtitle = 'Meeting Session';
+    }
+
+    // Format duration
+    String durationText = '';
+    if (meeting.durationMinutes != null && meeting.durationMinutes! > 0) {
+      final duration = meeting.durationMinutes!;
+      if (duration >= 60) {
+        final hours = duration ~/ 60;
+        final minutes = duration % 60;
+        if (minutes > 0) {
+          durationText = '$hours hr $minutes min';
+        } else {
+          durationText = '$hours hr';
+        }
+      } else {
+        durationText = '$duration min';
+      }
+    }
+
+    return InkWell(
+      onTap: () {
+        context.push('/meeting/detail', extra: meeting);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A1A1A),
                     ),
-                    const Spacer(),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  if (durationText.isNotEmpty) ...[
+                    const SizedBox(height: 4),
                     Text(
-                      DateHelpers.formatDateTimeToLocal(
-                        meeting.createdAt,
-                        defaultValue: 'N/A',
-                      ),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary.withValues(alpha: 0.6),
+                      durationText,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 16),
-                if (meeting.roleIndustry != null &&
-                    meeting.roleIndustry!.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Your Role',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary.withValues(alpha: 0.6),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        meeting.roleIndustry!,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                if (meeting.durationMinutes != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.timer_outlined,
-                          size: 16,
-                          color: AppColors.textSecondary.withValues(alpha: 0.5),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Duration: ${meeting.durationMinutes} minutes',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textSecondary.withValues(
-                              alpha: 0.6,
-                            ),
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 6),
+                  Text(
+                    DateHelpers.getTimeAgo(meeting.createdAt?.toString() ?? ''),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textLight,
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
-          ),
+            Image.asset(
+              'assets/icons/session.png',
+              width: 22,
+              height: 22,
+              color: AppColors.textSecondary,
+            ),
+          ],
         ),
       ),
     );

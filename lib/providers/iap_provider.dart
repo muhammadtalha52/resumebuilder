@@ -6,7 +6,7 @@ import '../models/purchase_verification_model.dart';
 import '../services/iap_service.dart';
 import '../services/subscription_service.dart';
 import '../services/api_client.dart';
-import 'credit_provider.dart';
+import 'usage_provider.dart';
 
 // IAP State
 class IAPState extends Equatable {
@@ -70,6 +70,7 @@ class IAPNotifier extends StateNotifier<IAPState> {
   /// Initialize IAP service and load products
   Future<void> _initialize() async {
     print('[IAPProvider] Initializing IAP...');
+    if (!mounted) return;
     state = state.copyWith(isLoading: true);
 
     try {
@@ -82,6 +83,7 @@ class IAPNotifier extends StateNotifier<IAPState> {
       final isAvailable = await _iapService.initialize();
       print('[IAPProvider] IAP available: $isAvailable');
 
+      if (!mounted) return;
       if (!isAvailable) {
         print('[IAPProvider] ERROR: IAP not available on this device');
         state = state.copyWith(
@@ -97,6 +99,7 @@ class IAPNotifier extends StateNotifier<IAPState> {
       print('[IAPProvider] Products loaded: $productsLoaded');
       print('[IAPProvider] Number of products: ${_iapService.products.length}');
 
+      if (!mounted) return;
       if (productsLoaded) {
         for (var product in _iapService.products) {
           print(
@@ -126,6 +129,7 @@ class IAPNotifier extends StateNotifier<IAPState> {
       }
     } catch (e) {
       print('[IAPProvider] ERROR during initialization: $e');
+      if (!mounted) return;
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to initialize purchases: ${e.toString()}',
@@ -144,6 +148,7 @@ class IAPNotifier extends StateNotifier<IAPState> {
         _purchaseSubscription?.cancel();
       },
       onError: (error) {
+        if (!mounted) return;
         state = state.copyWith(
           isPurchasing: false,
           error: 'Purchase error: ${error.toString()}',
@@ -256,6 +261,9 @@ class IAPNotifier extends StateNotifier<IAPState> {
 
   /// Verify purchase with backend
   Future<void> _verifyPurchase(PurchaseDetails purchase) async {
+    // Show loading during verification
+    state = state.copyWith(isPurchasing: true);
+
     try {
       print('\n========== VERIFYING PURCHASE ==========');
       final purchaseToken = _iapService.getPurchaseToken(purchase);
@@ -318,8 +326,8 @@ class IAPNotifier extends StateNotifier<IAPState> {
             error: null,
           );
 
-          // Refresh credits from backend
-          await _ref.read(creditProvider.notifier).refreshCredits();
+          // Refresh usage allocation from backend
+          await _ref.read(usageProvider.notifier).fetchUsageAllocation();
         } else {
           state = state.copyWith(
             isPurchasing: false,
@@ -332,24 +340,31 @@ class IAPNotifier extends StateNotifier<IAPState> {
           }
         }
       } else {
-        // For iOS, use the old verification endpoint
-        final request = PurchaseVerificationRequest(
-          productId: purchase.productID,
-          purchaseToken: purchaseToken,
-          platform: platform,
+        // For iOS, use Apple Pay endpoint
+        final planId = _getPlanIdFromProductId(purchase.productID);
+        final transactionId = purchase.purchaseID ?? 'unknown';
+
+        final request = ApplePayPaymentRequest(
+          planId: planId,
+          receiptData: purchaseToken,
+          transactionId: transactionId,
+          notes: 'Payment from iOS app for plan $planId',
         );
 
-        print('[IAPProvider] Verification Request (iOS):');
-        print('  - Product ID: ${request.productId}');
-        print('  - Purchase Token: ${request.purchaseToken}');
-        print('  - Platform: ${request.platform}');
-        print('[IAPProvider] Sending verification request to backend...');
+        print('[IAPProvider] Apple Pay Payment Request:');
+        print('  - Plan ID: ${request.planId}');
+        print('  - Receipt Data: ${request.receiptData.substring(0, 50)}...');
+        print('  - Transaction ID: ${request.transactionId}');
+        print('[IAPProvider] Sending payment request to backend...');
 
-        final response = await _subscriptionService.verifyPurchase(request);
+        final response = await _subscriptionService.processApplePayPayment(
+          request,
+        );
 
         print('[IAPProvider] Backend Response:');
         print('  - Success: ${response.success}');
         print('  - Message: ${response.message}');
+        print('  - Data: ${response.data}');
         print('========================================\n');
 
         if (response.success) {
@@ -360,16 +375,16 @@ class IAPNotifier extends StateNotifier<IAPState> {
           state = state.copyWith(
             isPurchasing: false,
             successMessage:
-                'Purchase successful! Credits added to your account.',
+                'Purchase successful! Your plan has been activated.',
             error: null,
           );
 
-          // Refresh credits from backend
-          await _ref.read(creditProvider.notifier).refreshCredits();
+          // Refresh usage allocation from backend
+          await _ref.read(usageProvider.notifier).fetchUsageAllocation();
         } else {
           state = state.copyWith(
             isPurchasing: false,
-            error: response.message ?? 'Purchase verification failed',
+            error: response.message ?? 'Payment processing failed',
           );
 
           // Still complete the purchase to avoid stuck state
@@ -408,7 +423,8 @@ class IAPNotifier extends StateNotifier<IAPState> {
       '[IAPProvider] Available products: ${_iapService.products.map((p) => p.id).toList()}',
     );
 
-    state = state.copyWith(isPurchasing: true, error: null);
+    // Don't set isPurchasing here - wait for actual purchase event
+    state = state.copyWith(error: null);
 
     try {
       final product = _iapService.getProductById(productId);
@@ -416,7 +432,6 @@ class IAPNotifier extends StateNotifier<IAPState> {
       if (product == null) {
         print('[IAPProvider] ERROR: Product not found: $productId');
         state = state.copyWith(
-          isPurchasing: false,
           error: 'Product not found. Please try again later.',
         );
         return;
@@ -431,19 +446,16 @@ class IAPNotifier extends StateNotifier<IAPState> {
 
       if (!success) {
         state = state.copyWith(
-          isPurchasing: false,
           error:
               'Failed to initiate purchase. Please check your payment method.',
         );
       }
 
       // State will be updated by purchase stream listener
+      // isPurchasing will be set to true only when purchase is actually pending/processing
     } catch (e) {
       print('[IAPProvider] Purchase error: $e');
-      state = state.copyWith(
-        isPurchasing: false,
-        error: 'Purchase failed: ${e.toString()}',
-      );
+      state = state.copyWith(error: 'Purchase failed: ${e.toString()}');
     }
   }
 

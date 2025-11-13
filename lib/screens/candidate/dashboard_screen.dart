@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_app_bar.dart';
@@ -189,23 +190,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   icon: Icons.description_outlined,
                   title: 'Resumes Generated',
                   value: stats.data?.itemCount?.totalResumes?.toString() ?? '0',
+                  onTap: () => context.push('/resume/history'),
                 ),
                 _buildMetricCard(
                   icon: Icons.work_outline,
                   title: 'Job Applications',
-                  value: '0',
+                  value: stats.data?.itemCount?.totalResumes?.toString() ?? '0',
+                  onTap: () => context.push('/resume/history'),
                 ),
                 _buildMetricCard(
                   icon: Icons.groups_outlined,
-                  title: 'Interviews',
+                  title: 'Meetings',
                   value:
                       stats.data?.itemCount?.totalInterviews?.toString() ?? '0',
+                  onTap: () => context.push('/meeting/history'),
                 ),
                 _buildMetricCard(
                   icon: Icons.history,
                   title: 'Activities',
                   value:
                       stats.data?.itemCount?.activitiesCount?.toString() ?? '0',
+                  onTap: () => context.push('/activity/history'),
                 ),
               ],
             ),
@@ -292,53 +297,58 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     required IconData icon,
     required String title,
     required String value,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
-      ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.topLeft,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(8),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.topLeft,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFFFF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 18, color: AppColors.textSecondary),
               ),
-              child: Icon(icon, size: 18, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textSecondary,
+              const SizedBox(height: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A1A1A),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A1A1A),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -408,6 +418,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       item.timestamp ?? item.createdAt ?? '',
                     ),
                     iconPath: iconPath,
+                    activityType: item.type ?? '',
                     showDivider: !isLast,
                   );
                 }).toList(),
@@ -439,52 +450,64 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     required String subtitle,
     required String timeAgo,
     required String iconPath,
+    required String activityType,
     bool showDivider = true,
   }) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A1A1A),
+        InkWell(
+          onTap: () {
+            // Navigate based on activity type
+            if (activityType.toLowerCase() == 'resume') {
+              context.push('/resume/history');
+            } else if (activityType.toLowerCase() == 'interview' ||
+                activityType.toLowerCase() == 'meeting') {
+              context.push('/meeting/history');
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1A1A1A),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      timeAgo,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textLight,
+                      const SizedBox(height: 6),
+                      Text(
+                        timeAgo,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textLight,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Image.asset(
-                iconPath,
-                width: 22,
-                height: 22,
-                color: AppColors.textSecondary,
-              ),
-            ],
+                Image.asset(
+                  iconPath,
+                  width: 22,
+                  height: 22,
+                  color: AppColors.textSecondary,
+                ),
+              ],
+            ),
           ),
         ),
         if (showDivider)

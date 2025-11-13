@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:pdfrx/pdfrx.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:skillresy/screens/candidate/resume/resume_generation_loading_screen.dart';
 
@@ -2719,7 +2719,6 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
   void _showFullScreenPdf(Uint8List pdfBytes) {
     // Create a controller outside the dialog for proper control
     final pdfController = PdfViewerController();
-    double currentZoom = 1.0;
 
     showDialog(
       context: context,
@@ -2734,86 +2733,13 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                 child: Stack(
                   children: [
                     // Full screen PDF viewer
-                    PdfViewer.data(
+                    SfPdfViewer.memory(
                       pdfBytes,
                       key: ValueKey(pdfBytes.hashCode),
-                      sourceName: 'resume.pdf',
                       controller: pdfController,
-                      params: PdfViewerParams(
-                        textSelectionParams: PdfTextSelectionParams(
-                          enabled: true,
-                        ),
-                        maxScale: 5.0,
-                        minScale: 0.5,
-                        panEnabled: true,
-                        scaleEnabled: true,
-                        backgroundColor: Colors.black,
-                        panAxis: PanAxis.free,
-                        errorBannerBuilder:
-                            (context, error, stackTrace, documentRef) {
-                              return Container(
-                                color: Colors.black,
-                                child: Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(
-                                        Icons.error_outline,
-                                        size: 48,
-                                        color: Colors.white,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      const Text(
-                                        'Error loading PDF',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        error.toString(),
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.white70,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                        loadingBannerBuilder:
-                            (context, bytesDownloaded, totalBytes) {
-                              return Container(
-                                color: Colors.black,
-                                child: const Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      CircularProgressIndicator(
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
-                                            ),
-                                      ),
-                                      SizedBox(height: 16),
-                                      Text(
-                                        'Loading PDF...',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                      ),
+                      canShowScrollHead: true,
+                      canShowScrollStatus: true,
+                      pageSpacing: 4.0,
                     ),
                     // Top bar with close and download buttons
                     Positioned(
@@ -2894,15 +2820,16 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                                   topRight: Radius.circular(25),
                                 ),
                                 onTap: () {
-                                  // Zoom in
-                                  setState(() {
-                                    currentZoom = (currentZoom * 1.2).clamp(
-                                      0.5,
-                                      5.0,
-                                    );
-                                  });
-                                  pdfController.value = Matrix4.identity()
-                                    ..scale(currentZoom, currentZoom, 1.0);
+                                  // Zoom in using Syncfusion API
+                                  final newZoom =
+                                      (pdfController.zoomLevel * 1.2).clamp(
+                                        0.5,
+                                        3.0,
+                                      );
+                                  pdfController.zoomLevel = newZoom;
+                                  setState(
+                                    () {},
+                                  ); // Trigger UI update for zoom indicator
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.all(12),
@@ -2924,11 +2851,11 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                               color: Colors.transparent,
                               child: InkWell(
                                 onTap: () {
-                                  // Reset to 100% zoom
-                                  setState(() {
-                                    currentZoom = 1.0;
-                                  });
-                                  pdfController.value = Matrix4.identity();
+                                  // Reset to 100% zoom using Syncfusion API
+                                  pdfController.zoomLevel = 1.0;
+                                  setState(
+                                    () {},
+                                  ); // Trigger UI update for zoom indicator
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.all(12),
@@ -2954,15 +2881,16 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                                   bottomRight: Radius.circular(25),
                                 ),
                                 onTap: () {
-                                  // Zoom out
-                                  setState(() {
-                                    currentZoom = (currentZoom / 1.2).clamp(
-                                      0.5,
-                                      5.0,
-                                    );
-                                  });
-                                  pdfController.value = Matrix4.identity()
-                                    ..scale(currentZoom, currentZoom, 1.0);
+                                  // Zoom out using Syncfusion API
+                                  final newZoom =
+                                      (pdfController.zoomLevel / 1.2).clamp(
+                                        0.5,
+                                        3.0,
+                                      );
+                                  pdfController.zoomLevel = newZoom;
+                                  setState(
+                                    () {},
+                                  ); // Trigger UI update for zoom indicator
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.all(12),
@@ -2996,7 +2924,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                           ),
                         ),
                         child: Text(
-                          '${(currentZoom * 100).toInt()}%',
+                          '${(pdfController.zoomLevel * 100).toInt()}%',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 14,
@@ -3270,80 +3198,16 @@ class _DynamicPdfViewerState extends State<_DynamicPdfViewer> {
     print('🔄 Building PDF viewer with version: ${widget.version}');
     print('📄 PDF bytes length: ${widget.pdfBytes.length}');
 
-    return PdfViewer.data(
-      widget.pdfBytes,
-      // Use version-based key to force recreation on edits
-      key: ValueKey(
-        'pdf_viewer_v${widget.version}_${widget.pdfBytes.hashCode}',
-      ),
-      // Use version-based source name to prevent caching
-      sourceName: 'resume_v${widget.version}.pdf',
-      params: PdfViewerParams(
-        textSelectionParams: PdfTextSelectionParams(enabled: true),
-        maxScale: 3.0,
-        minScale: 0.5,
-        backgroundColor: Colors.grey[100]!,
-        errorBannerBuilder: (context, error, stackTrace, documentRef) {
-          return Container(
-            color: Colors.white,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 48,
-                    color: AppColors.error,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Error loading PDF',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    error.toString(),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-        loadingBannerBuilder: (context, bytesDownloaded, totalBytes) {
-          return Container(
-            color: Colors.white,
-            child: const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.primary,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Loading PDF...',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+    return Container(
+      color: Colors.grey[100],
+      child: SfPdfViewer.memory(
+        widget.pdfBytes,
+        key: ValueKey(
+          'pdf_viewer_v${widget.version}_${widget.pdfBytes.hashCode}',
+        ),
+        canShowScrollHead: true,
+        canShowScrollStatus: true,
+        pageSpacing: 4.0,
       ),
     );
   }

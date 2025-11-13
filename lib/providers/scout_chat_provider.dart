@@ -53,6 +53,18 @@ class ScoutChatNotifier extends StateNotifier<ScoutChatState> {
       return;
     }
 
+    // Check if user has reached the question limit
+    if (state.hasReachedLimit) {
+      state = state.copyWith(
+        error:
+            'You have reached the maximum of ${state.maxQuestions} questions for this session.',
+      );
+      return;
+    }
+
+    // Increment question count
+    final newQuestionCount = state.questionCount + 1;
+
     // Add user message to the conversation
     final userMessage = ChatMessage.user(message);
     final updatedMessages = [...state.messages, userMessage];
@@ -61,6 +73,7 @@ class ScoutChatNotifier extends StateNotifier<ScoutChatState> {
       messages: updatedMessages,
       isLoading: true,
       error: null,
+      questionCount: newQuestionCount,
     );
 
     try {

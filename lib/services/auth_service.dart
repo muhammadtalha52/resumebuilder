@@ -92,6 +92,32 @@ class AuthService {
     }
   }
 
+  /// Check if email is available to create an account
+  /// Returns true if email is available (not registered yet)
+  /// Returns false if email already exists in the system
+  Future<bool> checkEmailAvailable(String email) async {
+    try {
+      final response = await _apiClient.dio.get(
+        ApiEndpoints.isEmailExists,
+        queryParameters: {'email': email.toLowerCase()},
+      );
+
+      // API returns 200 success when email is available to create an account
+      if (response.statusCode == 200) {
+        return true; // Email is available
+      }
+      return false; // Email already exists
+    } on DioException catch (e) {
+      // If API returns error, it might mean email already exists
+      // Return false to indicate email is not available
+      print('Error checking email availability: ${e.message}');
+      return false;
+    } catch (e) {
+      print('Unexpected error checking email: $e');
+      return false;
+    }
+  }
+
   Future<LoginModel> register(SignUpRequest request) async {
     try {
       var requestData = {
