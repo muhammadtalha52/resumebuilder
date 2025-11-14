@@ -55,6 +55,10 @@
 	<string>This app needs access to speech recognition to transcribe interview conversations and provide real-time AI assistance</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app needs access to your microphone to record and transcribe interview conversations for AI assistance</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs your location to suggest your hometown and state during signup</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs your location to suggest your hometown and state during signup</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>

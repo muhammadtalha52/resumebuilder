@@ -128,9 +128,15 @@ class ProfileScreen extends ConsumerWidget {
             _extractIndustryPreferences(user?.industryPreferences),
             showDivider: true,
           ),
+          _buildDetailRowWithDivider(
+            'assets/icons/work.png',
+            'Hometown & State',
+            user?.homeTown ?? '',
+            showDivider: true,
+          ),
           _buildCareerDetailRow(
             'assets/icons/work.png',
-            'Location Preferences',
+            'Preferred Work Arrangement',
             _extractLocationPreferences(user?.locationPreferences),
             showDivider: true,
           ),
@@ -157,10 +163,8 @@ class ProfileScreen extends ConsumerWidget {
     // Get major name from ID
     final majorName = ref.watch(getMajorNameProvider(user?.major));
 
-    // Get institution name from ID
-    final institutionName = ref.watch(
-      getInstitutionNameProvider(user?.institution),
-    );
+    // Get institution name (now stored as string directly)
+    final institutionName = user?.institution ?? '';
 
     // Replace "Other" with "Not Specified" for display
     final displayDegreeType = _replaceOtherWithNotSpecified(degreeTypeName);

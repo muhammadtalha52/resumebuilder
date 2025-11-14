@@ -6,10 +6,12 @@ import '../../../constants/app_colors.dart';
 import '../../../models/user_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/profile_provider.dart';
+import '../../../services/location_service.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/custom_button.dart';
 import '../../../widgets/common/custom_picker_field.dart';
+import '../../../widgets/common/custom_text_field.dart';
 import '../../../widgets/common/tag_field.dart';
 
 class EditCareerGoalsScreen extends ConsumerStatefulWidget {
@@ -24,6 +26,7 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _jobTitlesController = TextEditingController();
   final TextEditingController _industriesController = TextEditingController();
+  final TextEditingController _hometownController = TextEditingController();
   final TextEditingController _longTermGoalsController =
       TextEditingController();
 
@@ -37,12 +40,15 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
   String? _industriesError;
   String? _locationError;
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
+  bool _isDetectingLocation = false;
+  final LocationService _locationService = LocationService();
 
   // Store original values for comparison
   List<DesiredJobTitle> _originalJobTitleObjects = [];
   List<IndustryPreference> _originalIndustryObjects = [];
   List<CareerGoal> _originalLongTermGoalObjects = [];
   List<String> _originalLocationPreferences = [];
+  String _originalHometown = '';
 
   @override
   void initState() {
@@ -86,6 +92,10 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
         _originalLocationPreferences = List.from(_locationPreferences);
       }
 
+      // Load hometown
+      _hometownController.text = user.homeTown ?? '';
+      _originalHometown = user.homeTown ?? '';
+
       setState(() {});
     }
   }
@@ -116,6 +126,7 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
   void dispose() {
     _jobTitlesController.dispose();
     _industriesController.dispose();
+    _hometownController.dispose();
     _longTermGoalsController.dispose();
     super.dispose();
   }
@@ -206,11 +217,14 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
       _locationPreferences,
       _originalLocationPreferences,
     );
+    final hometownChanged =
+        _hometownController.text.trim() != _originalHometown;
 
     return jobTitlesChanged ||
         industriesChanged ||
         longTermGoalsChanged ||
-        locationChanged;
+        locationChanged ||
+        hometownChanged;
   }
 
   bool _listEquals(List<String> list1, List<String> list2) {
@@ -219,6 +233,49 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
       if (list1[i] != list2[i]) return false;
     }
     return true;
+  }
+
+  Future<void> _detectLocation() async {
+    if (_isDetectingLocation) return;
+
+    setState(() {
+      _isDetectingLocation = true;
+    });
+
+    try {
+      final location = await _locationService.getCurrentCityAndState();
+
+      if (location != null && mounted) {
+        setState(() {
+          _hometownController.text = location;
+        });
+        if (mounted) {
+          showSuccessSnackBar(
+            context: context,
+            message: 'Location detected successfully!',
+          );
+        }
+      } else if (mounted) {
+        showErrorSnackBar(
+          context: context,
+          message:
+              'Could not detect location. Please enable GPS and grant permission.',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackBar(
+          context: context,
+          message: 'Failed to detect location. Please enter manually.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDetectingLocation = false;
+        });
+      }
+    }
   }
 
   void _handleSave() async {
@@ -285,6 +342,11 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
       // Add location preferences if changed
       if (!_listEquals(_locationPreferences, _originalLocationPreferences)) {
         updateData['location_preferences'] = _locationPreferences;
+      }
+
+      // Add hometown if changed
+      if (_hometownController.text.trim() != _originalHometown) {
+        updateData['home_town'] = _hometownController.text.trim();
       }
 
       // Use profile provider to update
@@ -376,6 +438,63 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
                                 errorText: _industriesError,
                                 onClearError: () =>
                                     setState(() => _industriesError = null),
+                              ),
+                              const SizedBox(height: 24),
+
+                              // Current Hometown & State
+                              CustomTextField(
+                                controller: _hometownController,
+                                labelText: 'Current Hometown & State',
+                                hintText: 'e.g., Austin, Texas',
+                                keyboardType: TextInputType.text,
+                                textInputAction: TextInputAction.next,
+                                isRequired: false,
+                                suffixIcon: _isDetectingLocation
+                                    ? const Padding(
+                                        padding: EdgeInsets.all(12.0),
+                                        child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  AppColors.primary,
+                                                ),
+                                          ),
+                                        ),
+                                      )
+                                    : InkWell(
+                                        onTap: _detectLocation,
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.my_location,
+                                                color: AppColors.primary,
+                                                size: 20,
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                'Locate',
+                                                style: TextStyle(
+                                                  color: AppColors.primary,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                               ),
                               const SizedBox(height: 24),
 

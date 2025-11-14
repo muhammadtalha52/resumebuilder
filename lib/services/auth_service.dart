@@ -134,6 +134,7 @@ class AuthService {
         'state': request.userState,
         'country': request.country,
         'postal_code': request.postalCode,
+        if (request.hometown != null) 'home_town': request.hometown,
         if (request.professionalSummary != null)
           'professional_summary': request.professionalSummary,
         if (request.linkedinUrl != null) 'linkedin_url': request.linkedinUrl,

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../constants/app_colors.dart';
 import '../../providers/student_signup_provider.dart';
+import '../../services/location_service.dart';
+import '../../utils/snackbar_utils.dart';
 import '../../utils/url_launcher_utils.dart';
 import '../../widgets/common/custom_button.dart';
 import '../../widgets/common/custom_text_field.dart';
@@ -32,6 +34,8 @@ class _StudentStep2AcademicInfoState
   String? _termsError;
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
   bool _agreedToTerms = false;
+  bool _isDetectingLocation = false;
+  final LocationService _locationService = LocationService();
 
   @override
   void initState() {
@@ -60,24 +64,11 @@ class _StudentStep2AcademicInfoState
   Future<void> _selectGraduationDate() async {
     FocusScope.of(context).requestFocus(FocusNode());
 
-    final DateTime? picked = await showDatePicker(
+    final DateTime? picked = await showMonthYearPicker(
       context: context,
       initialDate: _selectedGraduationDate ?? DateTime.now(),
       firstDate: DateTime(1950),
-      lastDate: DateTime(2035),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: AppColors.white,
-              surface: AppColors.white,
-              onSurface: AppColors.textPrimary,
-            ),
-          ),
-          child: child!,
-        );
-      },
+      lastDate: DateTime(2040),
     );
 
     if (picked != null && picked != _selectedGraduationDate) {
@@ -88,8 +79,238 @@ class _StudentStep2AcademicInfoState
     }
   }
 
+  Future<DateTime?> showMonthYearPicker({
+    required BuildContext context,
+    required DateTime initialDate,
+    required DateTime firstDate,
+    required DateTime lastDate,
+  }) async {
+    DateTime selectedDate = initialDate;
+    final scrollController = ScrollController();
+
+    // Calculate initial scroll position to show selected year
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final selectedIndex = lastDate.year - selectedDate.year;
+      final itemHeight = 56.0; // Approximate height of ListTile
+      scrollController.jumpTo(selectedIndex * itemHeight);
+    });
+
+    return await showDialog<DateTime>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Select Graduation Year',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 300,
+            child: StatefulBuilder(
+              builder: (context, setDialogState) {
+                return Column(
+                  children: [
+                    // Year Selector
+                    Expanded(
+                      child: ListView.builder(
+                        controller: scrollController,
+                        itemCount: lastDate.year - firstDate.year + 1,
+                        itemBuilder: (context, index) {
+                          final year = lastDate.year - index;
+                          final isSelected = year == selectedDate.year;
+                          return ListTile(
+                            title: Text(
+                              year.toString(),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                            tileColor: isSelected
+                                ? AppColors.primary.withValues(alpha: 0.1)
+                                : null,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            onTap: () {
+                              setDialogState(() {
+                                selectedDate = DateTime(
+                                  year,
+                                  selectedDate.month,
+                                );
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    // Month Selector
+                    const Text(
+                      'Select Month',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: List.generate(12, (index) {
+                        final month = index + 1;
+                        final isSelected = month == selectedDate.month;
+                        final monthNames = [
+                          'Jan',
+                          'Feb',
+                          'Mar',
+                          'Apr',
+                          'May',
+                          'Jun',
+                          'Jul',
+                          'Aug',
+                          'Sep',
+                          'Oct',
+                          'Nov',
+                          'Dec',
+                        ];
+                        return InkWell(
+                          onTap: () {
+                            setDialogState(() {
+                              selectedDate = DateTime(selectedDate.year, month);
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : AppColors.inputBorder,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              monthNames[index],
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: isSelected
+                                    ? AppColors.white
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(selectedDate),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('OK', style: TextStyle(color: AppColors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   String _formatDate(DateTime date) {
-    return '${date.month}/${date.day}/${date.year}';
+    // Format as "Month Year" (e.g., "December 2024")
+    final monthNames = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return '${monthNames[date.month - 1]} ${date.year}';
+  }
+
+  Future<void> _detectLocation() async {
+    if (_isDetectingLocation) return;
+
+    setState(() {
+      _isDetectingLocation = true;
+    });
+
+    try {
+      final location = await _locationService.getCurrentCityAndState();
+
+      if (location != null && mounted) {
+        setState(() {
+          _hometownController.text = location;
+        });
+        if (mounted) {
+          showSuccessSnackBar(
+            context: context,
+            message: 'Location detected successfully!',
+          );
+        }
+      } else if (mounted) {
+        showErrorSnackBar(
+          context: context,
+          message:
+              'Could not detect location. Please enable GPS and grant permission.',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackBar(
+          context: context,
+          message: 'Failed to detect location. Please enter manually.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDetectingLocation = false;
+        });
+      }
+    }
   }
 
   void _handleSubmit() {
@@ -130,11 +351,10 @@ class _StudentStep2AcademicInfoState
         children: [
           CustomTextField(
             controller: _hometownController,
-            labelText: 'Your Hometown & State',
+            labelText: 'Hometown & State',
             hintText: 'e.g Austin, Texas',
             keyboardType: TextInputType.text,
             textInputAction: TextInputAction.next,
-            maxLength: 100,
             isRequired: true,
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -142,6 +362,50 @@ class _StudentStep2AcademicInfoState
               }
               return null;
             },
+            suffixIcon: _isDetectingLocation
+                ? const Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  )
+                : InkWell(
+                    onTap: _detectLocation,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.my_location,
+                            color: AppColors.primary,
+                            size: 24,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Locate',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
           ),
           const SizedBox(height: 20),
           CustomTextField(

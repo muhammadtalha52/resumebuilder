@@ -408,7 +408,6 @@ class _State extends ConsumerState<MeetingSetupScreen> {
         hintText: 'Enter job description',
         labelText: 'Job Description',
         maxLines: 6,
-        maxLength: 500,
         textInputAction: TextInputAction.done,
         errorText: _jobDescriptionError,
         onChanged: (value) {

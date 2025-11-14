@@ -12,6 +12,7 @@ class OnboardingState {
   final String? website;
   final String? password;
   final bool acceptedTerms;
+  final String? hometown;
   final Map<String, dynamic>? careerGoals;
   final Map<String, dynamic>? education;
   final Map<String, dynamic>? workExperience;
@@ -29,6 +30,7 @@ class OnboardingState {
     this.website,
     this.password,
     this.acceptedTerms = false,
+    this.hometown,
     this.careerGoals,
     this.education,
     this.workExperience,
@@ -47,6 +49,7 @@ class OnboardingState {
     String? website,
     String? password,
     bool? acceptedTerms,
+    String? hometown,
     Map<String, dynamic>? careerGoals,
     Map<String, dynamic>? education,
     Map<String, dynamic>? workExperience,
@@ -64,6 +67,7 @@ class OnboardingState {
       website: website ?? this.website,
       password: password ?? this.password,
       acceptedTerms: acceptedTerms ?? this.acceptedTerms,
+      hometown: hometown ?? this.hometown,
       careerGoals: careerGoals ?? this.careerGoals,
       education: education ?? this.education,
       workExperience: workExperience ?? this.workExperience,
@@ -133,7 +137,6 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     String? major,
     int? majorId,
     String? institution,
-    int? institutionId,
     DateTime? graduationDate,
     bool? degreeNotCompleted,
     List<String>? certifications,
@@ -145,7 +148,6 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       'major': major,
       'majorId': majorId,
       'institution': institution,
-      'institutionId': institutionId,
       'graduationDate': DateHelpers.formatToApiDate(graduationDate),
       'degreeNotCompleted': degreeNotCompleted ?? false,
       'certifications': certifications ?? [],

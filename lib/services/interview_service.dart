@@ -13,13 +13,11 @@ import 'hmac_auth_service.dart';
 
 class InterviewService {
   late final Dio _dioForInterview;
-  static const String baseUrl =
-      'https://ia-dev.skillresy.com/api/'; // Interview API base URL
 
   InterviewService() {
     _dioForInterview = Dio(
       BaseOptions(
-        baseUrl: baseUrl,
+        baseUrl: ApiEndpoints.interviewModuleBaseUrl,
         connectTimeout: const Duration(minutes: 5),
         receiveTimeout: const Duration(minutes: 5),
         sendTimeout: const Duration(minutes: 5), // Fast send timeout

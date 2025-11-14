@@ -413,7 +413,7 @@ class User {
     List<CareerGoal>? careerGoals,
     int? degreeType,
     int? major,
-    int? institution,
+    String? institution,
     String? graduationDate,
     List<CertificationTraining>? certificationsTraining,
     List<UserWorkExperience>? workExperience,
@@ -619,7 +619,7 @@ class User {
   List<CareerGoal>? _careerGoals;
   int? _degreeType;
   int? _major;
-  int? _institution;
+  String? _institution;
   String? _graduationDate;
   List<CertificationTraining>? _certificationsTraining;
   List<UserWorkExperience>? _workExperience;
@@ -692,7 +692,7 @@ class User {
 
   int? get major => _major;
 
-  int? get institution => _institution;
+  String? get institution => _institution;
 
   String? get graduationDate => _graduationDate;
 
@@ -867,7 +867,7 @@ class User {
     List<CareerGoal>? careerGoals,
     int? degreeType,
     int? major,
-    int? institution,
+    String? institution,
     String? graduationDate,
     List<CertificationTraining>? certificationsTraining,
     List<UserWorkExperience>? workExperience,

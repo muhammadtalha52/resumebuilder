@@ -10,6 +10,7 @@ import '../../../utils/date_helpers.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/custom_button.dart';
 import '../../../widgets/common/custom_picker_field.dart';
+import '../../../widgets/common/custom_text_field.dart';
 
 class EditEducationScreen extends ConsumerStatefulWidget {
   const EditEducationScreen({super.key});
@@ -24,7 +25,7 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
 
   String? _selectedDegreeType;
   String? _selectedMajor;
-  String? _selectedInstitution;
+  final TextEditingController _institutionController = TextEditingController();
   DateTime? _graduationDate;
   bool _degreeNotCompleted = false;
   List<String> _selectedCertifications = [];
@@ -67,11 +68,6 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
       // Get major name from ID
       final majorName = ref.read(getMajorNameProvider(user.major));
 
-      // Get institution name from ID
-      final institutionName = ref.read(
-        getInstitutionNameProvider(user.institution),
-      );
-
       // Get certification names from list
       final certificationIds =
           user.certificationsTraining
@@ -90,8 +86,8 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
         _selectedMajor = majorName;
         _originalMajor = majorName;
 
-        _selectedInstitution = institutionName;
-        _originalInstitution = institutionName;
+        _institutionController.text = (user.institution as String?) ?? '';
+        _originalInstitution = (user.institution as String?) ?? '';
 
         _selectedCertifications = certificationNames;
         _originalCertifications = certificationNames;
@@ -112,6 +108,12 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
         _originalDegreeNotCompleted = _degreeNotCompleted;
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _institutionController.dispose();
+    super.dispose();
   }
 
   Widget _buildDatePicker() {
@@ -277,7 +279,8 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
     // Check if any field has changed
     final degreeTypeChanged = _selectedDegreeType != _originalDegreeType;
     final majorChanged = _selectedMajor != _originalMajor;
-    final institutionChanged = _selectedInstitution != _originalInstitution;
+    final institutionChanged =
+        _institutionController.text.trim() != _originalInstitution;
     final graduationDateChanged = _graduationDate != _originalGraduationDate;
     final degreeNotCompletedChanged =
         _degreeNotCompleted != _originalDegreeNotCompleted;
@@ -322,8 +325,8 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
         hasErrors = true;
       }
 
-      if (_selectedInstitution == null) {
-        _institutionError = 'Please select institution';
+      if (_institutionController.text.trim().isEmpty) {
+        _institutionError = 'Please enter institution name';
         hasErrors = true;
       }
 
@@ -353,9 +356,6 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
         getDegreeTypeIdProvider(_selectedDegreeType),
       );
       final majorId = ref.read(getMajorIdProvider(_selectedMajor));
-      final institutionId = ref.read(
-        getInstitutionIdProvider(_selectedInstitution),
-      );
       final certificationIds = ref.read(
         getCertificationIdsProvider(_selectedCertifications),
       );
@@ -369,8 +369,8 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
         updateData['major'] = majorId;
       }
 
-      if (_selectedInstitution != _originalInstitution) {
-        updateData['institution'] = institutionId;
+      if (_institutionController.text.trim() != _originalInstitution) {
+        updateData['institution'] = _institutionController.text.trim();
       }
 
       if (_graduationDate != _originalGraduationDate) {
@@ -419,7 +419,6 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
     // Get data from providers
     final degreeTypes = ref.watch(degreeTypesProvider);
     final majors = ref.watch(majorsProvider);
-    final institutions = ref.watch(institutionsProvider);
     final certifications = ref.watch(certificationsProvider);
     final educationDataAsync = ref.watch(educationDataProvider);
 
@@ -576,18 +575,16 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
                               ),
                               const SizedBox(height: 20),
 
-                              CustomPickerField(
+                              CustomTextField(
+                                controller: _institutionController,
                                 labelText: 'Institution',
+                                hintText: 'e.g., Harvard University',
+                                keyboardType: TextInputType.text,
+                                textInputAction: TextInputAction.next,
                                 isRequired: true,
-                                value: _selectedInstitution,
-                                items: institutions,
-                                hintText: 'Select institution',
                                 errorText: _institutionError,
-                                pickerTitle: 'Select Institution',
-                                searchHint: 'Search institutions...',
                                 onChanged: (value) {
                                   setState(() {
-                                    _selectedInstitution = value;
                                     _institutionError = null;
                                   });
                                 },

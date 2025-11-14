@@ -143,7 +143,7 @@ class _ActivityHistoryScreenState extends ConsumerState<ActivityHistoryScreen> {
         ],
       ),
       child: ListView.separated(
-        shrinkWrap: true,
+        shrinkWrap: false,
         itemCount: activities.length,
         separatorBuilder: (context, index) => Divider(
           height: 1,

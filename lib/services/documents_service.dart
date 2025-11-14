@@ -10,12 +10,11 @@ import 'hmac_auth_service.dart';
 
 class DocumentsService {
   late final Dio _dioForQuiz;
-  static const String quizBaseUrl = 'https://quiz-dev.skillresy.com';
 
   DocumentsService() {
     _dioForQuiz = Dio(
       BaseOptions(
-        baseUrl: quizBaseUrl,
+        baseUrl: ApiEndpoints.quizModuleBaseUrl,
         connectTimeout: const Duration(minutes: 5),
         receiveTimeout: const Duration(minutes: 5),
         sendTimeout: const Duration(minutes: 5), // Fast send timeout

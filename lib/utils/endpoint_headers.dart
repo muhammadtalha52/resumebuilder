@@ -7,13 +7,18 @@ class WAInterceptorHeaders {
 }
 
 class ApiEndpoints {
-  ///Dev server
-  static const String baseUrl = 'https://api-dev.skillresy.com/api';
+  ///Dev urls
+  //static const String baseUrl = 'https://api-dev.skillresy.com/api';
+  // static const String resumeModuleBaseUrl = 'https://ai-dev.skillresy.com';
+  // static const String interviewModuleBaseUrl =
+  //     'https://ia-dev.skillresy.com/api/'; //
+  // static const String quizModuleBaseUrl = 'https://quiz-dev.skillresy.com';
 
-  ///Prod server
-  //static const String baseUrl = 'https://api.skillresy.com/api';
-
-  //static const String baseUrl = 'http://192.168.12.16:8000/api';
+  ///Prod Urls
+  static const String baseUrl = 'https://api.skillresy.com/api';
+  static const String resumeModuleBaseUrl = 'https://ai.skillresy.com/';
+  static const String interviewModuleBaseUrl = 'https://ia.skillresy.com/api/';
+  static const String quizModuleBaseUrl = 'https://quiz.skillresy.com/';
 
   static const String register = '/auth/register/';
   static const String login = '/auth/login/';

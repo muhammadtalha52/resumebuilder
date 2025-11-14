@@ -4,9 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../constants/app_colors.dart';
 import '../../../../constants/salary_ranges.dart';
 import '../../../../providers/onboarding_provider.dart';
+import '../../../../services/location_service.dart';
+import '../../../../utils/snackbar_utils.dart';
 import '../../../../widgets/common/custom_picker_field.dart';
 import '../../../../widgets/common/tag_field.dart';
 import '../../widgets/common/custom_button.dart';
+import '../../widgets/common/custom_text_field.dart';
 
 class Step2CareerGoals extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -21,6 +24,7 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _jobTitlesController = TextEditingController();
   final TextEditingController _industriesController = TextEditingController();
+  final TextEditingController _hometownController = TextEditingController();
   final TextEditingController _longTermGoalsController =
       TextEditingController();
 
@@ -32,6 +36,8 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
   String? _industriesError;
   String? _locationError;
   String? _salaryError;
+  bool _isDetectingLocation = false;
+  final LocationService _locationService = LocationService();
 
   @override
   void initState() {
@@ -40,7 +46,12 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
   }
 
   void _loadExistingData() {
-    final careerGoals = ref.read(onboardingProvider).careerGoals;
+    final state = ref.read(onboardingProvider);
+    final careerGoals = state.careerGoals;
+
+    // Load hometown from state
+    _hometownController.text = state.hometown ?? '';
+
     if (careerGoals != null) {
       setState(() {
         _jobTitles = List.from(careerGoals['jobTitles'] ?? []);
@@ -63,6 +74,7 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
     // to ensure they're cleaned up while the widget tree is still stable
     _jobTitlesController.dispose();
     _industriesController.dispose();
+    _hometownController.dispose();
     _longTermGoalsController.dispose();
     super.dispose();
   }
@@ -102,6 +114,49 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
       if (list == _jobTitles) _jobTitlesError = null;
       if (list == _industries) _industriesError = null;
     });
+  }
+
+  Future<void> _detectLocation() async {
+    if (_isDetectingLocation) return;
+
+    setState(() {
+      _isDetectingLocation = true;
+    });
+
+    try {
+      final location = await _locationService.getCurrentCityAndState();
+
+      if (location != null && mounted) {
+        setState(() {
+          _hometownController.text = location;
+        });
+        if (mounted) {
+          showSuccessSnackBar(
+            context: context,
+            message: 'Location detected successfully!',
+          );
+        }
+      } else if (mounted) {
+        showErrorSnackBar(
+          context: context,
+          message:
+              'Could not detect location. Please enable GPS and grant permission.',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackBar(
+          context: context,
+          message: 'Failed to detect location. Please enter manually.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDetectingLocation = false;
+        });
+      }
+    }
   }
 
   Widget _buildTextField({
@@ -282,7 +337,7 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
       }
 
       if (_locationPreferences.isEmpty) {
-        _locationError = 'Please select at least one location preference';
+        _locationError = 'Please select at least one work arrangement';
         hasCustomErrors = true;
       }
 
@@ -293,6 +348,12 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
     });
 
     if (isValid && !hasCustomErrors) {
+      // Save hometown to provider
+      ref.read(onboardingProvider.notifier).state = ref
+          .read(onboardingProvider)
+          .copyWith(hometown: _hometownController.text.trim());
+
+      // Save career goals
       ref.read(onboardingProvider.notifier).updateCareerGoals({
         'jobTitles': _jobTitles,
         'industries': _industries,
@@ -334,15 +395,74 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
             onClearError: () => _clearTagError(_industries),
           ),
           const SizedBox(height: 20),
+          CustomTextField(
+            controller: _hometownController,
+            labelText: 'Current Hometown & State',
+            hintText: 'e.g., Austin, Texas',
+            keyboardType: TextInputType.text,
+            textInputAction: TextInputAction.next,
+            isRequired: true,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your hometown';
+              }
+              return null;
+            },
+            suffixIcon: _isDetectingLocation
+                ? const Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  )
+                : InkWell(
+                    onTap: _detectLocation,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.my_location,
+                            color: AppColors.primary,
+                            size: 24,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Locate',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 20),
           CustomPickerField(
-            labelText: 'Location Preference',
+            labelText: 'Preferred Work Arrangement',
             isRequired: true,
             selectedValues: _locationPreferences,
             items: const ['On-site', 'Remote', 'Hybrid'],
             hintText: 'Select Options',
             errorText: _locationError,
             enableSearch: false,
-            pickerTitle: 'Select Location Preference',
+            pickerTitle: 'Select Preferred Work Arrangement',
             isMultiSelect: true,
             onMultiChanged: (values) {
               setState(() {

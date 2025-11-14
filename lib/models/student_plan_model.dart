@@ -20,7 +20,7 @@ class StudentPlanModel {
       id: 'basic',
       name: 'Basic Plan',
       description: 'For Students who want to Ace their Academic Careers',
-      price: 15.0,
+      price: 15.99,
       features: [
         '1 Guided Study Session with Custom Quiz',
         'Ability to upload 5 documents',
@@ -30,7 +30,7 @@ class StudentPlanModel {
       id: 'pro',
       name: 'Pro Plan',
       description: 'For Students who want to Ace their Academic Careers',
-      price: 25.0,
+      price: 25.99,
       features: [
         '3 Guided Study Sessions with Custom Quizzes',
         'Ability to upload 10 documents',
@@ -40,7 +40,7 @@ class StudentPlanModel {
       id: 'enterprise',
       name: 'Enterprise Plan',
       description: 'For Students who want to Ace their Academic Careers',
-      price: 35.0,
+      price: 35.99,
       features: [
         '9 Guided Study Sessions with Custom Quizzes',
         'Ability to upload 20 documents',

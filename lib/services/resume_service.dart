@@ -11,12 +11,11 @@ import 'hmac_auth_service.dart';
 
 class ResumeService {
   late final Dio _dioForResumes;
-  static const String baseUrl = 'https://ai-dev.skillresy.com';
 
   ResumeService() {
     _dioForResumes = Dio(
       BaseOptions(
-        baseUrl: baseUrl,
+        baseUrl: ApiEndpoints.resumeModuleBaseUrl,
         connectTimeout: const Duration(minutes: 10),
         receiveTimeout: const Duration(minutes: 10),
         sendTimeout: const Duration(minutes: 10),

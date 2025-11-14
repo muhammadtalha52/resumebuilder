@@ -25,28 +25,30 @@ class PlanCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildFoxIcon(),
-              if (plan.isRecommended) _buildRecommendedBadge(),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _buildPlanTitle(),
-          const SizedBox(height: 4),
-          _buildPlanDescription(),
-          const SizedBox(height: 8),
-          _buildPriceSection(),
-          const SizedBox(height: 12),
-          _buildFeaturesList(),
-          const SizedBox(height: 12),
-          _buildActionButton(context),
-        ],
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildFoxIcon(),
+                if (plan.isRecommended) _buildRecommendedBadge(),
+              ],
+            ),
+            const SizedBox(height: 4),
+            _buildPlanTitle(),
+            const SizedBox(height: 4),
+            _buildPlanDescription(),
+            const SizedBox(height: 4),
+            _buildPriceSection(),
+            const SizedBox(height: 4),
+            _buildFeaturesList(),
+            const SizedBox(height: 4),
+            _buildActionButton(context),
+          ],
+        ),
       ),
     );
   }
@@ -97,7 +99,7 @@ class PlanCard extends StatelessWidget {
 
   Widget _buildPriceSection() {
     return Text(
-      '\$${plan.price}',
+      '\$${plan.price.toStringAsFixed(2)}',
       style: const TextStyle(
         color: AppColors.textPrimary,
         fontSize: 32,
@@ -135,31 +137,45 @@ class PlanCard extends StatelessWidget {
   }
 
   Widget _buildActionButton(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 50,
-      decoration: BoxDecoration(
-        gradient: AppColors.primaryGradientHorizontal,
-        borderRadius: BorderRadius.circular(AppSizes.radiusM),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppSizes.radiusM),
-          child: Center(
-            child: Text(
-              'Start for Free - 1 Resume Is On Us',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          height: 50,
+          decoration: BoxDecoration(
+            gradient: AppColors.primaryGradientHorizontal,
+            borderRadius: BorderRadius.circular(AppSizes.radiusM),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(AppSizes.radiusM),
+              child: const Center(
+                child: Text(
+                  'Purchase Plan',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ),
         ),
-      ),
+        const SizedBox(height: 8),
+        const Text(
+          'First-time buyers get +1 bonus resume',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.normal,
+          ),
+        ),
+      ],
     );
   }
 }

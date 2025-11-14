@@ -99,32 +99,33 @@ class _ResumeHistoryScreenState extends ConsumerState<ResumeHistoryScreen> {
   }
 
   Widget _buildResumeList(HistoryState historyState, BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(20),
+    return Padding(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        itemCount: historyState.resumes.length,
-        separatorBuilder: (context, index) => Divider(
-          height: 1,
-          thickness: 1,
-          color: Colors.grey.withValues(alpha: 0.2),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        itemBuilder: (context, index) {
-          final resume = historyState.resumes[index];
-          return _buildResumeCard(resume, context);
-        },
+        child: ListView.separated(
+          itemCount: historyState.resumes.length,
+          separatorBuilder: (context, index) => Divider(
+            height: 1,
+            thickness: 1,
+            color: Colors.grey.withValues(alpha: 0.2),
+          ),
+          itemBuilder: (context, index) {
+            final resume = historyState.resumes[index];
+            return _buildResumeCard(resume, context);
+          },
+        ),
       ),
     );
   }

@@ -311,9 +311,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     );
     if (user.institution != null) {
       // Get institution name from ID using resume provider resolution
-      final institutionName = ref
-          .read(resumeProvider.notifier)
-          .resolveInstitutionName(user.institution);
+      final institutionName = user.institution ?? '';
       _universityController.text =
           institutionName ?? 'Institution ID: ${user.institution}';
       debugPrint(

@@ -44,6 +44,7 @@ class SignUpRequest {
   final String userState;
   final String country;
   final String postalCode;
+  final String? hometown;
   final String? professionalSummary;
   final String? linkedinUrl;
   final String? githubUrl;
@@ -53,7 +54,7 @@ class SignUpRequest {
   final List<String>? longTermCareerGoals;
   final int? degreeType;
   final int? major;
-  final int? institution;
+  final String? institution;
   final String? graduationDate;
   final List<int>? certificationsTraining;
   final List<WorkExperience>? workExperience;
@@ -83,6 +84,7 @@ class SignUpRequest {
     required this.userState,
     required this.country,
     required this.postalCode,
+    this.hometown,
     this.professionalSummary,
     this.linkedinUrl,
     this.githubUrl,
@@ -137,7 +139,7 @@ class SignUpRequest {
     );
     final degreeTypeId = education?['degreeTypeId'] as int?;
     final majorId = education?['majorId'] as int?;
-    final institutionId = education?['institutionId'] as int?;
+    final institution = education?['institution'] as String?;
     final certificationIds = education?['certificationIds'] != null
         ? (education!['certificationIds'] as List<dynamic>).cast<int>()
         : null;
@@ -256,6 +258,7 @@ class SignUpRequest {
       userState: '',
       country: '',
       postalCode: '',
+      hometown: state.hometown,
       // Optional fields
       linkedinUrl: state.linkedIn,
       portfolioUrl: state.website,
@@ -264,7 +267,7 @@ class SignUpRequest {
       longTermCareerGoals: longTermCareerGoals,
       degreeType: degreeTypeId,
       major: majorId,
-      institution: institutionId,
+      institution: institution,
       graduationDate: graduationDate,
       certificationsTraining: certificationIds,
       workExperience: workExperienceList,

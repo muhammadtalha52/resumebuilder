@@ -6,6 +6,7 @@ import '../../providers/onboarding_provider.dart';
 import '../../providers/education_data_provider.dart';
 import '../../widgets/common/custom_button.dart';
 import '../../widgets/common/custom_picker_field.dart';
+import '../../widgets/common/custom_text_field.dart';
 
 class Step3Education extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -19,7 +20,7 @@ class Step3Education extends ConsumerStatefulWidget {
 class _Step3EducationState extends ConsumerState<Step3Education> {
   String? _selectedDegreeType;
   String? _selectedMajor;
-  String? _selectedInstitution;
+  final TextEditingController _institutionController = TextEditingController();
   DateTime? _graduationDate;
   bool _degreeNotCompleted = false;
   List<String> _selectedCertifications = [];
@@ -42,7 +43,7 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
       setState(() {
         _selectedDegreeType = education['degreeType'];
         _selectedMajor = education['major'];
-        _selectedInstitution = education['institution'];
+        _institutionController.text = education['institution'] ?? '';
         _graduationDate = education['graduationDate'] != null
             ? DateTime.parse(education['graduationDate'])
             : null;
@@ -59,6 +60,196 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
     // Unfocus any active focus nodes before deactivation
     FocusManager.instance.primaryFocus?.unfocus();
     super.deactivate();
+  }
+
+  Future<DateTime?> _showMonthYearPicker({
+    required BuildContext context,
+    required DateTime initialDate,
+    required DateTime firstDate,
+    required DateTime lastDate,
+  }) async {
+    DateTime selectedDate = initialDate;
+    final scrollController = ScrollController();
+
+    // Calculate initial scroll position to show selected year
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final selectedIndex = lastDate.year - selectedDate.year;
+      final itemHeight = 56.0; // Approximate height of ListTile
+      scrollController.jumpTo(selectedIndex * itemHeight);
+    });
+
+    return await showDialog<DateTime>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Select Graduation Year',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 300,
+            child: StatefulBuilder(
+              builder: (context, setDialogState) {
+                return Column(
+                  children: [
+                    // Year Selector
+                    Expanded(
+                      child: ListView.builder(
+                        controller: scrollController,
+                        itemCount: lastDate.year - firstDate.year + 1,
+                        itemBuilder: (context, index) {
+                          final year = lastDate.year - index;
+                          final isSelected = year == selectedDate.year;
+                          return ListTile(
+                            title: Text(
+                              year.toString(),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                            tileColor: isSelected
+                                ? AppColors.primary.withValues(alpha: 0.1)
+                                : null,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            onTap: () {
+                              setDialogState(() {
+                                selectedDate = DateTime(
+                                  year,
+                                  selectedDate.month,
+                                );
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    // Month Selector
+                    const Text(
+                      'Select Month',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: List.generate(12, (index) {
+                        final month = index + 1;
+                        final isSelected = month == selectedDate.month;
+                        final monthNames = [
+                          'Jan',
+                          'Feb',
+                          'Mar',
+                          'Apr',
+                          'May',
+                          'Jun',
+                          'Jul',
+                          'Aug',
+                          'Sep',
+                          'Oct',
+                          'Nov',
+                          'Dec',
+                        ];
+                        return InkWell(
+                          onTap: () {
+                            setDialogState(() {
+                              selectedDate = DateTime(selectedDate.year, month);
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : AppColors.inputBorder,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              monthNames[index],
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: isSelected
+                                    ? AppColors.white
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(selectedDate),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('OK', style: TextStyle(color: AppColors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _formatGraduationDate(DateTime date) {
+    final monthNames = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return '${monthNames[date.month - 1]} ${date.year}';
   }
 
   Widget _buildDatePicker() {
@@ -96,32 +287,20 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
                   // Dismiss keyboard before opening date picker
                   FocusScope.of(context).requestFocus(FocusNode());
 
-                  // Ensure initialDate is not in the future
-                  final now = DateTime.now();
-                  final initialDate =
-                      _graduationDate != null && _graduationDate!.isAfter(now)
-                      ? now
-                      : _graduationDate ?? now;
+                  final initialDate = _graduationDate ?? DateTime.now();
 
-                  final DateTime? picked = await showDatePicker(
+                  final DateTime? picked = await _showMonthYearPicker(
                     context: context,
                     initialDate: initialDate,
                     firstDate: DateTime(1950),
-                    lastDate: now, // Prevent future date selection
+                    lastDate: DateTime(2040),
                   );
+
                   if (picked != null) {
-                    // Additional validation to ensure no future dates
-                    if (picked.isAfter(DateTime.now())) {
-                      setState(() {
-                        _graduationDateError =
-                            'Graduation date cannot be in the future';
-                      });
-                    } else {
-                      setState(() {
-                        _graduationDate = picked;
-                        _graduationDateError = null;
-                      });
-                    }
+                    setState(() {
+                      _graduationDate = picked;
+                      _graduationDateError = null;
+                    });
                   }
                 },
           child: Container(
@@ -145,8 +324,8 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
                 Expanded(
                   child: Text(
                     _graduationDate != null && !_degreeNotCompleted
-                        ? '${_graduationDate!.day.toString().padLeft(2, '0')}/${_graduationDate!.month.toString().padLeft(2, '0')}/${_graduationDate!.year}'
-                        : 'DD/MM/YYYY',
+                        ? _formatGraduationDate(_graduationDate!)
+                        : 'Select graduation year',
                     style: TextStyle(
                       color: _degreeNotCompleted
                           ? AppColors.grey.withValues(alpha: 0.5)
@@ -248,18 +427,13 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
         hasErrors = true;
       }
 
-      if (_selectedInstitution == null) {
-        _institutionError = 'Please select institution';
+      if (_institutionController.text.trim().isEmpty) {
+        _institutionError = 'Please enter institution name';
         hasErrors = true;
       }
 
       if (!_degreeNotCompleted && _graduationDate == null) {
         _graduationDateError = 'Please select graduation date';
-        hasErrors = true;
-      } else if (!_degreeNotCompleted &&
-          _graduationDate != null &&
-          _graduationDate!.isAfter(DateTime.now())) {
-        _graduationDateError = 'Graduation date cannot be in the future';
         hasErrors = true;
       }
     });
@@ -270,9 +444,6 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
         getDegreeTypeIdProvider(_selectedDegreeType),
       );
       final majorId = ref.read(getMajorIdProvider(_selectedMajor));
-      final institutionId = ref.read(
-        getInstitutionIdProvider(_selectedInstitution),
-      );
       final certificationIds = ref.read(
         getCertificationIdsProvider(_selectedCertifications),
       );
@@ -285,8 +456,7 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
             degreeTypeId: degreeTypeId,
             major: _selectedMajor,
             majorId: majorId,
-            institution: _selectedInstitution,
-            institutionId: institutionId,
+            institution: _institutionController.text.trim(),
             graduationDate: _graduationDate,
             degreeNotCompleted: _degreeNotCompleted,
             certifications: _selectedCertifications,
@@ -303,7 +473,6 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
     final educationDataAsync = ref.watch(educationDataProvider);
     final degreeTypes = ref.watch(degreeTypesProvider);
     final majors = ref.watch(majorsProvider);
-    final institutions = ref.watch(institutionsProvider);
     final certifications = ref.watch(certificationsProvider);
 
     // Show loading if data not ready yet (shouldn't happen if Step 1 prefetch worked)
@@ -360,18 +529,16 @@ class _Step3EducationState extends ConsumerState<Step3Education> {
           },
         ),
         const SizedBox(height: 20),
-        CustomPickerField(
+        CustomTextField(
+          controller: _institutionController,
           labelText: 'Institution',
+          hintText: 'e.g., Harvard University',
+          keyboardType: TextInputType.text,
+          textInputAction: TextInputAction.next,
           isRequired: true,
-          value: _selectedInstitution,
-          items: institutions,
-          hintText: 'Select institution',
           errorText: _institutionError,
-          pickerTitle: 'Select Institution',
-          searchHint: 'Search institutions...',
           onChanged: (value) {
             setState(() {
-              _selectedInstitution = value;
               _institutionError = null;
             });
           },

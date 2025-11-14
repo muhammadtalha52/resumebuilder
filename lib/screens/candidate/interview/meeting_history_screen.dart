@@ -108,7 +108,7 @@ class _MeetingHistoryScreenState extends ConsumerState<MeetingHistoryScreen> {
         ],
       ),
       child: ListView.separated(
-        shrinkWrap: true,
+        shrinkWrap: false,
         itemCount: historyState.meetings.length,
         separatorBuilder: (context, index) => Divider(
           height: 1,
