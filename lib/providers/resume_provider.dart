@@ -608,7 +608,7 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
 
       final tempDir = await getTemporaryDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      tempPdfFile = File('${tempDir.path}/resume_${timestamp}.pdf');
+      tempPdfFile = File('${tempDir.path}/resume_$timestamp.pdf');
 
       // Decode base64 to bytes and write to file
       final pdfBytes = base64Decode(pdfBase64);

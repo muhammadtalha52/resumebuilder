@@ -2735,6 +2735,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                       pdfBytes,
                       key: ValueKey(pdfBytes.hashCode),
                       controller: pdfController,
+                      canShowPaginationDialog: false,
                       canShowScrollHead: true,
                       canShowScrollStatus: true,
                       pageSpacing: 4.0,

@@ -426,7 +426,7 @@ class AuthService {
   Future<void> deleteAccount({required int userId}) async {
     try {
       final response = await _apiClient.dio.delete(
-        '${ApiEndpoints.deleteAccount}$userId/',
+        ApiEndpoints.deleteAccount,
         options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
       );
 
