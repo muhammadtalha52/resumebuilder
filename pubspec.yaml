@@ -40,7 +40,7 @@ dependencies:
   path_provider: ^2.1.5
   share_plus: ^12.0.1
   speech_to_text: ^7.3.0
-  record: ^6.1.2
+  flutter_sound: ^9.2.13  # For real-time PCM16 audio streaming
   flutter_markdown: ^0.7.7+1
   flutter_slidable: ^4.0.3
   webview_flutter: ^4.13.0

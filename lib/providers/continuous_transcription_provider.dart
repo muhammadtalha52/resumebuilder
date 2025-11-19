@@ -1,13 +1,16 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../models/conversation_models.dart';
 import '../models/interview_session_models.dart';
-import '../screens/candidate/interview/continuous_audio_transcriber.dart';
 import '../services/interview_service.dart';
 import '../services/subscription_service.dart';
 import '../services/api_client.dart';
+import '../services/transcription/transcriber_interface.dart';
+import '../services/transcription/realtime_audio_transcriber.dart';
 import 'usage_provider.dart';
 
 enum InterviewSessionState {
@@ -174,16 +177,27 @@ class ContinuousTranscriptionNotifier
   Timer? _sessionTimer;
   Timer? _updateBatchTimer;
   String _pendingScoutContent = '';
-  ContinuousAudioTranscriber? _audioTranscriber;
+  AudioTranscriber?
+  _audioTranscriber; // Interface type - can be chunk or realtime
   final InterviewService _interviewService = InterviewService();
   late final SubscriptionService _subscriptionService;
   final Ref _ref;
   DateTime? _sessionStartTime;
+  int _lastHelpTranscriptLength =
+      0; // Track transcript position for delta sending
 
   ContinuousTranscriptionNotifier(this._ref) : super(InterviewSessionData()) {
     // Initialize subscription service
     final apiClient = APIClient();
     _subscriptionService = SubscriptionService(apiClient);
+  }
+
+  // Create realtime transcriber (using WebSocket streaming)
+  AudioTranscriber _createTranscriber() {
+    print(
+      '[FACTORY] Creating transcriber: RealtimeAudioTranscriber (WebSocket streaming)',
+    );
+    return RealtimeAudioTranscriber();
   }
 
   // Listen to audio transcriber updates and sync with provider state
@@ -193,6 +207,8 @@ class ContinuousTranscriptionNotifier
     state = state.copyWith(
       fullTranscript: _audioTranscriber!.transcript,
       latestSegment: _audioTranscriber!.latestSegment,
+      currentTranscription: _audioTranscriber!.latestSegment,
+      // Show real-time deltas
       isListening: _audioTranscriber!.isRecording,
       transcriptionState: _audioTranscriber!.state,
       chunkCount: _audioTranscriber!.chunkCount,
@@ -229,16 +245,28 @@ class ContinuousTranscriptionNotifier
       resumeText: currentResumeText,
     ); // Reset but preserve API session data
 
+    // Reset delta tracking for new session
+    _lastHelpTranscriptLength = 0;
+
     try {
-      // Use record package's native permission handling instead of permission_handler
-      print('Checking microphone permission via record package...');
+      // Request microphone permission on Android (iOS handles it automatically)
+      if (Platform.isAndroid) {
+        print('Requesting microphone permission on Android...');
+        final micPermission = await Permission.microphone.request();
 
-      // Let the record package handle permissions natively during initialization
-      // This often works better than permission_handler for audio recording
+        if (!micPermission.isGranted) {
+          print('Microphone permission denied');
+          state = state.copyWith(
+            error: 'Microphone permission is required for interview sessions',
+          );
+          return;
+        }
+        print('Microphone permission granted');
+      }
 
-      // Create new ContinuousAudioTranscriber instance
-      print('Creating new ContinuousAudioTranscriber instance...');
-      _audioTranscriber = ContinuousAudioTranscriber();
+      // Create new audio transcriber instance using factory
+      print('Creating new audio transcriber instance via factory...');
+      _audioTranscriber = _createTranscriber();
       _audioTranscriber!.addListener(_onTranscriberUpdate);
 
       print('Initializing ContinuousAudioTranscriber...');
@@ -389,9 +417,11 @@ class ContinuousTranscriptionNotifier
       // Dispose any existing transcriber first
       await _disposeAudioTranscriber();
 
-      // Create new audio transcriber instance
-      print('[TRANSITION] Creating new audio transcriber instance...');
-      _audioTranscriber = ContinuousAudioTranscriber();
+      // Create new audio transcriber instance using factory
+      print(
+        '[TRANSITION] Creating new audio transcriber instance via factory...',
+      );
+      _audioTranscriber = _createTranscriber();
       _audioTranscriber!.addListener(_onTranscriberUpdate);
 
       // Initialize and start audio transcriber
@@ -869,15 +899,28 @@ class ContinuousTranscriptionNotifier
       final completeTranscript =
           (_audioTranscriber?.transcript ?? state.fullTranscript).trim();
 
-      // Create help request with complete transcript
+      // OPTIMIZATION: Only send NEW transcript since last help request (delta)
+      final deltaTranscript =
+          _lastHelpTranscriptLength > 0 &&
+              _lastHelpTranscriptLength < completeTranscript.length
+          ? completeTranscript.substring(_lastHelpTranscriptLength).trim()
+          : completeTranscript;
+
+      // Create help request with ONLY delta transcript
       final request = SessionHelpRequest(
         sessionId: state.sessionId!,
-        transcript: completeTranscript,
+        transcript: deltaTranscript,
       );
 
       print(
         '[HELP] Complete transcript length: ${completeTranscript.length} chars',
       );
+      print(
+        '[HELP] Delta transcript length: ${deltaTranscript.length} chars (from position $_lastHelpTranscriptLength)',
+      );
+
+      // Update last position BEFORE sending to capture current state
+      _lastHelpTranscriptLength = completeTranscript.length;
 
       // Stream help response
       String accumulatedResponse = '';
@@ -1025,6 +1068,9 @@ class ContinuousTranscriptionNotifier
       _audioTranscriber!.dispose();
       _audioTranscriber = null;
     }
+
+    // Reset delta tracking
+    _lastHelpTranscriptLength = 0;
 
     // Clear the state
     state = InterviewSessionData(); // Reset to initial state

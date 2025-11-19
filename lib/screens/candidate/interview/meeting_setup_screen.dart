@@ -29,7 +29,7 @@ class _State extends ConsumerState<MeetingSetupScreen> {
       TextEditingController();
 
   String? _selectedSessionType = 'Meeting'; // Default to Meeting
-  final String? _selectedLanguage = 'English'; // Default to English for now
+  final String _selectedLanguage = 'English'; // Default to English for now
   bool _realTimeTranscription = true;
   bool _followUpQuestions = false;
   bool _summaryGeneration = true;
@@ -181,7 +181,7 @@ class _State extends ConsumerState<MeetingSetupScreen> {
         meetingAgenda: _selectedSessionType?.toLowerCase() == 'meeting'
             ? _meetingAgendaController.text.trim()
             : '',
-        languageSelector: _selectedLanguage ?? 'English',
+        languageSelector: _selectedLanguage,
         interviewType: _selectedSessionType,
         roleIndustry: _roleIndustryController.text.trim(),
       );
@@ -232,6 +232,8 @@ class _State extends ConsumerState<MeetingSetupScreen> {
       backgroundColor: AppColors.scaffold,
       appBar: const BackNavigationAppBar(title: 'Start Meeting Assistant'),
       body: Container(
+        height: double.infinity,
+        width: double.infinity,
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage('assets/icons/background.png'),

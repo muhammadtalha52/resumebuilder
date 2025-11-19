@@ -13,7 +13,6 @@ import '../../../providers/continuous_transcription_provider.dart';
 import '../../../providers/interview_session_provider.dart';
 import '../../../widgets/dialogs/confirmation_dialog.dart';
 import '../../../widgets/dialogs/notification_dialog.dart';
-import 'continuous_audio_transcriber.dart';
 
 class MeetingSessionScreen extends ConsumerWidget {
   const MeetingSessionScreen({super.key});
@@ -139,7 +138,7 @@ class MeetingSessionScreen extends ConsumerWidget {
               child: Container(
                 width: double.infinity,
                 height: double.infinity,
-                padding: const EdgeInsets.only(top: 15, bottom: 15),
+                padding: const EdgeInsets.only(top: 10, bottom: 10),
                 decoration: BoxDecoration(
                   color: AppColors.white,
                   borderRadius: BorderRadius.circular(15),
@@ -181,8 +180,8 @@ class MeetingSessionScreen extends ConsumerWidget {
                             const Spacer(),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
+                                horizontal: 10,
+                                vertical: 5,
                               ),
                               decoration: BoxDecoration(
                                 color: Colors.red,
@@ -239,7 +238,7 @@ class MeetingSessionScreen extends ConsumerWidget {
                                   }
                                 },
                                 child: const Text(
-                                  'End',
+                                  'End Session',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 14,
@@ -251,7 +250,7 @@ class MeetingSessionScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 10),
                     ],
 
                     // Interview section - only show in idle state
@@ -281,7 +280,7 @@ class MeetingSessionScreen extends ConsumerWidget {
                             Text(
                               sessionData.sessionType ?? 'Interview',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 15,
                                 color: AppColors.textSecondary.withValues(
                                   alpha: 0.6,
                                 ),
@@ -302,7 +301,7 @@ class MeetingSessionScreen extends ConsumerWidget {
                                 ? interviewSession.positionTitle
                                 : 'Senior Software Position',
                             style: const TextStyle(
-                              fontSize: 24,
+                              fontSize: 26,
                               fontWeight: FontWeight.bold,
                               color: AppColors.textPrimary,
                             ),
@@ -410,7 +409,7 @@ class MeetingSessionScreen extends ConsumerWidget {
                         const Text(
                           'Before You Start',
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
                           ),
@@ -455,7 +454,7 @@ class MeetingSessionScreen extends ConsumerWidget {
                 'Tap "Start Session" when you\'re ready',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 15,
                   color: AppColors.textSecondary.withValues(alpha: 0.7),
                   height: 1.5,
                   fontWeight: FontWeight.w500,
@@ -483,7 +482,7 @@ class MeetingSessionScreen extends ConsumerWidget {
           child: Text(
             text,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 14,
               color: AppColors.textPrimary.withValues(alpha: 0.85),
               height: 1.4,
             ),
@@ -722,10 +721,7 @@ class MeetingSessionScreen extends ConsumerWidget {
               },
               child: Container(
                 height: 65, // Fixed height for both buttons
-                padding: const EdgeInsets.symmetric(
-                  vertical: 8,
-                  horizontal: 12,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 5),
                 decoration: BoxDecoration(
                   color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
@@ -751,7 +747,7 @@ class MeetingSessionScreen extends ConsumerWidget {
                       'Scout, Give me a response!',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 11,
                         color: Colors.orange,
                         fontWeight: FontWeight.w600,
                       ),
@@ -778,10 +774,7 @@ class MeetingSessionScreen extends ConsumerWidget {
               },
               child: Container(
                 height: 65, // Fixed height for both buttons
-                padding: const EdgeInsets.symmetric(
-                  vertical: 8,
-                  horizontal: 12,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 5),
                 decoration: BoxDecoration(
                   color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
@@ -799,7 +792,7 @@ class MeetingSessionScreen extends ConsumerWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 11,
                           color: Colors.blue,
                           fontWeight: FontWeight.w600,
                           height: 1.2,
@@ -831,7 +824,7 @@ class MeetingSessionScreen extends ConsumerWidget {
           Text(
             'Session paused',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 17,
               color: AppColors.textSecondary.withValues(alpha: 0.7),
             ),
           ),
@@ -869,7 +862,7 @@ class MeetingSessionScreen extends ConsumerWidget {
               const Expanded(
                 child: Text(
                   'Scout Needs Permission',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -997,7 +990,7 @@ class _ConversationContainerState extends State<_ConversationContainer> {
         children: [
           // Header
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: Colors.grey.withValues(alpha: 0.05),
               borderRadius: const BorderRadius.only(
@@ -1021,7 +1014,7 @@ class _ConversationContainerState extends State<_ConversationContainer> {
                 Text(
                   'Scout AI Responses',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                   ),
@@ -1032,7 +1025,7 @@ class _ConversationContainerState extends State<_ConversationContainer> {
                   Text(
                     '${assistantMessages.length} response${assistantMessages.length != 1 ? 's' : ''}',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 13,
                       color: AppColors.textSecondary.withValues(alpha: 0.7),
                     ),
                   ),
@@ -1063,7 +1056,7 @@ class _ConversationContainerState extends State<_ConversationContainer> {
                         Text(
                           'Scout will provide AI assistance here',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 13,
                             color: AppColors.textSecondary.withValues(
                               alpha: 0.5,
                             ),
@@ -1102,7 +1095,7 @@ class _ConversationContainerState extends State<_ConversationContainer> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: Colors.orange.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(8),
@@ -1118,8 +1111,6 @@ class _ConversationContainerState extends State<_ConversationContainer> {
                   'assets/icons/fox-mascot.png',
                   width: 16,
                   height: 16,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.pets, size: 16, color: Colors.orange),
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -1127,14 +1118,14 @@ class _ConversationContainerState extends State<_ConversationContainer> {
                       ? 'Scout Follow-Up'
                       : 'Scout Answer',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Colors.orange.withValues(alpha: 0.8),
+                    color: Colors.orange.withValues(alpha: 0.7),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
 
             // Response content - now uses full width
             message.content.isEmpty
@@ -1154,9 +1145,8 @@ class _ConversationContainerState extends State<_ConversationContainer> {
                       Text(
                         'Scout is thinking...',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 16,
                           color: AppColors.textSecondary.withValues(alpha: 0.6),
-                          fontStyle: FontStyle.italic,
                         ),
                       ),
                     ],
@@ -1165,18 +1155,18 @@ class _ConversationContainerState extends State<_ConversationContainer> {
                     data: message.content.replaceAll('\\n', '\n'),
                     styleSheet: MarkdownStyleSheet(
                       p: const TextStyle(
-                        fontSize: 13,
+                        fontSize: 16,
                         color: AppColors.textPrimary,
                         height: 1.4,
                       ),
                       strong: const TextStyle(
-                        fontSize: 13,
+                        fontSize: 16,
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
                         height: 1.4,
                       ),
                       listBullet: const TextStyle(
-                        fontSize: 13,
+                        fontSize: 16,
                         color: AppColors.textPrimary,
                         height: 1.4,
                       ),
@@ -1231,17 +1221,12 @@ class _TranscriptSectionState extends ConsumerState<TranscriptSection> {
     final fullTranscript = ref.watch(
       continuousTranscriptionProvider.select((data) => data.fullTranscript),
     );
-    final latestSegment = ref.watch(
-      continuousTranscriptionProvider.select((data) => data.latestSegment),
-    );
-    final transcriptionState = ref.watch(
-      continuousTranscriptionProvider.select((data) => data.transcriptionState),
+    final isListening = ref.watch(
+      continuousTranscriptionProvider.select((data) => data.isListening),
     );
 
     // Check if we have any content to show
     final hasFullTranscript = fullTranscript.isNotEmpty;
-    final hasLatestSegment = latestSegment.isNotEmpty;
-    final isRecording = transcriptionState == TranscriptionState.recording;
 
     return Container(
       height: 150,
@@ -1259,7 +1244,7 @@ class _TranscriptSectionState extends ConsumerState<TranscriptSection> {
         children: [
           // Header
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
               color: Colors.grey.withValues(alpha: 0.05),
               borderRadius: const BorderRadius.only(
@@ -1281,7 +1266,7 @@ class _TranscriptSectionState extends ConsumerState<TranscriptSection> {
                 Text(
                   'Transcription',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
                   ),
@@ -1292,7 +1277,7 @@ class _TranscriptSectionState extends ConsumerState<TranscriptSection> {
 
           // Content area
           Expanded(
-            child: !hasFullTranscript && !hasLatestSegment
+            child: !hasFullTranscript && !isListening
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -1332,19 +1317,23 @@ class _TranscriptSectionState extends ConsumerState<TranscriptSection> {
                             ),
                           ),
 
-                        // Latest transcribed segment (highlighted)
-                        if (hasLatestSegment) ...[
+                        // Listening indicator (when recording)
+                        if (isListening) ...[
                           if (hasFullTranscript) const SizedBox(height: 8),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Recording indicator
+                              // Recording indicator - wrapped in SizedBox to prevent layout shift
                               Container(
                                 margin: const EdgeInsets.only(top: 4),
-                                child: _PulsingDot(),
+                                child: SizedBox(
+                                  width: 10,
+                                  height: 10,
+                                  child: Center(child: _PulsingDot()),
+                                ),
                               ),
                               const SizedBox(width: 8),
-                              // Latest segment (highlighted)
+                              // Listening message
                               Expanded(
                                 child: Container(
                                   padding: EdgeInsets.symmetric(
@@ -1356,7 +1345,7 @@ class _TranscriptSectionState extends ConsumerState<TranscriptSection> {
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    latestSegment,
+                                    'Scout is listening...',
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: Colors.lightBlueAccent,
@@ -1364,30 +1353,6 @@ class _TranscriptSectionState extends ConsumerState<TranscriptSection> {
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-
-                        // Show listening indicator when recording but no latest segment
-                        if (isRecording && !hasLatestSegment) ...[
-                          if (hasFullTranscript) const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Container(
-                                margin: const EdgeInsets.only(top: 4),
-                                child: _PulsingDot(),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Listening...',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary.withValues(
-                                    alpha: 0.6,
-                                  ),
-                                  fontStyle: FontStyle.italic,
                                 ),
                               ),
                             ],
