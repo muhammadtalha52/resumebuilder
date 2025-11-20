@@ -31,7 +31,7 @@ class TranscriptionConfig {
     'vadThreshold': 0.5,
 
     /// Silence duration in ms before considering speech ended
-    'silenceDurationMs': 700,
+    'silenceDurationMs': 500,
 
     /// Prefix padding in ms (context before speech starts)
     'prefixPaddingMs': 300,
@@ -52,18 +52,4 @@ class TranscriptionConfig {
     /// WebSocket ping interval to keep connection alive (ms)
     'pingIntervalMs': 30000,
   };
-
-  // ==================== HELPER METHODS ====================
-
-  /// Get current configuration (always realtime)
-  static Map<String, dynamic> get currentConfig => realtimeConfig;
-
-  /// Get model name
-  static String get model => realtimeConfig['model'] as String;
-
-  /// Get audio format (PCM16 for realtime)
-  static String get audioFormat => realtimeConfig['audioFormat'] as String;
-
-  /// Get sample rate (16kHz for speech)
-  static int get sampleRate => realtimeConfig['sampleRate'] as int;
 }

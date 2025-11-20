@@ -60,11 +60,11 @@ abstract class AudioTranscriber extends ChangeNotifier {
   /// Clear the help request cutoff and resume normal processing
   void clearHelpRequestCutoff();
 
-  /// Wait for all chunks up to the cutoff point to finish processing
-  /// Used to ensure complete transcript before sending help request
+  /// Force commit current audio buffer and wait for transcription to complete
+  /// This ensures we capture the latest audio context before sending to backend
   ///
   /// [maxWaitMs] - Maximum time to wait in milliseconds
-  Future<void> waitForChunksUpToCutoff({int maxWaitMs = 5000});
+  Future<void> commitAndWaitForTranscription({int maxWaitMs = 5000});
 
   // ==================== CLEANUP ====================
 

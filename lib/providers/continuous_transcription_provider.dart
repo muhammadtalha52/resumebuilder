@@ -890,9 +890,9 @@ class ContinuousTranscriptionNotifier
       // 2. SET CUTOFF POINT - ignore chunks created after this moment
       _audioTranscriber?.setHelpRequestCutoff();
 
-      // 3. SECRETLY wait for chunks recorded up to the cutoff to complete
+      // 3. Force commit and wait for transcription to ensure we have latest context
       if (_audioTranscriber != null) {
-        await _audioTranscriber!.waitForChunksUpToCutoff(maxWaitMs: 5000);
+        await _audioTranscriber!.commitAndWaitForTranscription(maxWaitMs: 5000);
       }
 
       // 4. Get the complete transcript with all context (from chunks ≤ cutoff)

@@ -263,6 +263,8 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen> {
   }
 
   Widget _buildPlansCarousel() {
+    final iapState = ref.watch(iapProvider);
+
     return PageView.builder(
       controller: _pageController,
       onPageChanged: (index) {
@@ -273,7 +275,12 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen> {
       itemCount: PlanModel.allPlans.length,
       itemBuilder: (context, index) {
         final plan = PlanModel.allPlans[index];
-        return PlanCard(plan: plan, onTap: () => _onPlanSelected(plan));
+        return PlanCard(
+          plan: plan,
+          onTap: () => _onPlanSelected(plan),
+          isLoading:
+              iapState.isLoadingPlansMapping || iapState.isInitiatingCheckout,
+        );
       },
     );
   }

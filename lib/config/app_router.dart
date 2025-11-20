@@ -25,7 +25,6 @@ import '../screens/candidate/plans/candidate_plans_screen.dart';
 import '../screens/candidate/resume/resume_history_screen.dart';
 import '../screens/candidate/resume/resume_review_screen.dart';
 import '../screens/candidate/usage/usage_screen.dart';
-import '../screens/common/legal_webview_screen.dart';
 import '../screens/common/main_screen.dart';
 
 import '../screens/common/welcome_screen.dart';
@@ -163,16 +162,6 @@ final GoRouter appRouter = GoRouter(
       path: '/profile/edit-work-experience',
       pageBuilder: (context, state) => buildPageWithoutSwipeBack(
         child: const EditWorkExperienceScreen(),
-        key: state.pageKey,
-      ),
-    ),
-    GoRoute(
-      path: '/terms-of-use',
-      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
-        child: const LegalWebViewScreen(
-          url: 'https://skillresy.com/terms-of-use/',
-          title: 'Terms of Use',
-        ),
         key: state.pageKey,
       ),
     ),

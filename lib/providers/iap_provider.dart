@@ -15,6 +15,8 @@ class IAPState extends Equatable {
     this.isInitialized = false,
     this.products = const [],
     this.isPurchasing = false,
+    this.isInitiatingCheckout = false,
+    this.isLoadingPlansMapping = false,
     this.error,
     this.successMessage,
   });
@@ -23,6 +25,8 @@ class IAPState extends Equatable {
   final bool isInitialized;
   final List<ProductDetails> products;
   final bool isPurchasing;
+  final bool isInitiatingCheckout;
+  final bool isLoadingPlansMapping;
   final String? error;
   final String? successMessage;
 
@@ -31,6 +35,8 @@ class IAPState extends Equatable {
     bool? isInitialized,
     List<ProductDetails>? products,
     bool? isPurchasing,
+    bool? isInitiatingCheckout,
+    bool? isLoadingPlansMapping,
     String? error,
     String? successMessage,
   }) {
@@ -39,6 +45,9 @@ class IAPState extends Equatable {
       isInitialized: isInitialized ?? this.isInitialized,
       products: products ?? this.products,
       isPurchasing: isPurchasing ?? this.isPurchasing,
+      isInitiatingCheckout: isInitiatingCheckout ?? this.isInitiatingCheckout,
+      isLoadingPlansMapping:
+          isLoadingPlansMapping ?? this.isLoadingPlansMapping,
       error: error,
       successMessage: successMessage,
     );
@@ -50,6 +59,8 @@ class IAPState extends Equatable {
     isInitialized,
     products,
     isPurchasing,
+    isInitiatingCheckout,
+    isLoadingPlansMapping,
     error,
     successMessage,
   ];
@@ -423,8 +434,8 @@ class IAPNotifier extends StateNotifier<IAPState> {
       '[IAPProvider] Available products: ${_iapService.products.map((p) => p.id).toList()}',
     );
 
-    // Don't set isPurchasing here - wait for actual purchase event
-    state = state.copyWith(error: null);
+    // Set isInitiatingCheckout for button loading (not full-screen overlay)
+    state = state.copyWith(isInitiatingCheckout: true, error: null);
 
     try {
       final product = _iapService.getProductById(productId);
@@ -432,6 +443,7 @@ class IAPNotifier extends StateNotifier<IAPState> {
       if (product == null) {
         print('[IAPProvider] ERROR: Product not found: $productId');
         state = state.copyWith(
+          isInitiatingCheckout: false,
           error: 'Product not found. Please try again later.',
         );
         return;
@@ -446,16 +458,22 @@ class IAPNotifier extends StateNotifier<IAPState> {
 
       if (!success) {
         state = state.copyWith(
+          isInitiatingCheckout: false,
           error:
               'Failed to initiate purchase. Please check your payment method.',
         );
+      } else {
+        // Checkout sheet opened successfully, clear button loading
+        state = state.copyWith(isInitiatingCheckout: false);
       }
 
-      // State will be updated by purchase stream listener
-      // isPurchasing will be set to true only when purchase is actually pending/processing
+      // State will be maintained by purchase stream listener
     } catch (e) {
       print('[IAPProvider] Purchase error: $e');
-      state = state.copyWith(error: 'Purchase failed: ${e.toString()}');
+      state = state.copyWith(
+        isInitiatingCheckout: false,
+        error: 'Purchase failed: ${e.toString()}',
+      );
     }
   }
 
@@ -497,9 +515,14 @@ class IAPNotifier extends StateNotifier<IAPState> {
   /// Load plans mapping from backend
   /// Called when plans screen opens
   Future<void> loadPlansMapping() async {
+    if (!mounted) return;
+    state = state.copyWith(isLoadingPlansMapping: true);
+
     try {
       print('[IAPProvider] Loading plans mapping from backend...');
       final mapping = await _subscriptionService.fetchPlansMapping();
+
+      if (!mounted) return;
 
       if (mapping.isNotEmpty) {
         _productIdToPlanId = mapping;
@@ -507,9 +530,13 @@ class IAPNotifier extends StateNotifier<IAPState> {
       } else {
         print('[IAPProvider] No plans mapping loaded, will use fallback');
       }
+
+      state = state.copyWith(isLoadingPlansMapping: false);
     } catch (e) {
       print('[IAPProvider] Error loading plans mapping: $e');
+      if (!mounted) return;
       // Silent fail - will use fallback in _getPlanIdFromProductId
+      state = state.copyWith(isLoadingPlansMapping: false);
     }
   }
 

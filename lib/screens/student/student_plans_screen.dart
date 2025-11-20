@@ -264,6 +264,8 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen> {
   }
 
   Widget _buildPlansCarousel() {
+    final iapState = ref.watch(iapProvider);
+
     return PageView.builder(
       controller: _pageController,
       onPageChanged: (index) {
@@ -279,6 +281,8 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen> {
           child: StudentPlanCard(
             plan: plan,
             onTap: () => _onPlanSelected(plan),
+            isLoading:
+                iapState.isLoadingPlansMapping || iapState.isInitiatingCheckout,
           ),
         );
       },

@@ -355,32 +355,85 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
   }
 
   Widget _buildCoreSkillsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSkillCategorySection(
+          title: 'Hard Skills',
+          category: 'hard',
+          description: 'Technical skills and job-specific competencies',
+        ),
+        const SizedBox(height: 24),
+        _buildSkillCategorySection(
+          title: 'Soft Skills',
+          category: 'soft',
+          description: 'Interpersonal and communication abilities',
+        ),
+        const SizedBox(height: 24),
+        _buildSkillCategorySection(
+          title: 'Tools & Technologies',
+          category: 'tools',
+          description: 'Software, frameworks, and technical tools',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSkillCategorySection({
+    required String title,
+    required String category,
+    required String description,
+  }) {
     final skills = _editableResumeData.resumeData?.skills;
-    final allSkills = <String>[
-      ...(skills?.hardSkills ?? []),
-      ...(skills?.softSkills ?? []),
-      ...(skills?.toolsAndTechnologies ?? []),
-    ];
+    List<String> categorySkills = [];
+
+    switch (category) {
+      case 'hard':
+        categorySkills = skills?.hardSkills ?? [];
+        break;
+      case 'soft':
+        categorySkills = skills?.softSkills ?? [];
+        break;
+      case 'tools':
+        categorySkills = skills?.toolsAndTechnologies ?? [];
+        break;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Core Skills',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
-            ...allSkills.map((skill) => _buildSkillChip(skill)),
+            ...categorySkills.map((skill) => _buildSkillChip(skill)),
             GestureDetector(
-              onTap: _showAddSkillDialog,
+              onTap: () => _showAddSkillDialog(category: category),
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: const BoxDecoration(
@@ -2385,8 +2438,21 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     );
   }
 
-  void _showAddSkillDialog() {
+  void _showAddSkillDialog({String category = 'hard'}) {
     final controller = TextEditingController();
+
+    // Get category display name
+    String getCategoryDisplayName(String cat) {
+      switch (cat) {
+        case 'soft':
+          return 'Soft Skills';
+        case 'tools':
+          return 'Tools & Technologies';
+        case 'hard':
+        default:
+          return 'Hard Skills';
+      }
+    }
 
     showDialog(
       context: context,
@@ -2438,6 +2504,15 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF1A1A1A),
                 ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 8),
+
+              // Category label
+              Text(
+                'Adding to ${getCategoryDisplayName(category)}',
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
 
@@ -2504,12 +2579,13 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                       onTap: () {
                         final skillName = controller.text.trim();
                         if (skillName.isNotEmpty) {
-                          _notifier.addSkill(skillName);
+                          _notifier.addSkill(skillName, category: category);
                           Navigator.of(context).pop();
 
                           showSuccessSnackBar(
                             context: context,
-                            message: 'Added "$skillName" to your skills',
+                            message:
+                                'Added "$skillName" to ${getCategoryDisplayName(category)}',
                           );
                         }
                       },

@@ -90,17 +90,6 @@ class AppBarWidgets {
         child: Container(
           margin: const EdgeInsets.only(left: 20),
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
           child: const Icon(
             Icons.arrow_back_ios_new,
             size: 20,

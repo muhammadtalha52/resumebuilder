@@ -6,8 +6,14 @@ import '../../models/plan_model.dart';
 class PlanCard extends StatelessWidget {
   final PlanModel plan;
   final VoidCallback onTap;
+  final bool isLoading;
 
-  const PlanCard({super.key, required this.plan, required this.onTap});
+  const PlanCard({
+    super.key,
+    required this.plan,
+    required this.onTap,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -143,24 +149,40 @@ class PlanCard extends StatelessWidget {
           width: double.infinity,
           height: 50,
           decoration: BoxDecoration(
-            gradient: AppColors.primaryGradientHorizontal,
+            gradient: isLoading
+                ? LinearGradient(
+                    colors: [
+                      AppColors.primary.withValues(alpha: 0.5),
+                      AppColors.secondaryLight.withValues(alpha: 0.5),
+                    ],
+                  )
+                : AppColors.primaryGradientHorizontal,
             borderRadius: BorderRadius.circular(AppSizes.radiusM),
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: onTap,
+              onTap: isLoading ? null : onTap,
               borderRadius: BorderRadius.circular(AppSizes.radiusM),
-              child: const Center(
-                child: Text(
-                  'Purchase Plan',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+              child: Center(
+                child: isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: AppColors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : const Text(
+                        'Purchase Plan',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
           ),

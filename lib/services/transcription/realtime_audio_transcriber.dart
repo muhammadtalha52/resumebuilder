@@ -625,11 +625,51 @@ class RealtimeAudioTranscriber extends AudioTranscriber {
   }
 
   @override
-  Future<void> waitForChunksUpToCutoff({int maxWaitMs = 5000}) async {
-    // For realtime API, there are no pending chunks to wait for
-    // The transcript is already up-to-date when cutoff is set
-    _log('✅ Realtime API - transcript already current (no waiting needed)');
-    return;
+  Future<void> commitAndWaitForTranscription({int maxWaitMs = 5000}) async {
+    _log('🔒 User requested help - forcing commit of current audio buffer...');
+
+    // Remember current segment count before commit
+    final currentSegmentCount = _segmentCount;
+
+    // Force commit whatever audio is in buffer RIGHT NOW
+    // This ensures we capture everything the user has heard up to this moment
+    _sendMessage({'type': 'input_audio_buffer.commit'});
+
+    // Wait for the NEW segment to arrive (the one we just committed)
+    _log('⏳ Waiting for transcription of committed audio...');
+
+    final deadline = DateTime.now().add(Duration(milliseconds: maxWaitMs));
+    int pollCount = 0;
+
+    while (_segmentCount == currentSegmentCount &&
+        DateTime.now().isBefore(deadline)) {
+      await Future.delayed(Duration(milliseconds: 100)); // Poll every 100ms
+      pollCount++;
+
+      // Log every 500ms to track progress
+      if (pollCount % 5 == 0) {
+        _log(
+          '⏳ Still waiting... (${pollCount * 100}ms elapsed, segment count: $_segmentCount)',
+        );
+      }
+    }
+
+    // Check result
+    if (_segmentCount > currentSegmentCount) {
+      _log(
+        '✅ Transcription complete! Segment #$_segmentCount received after ${pollCount * 100}ms',
+      );
+      _log('📝 Latest segment: "$_latestSegment"');
+      _log('📄 Full transcript now ${_fullTranscript.length} characters');
+    } else {
+      _log(
+        '⚠️ No new transcription received after ${maxWaitMs}ms - proceeding with current transcript',
+      );
+      _log('📊 Current segment count: $_segmentCount (unchanged)');
+      _log(
+        '📄 Using existing transcript: ${_fullTranscript.length} characters',
+      );
+    }
   }
 
   // ==================== STATE MANAGEMENT ====================

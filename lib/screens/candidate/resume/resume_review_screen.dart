@@ -139,6 +139,9 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
 
   // Step 3 - Template selection
   int _selectedTemplateIndex = 0;
+  final PageController _templatePageController = PageController(
+    viewportFraction: 0.85,
+  );
 
   // Loading state for credit check
   bool _isCheckingCredits = false;
@@ -468,6 +471,8 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     _jobTitleController.dispose();
     _linkedInJobLinkController.dispose();
     _jobDescriptionController.dispose();
+    // Dispose template page controller
+    _templatePageController.dispose();
 
     super.dispose();
   }
@@ -552,7 +557,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     _buildStepIndicatorRow(),
-                                    const SizedBox(height: 10),
+                                    const SizedBox(height: 5),
                                     Text(
                                       _getStepTitle(),
                                       style: const TextStyle(
@@ -561,7 +566,6 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                                         color: AppColors.textPrimary,
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
                                     Text(
                                       _getStepDescription(),
                                       style: TextStyle(
@@ -832,107 +836,134 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 20),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.65,
-          ),
-          itemCount: templates.length,
-          itemBuilder: (context, index) {
-            final template = templates[index];
-            final isSelected = index == _selectedTemplateIndex;
+        SizedBox(
+          height: 450,
+          child: PageView.builder(
+            controller: _templatePageController,
+            onPageChanged: (index) {
+              setState(() {
+                _selectedTemplateIndex = index;
+              });
+            },
+            itemCount: templates.length,
+            itemBuilder: (context, index) {
+              final template = templates[index];
+              final isSelected = index == _selectedTemplateIndex;
 
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedTemplateIndex = index;
-                });
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected
-                        ? AppColors.primary
-                        : AppColors.inputBorder,
-                    width: isSelected ? 2 : 1,
-                  ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(
-                            template['preview']!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: AppColors.grey.withValues(alpha: 0.1),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.description,
-                                    size: 48,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+              return Padding(
+                padding: const EdgeInsets.only(right: 15),
+                child: GestureDetector(
+                  onTap: () {
+                    _templatePageController.animateToPage(
+                      index,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.inputBorder,
+                        width: isSelected ? 2 : 1,
                       ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
                     ),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        children: [
-                          Text(
-                            template['name']!,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : AppColors.textPrimary,
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            margin: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                          ),
-                          if (isSelected)
-                            Container(
-                              margin: const EdgeInsets.only(top: 4),
-                              child: const Icon(
-                                Icons.check_circle,
-                                color: AppColors.primary,
-                                size: 16,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.asset(
+                                template['preview']!,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: AppColors.grey.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.description,
+                                        size: 48,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
-                        ],
-                      ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                template['name']!,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
+                              if (isSelected)
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 4),
+                                  child: Icon(
+                                    Icons.check_circle,
+                                    color: AppColors.primary,
+                                    size: 16,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Page indicators
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            templates.length,
+            (index) => Container(
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: _selectedTemplateIndex == index ? 32 : 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: _selectedTemplateIndex == index
+                    ? AppColors.primary
+                    : AppColors.primary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(4),
               ),
-            );
-          },
+            ),
+          ),
         ),
         const SizedBox(height: 20),
       ],
@@ -946,8 +977,6 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 20),
-        // Preview container
         Container(
           width: double.infinity,
           height: 500,
@@ -995,7 +1024,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                   ),
                 ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 15),
         // Action buttons
         Row(
           children: [
@@ -2571,7 +2600,10 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
             children: [
               // Header with template info
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.success.withValues(alpha: 0.1),
                   borderRadius: const BorderRadius.only(
@@ -3192,6 +3224,20 @@ class _DynamicPdfViewer extends StatefulWidget {
 }
 
 class _DynamicPdfViewerState extends State<_DynamicPdfViewer> {
+  late final PdfViewerController _pdfController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pdfController = PdfViewerController();
+  }
+
+  @override
+  void dispose() {
+    _pdfController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     print('🔄 Building PDF viewer with version: ${widget.version}');
@@ -3204,6 +3250,7 @@ class _DynamicPdfViewerState extends State<_DynamicPdfViewer> {
         key: ValueKey(
           'pdf_viewer_v${widget.version}_${widget.pdfBytes.hashCode}',
         ),
+        controller: _pdfController,
         canShowScrollHead: true,
         canShowScrollStatus: true,
         pageSpacing: 4.0,

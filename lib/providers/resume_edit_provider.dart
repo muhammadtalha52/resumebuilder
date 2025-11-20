@@ -91,14 +91,30 @@ class ResumeEditNotifier extends StateNotifier<ResumeEditState> {
     }
   }
 
-  /// Add a skill
-  void addSkill(String skill) {
+  /// Add a skill to a specific category
+  void addSkill(String skill, {String category = 'hard'}) {
     // Ensure skills object exists
     state.editableResumeData.resumeData?.skills ??= Skills();
 
-    // Add to hard skills by default
-    state.editableResumeData.resumeData?.skills?.hardSkills ??= [];
-    state.editableResumeData.resumeData?.skills?.hardSkills!.add(skill);
+    // Add to the specified category
+    switch (category.toLowerCase()) {
+      case 'soft':
+        state.editableResumeData.resumeData?.skills?.softSkills ??= [];
+        state.editableResumeData.resumeData?.skills?.softSkills!.add(skill);
+        break;
+      case 'tools':
+        state.editableResumeData.resumeData?.skills?.toolsAndTechnologies ??=
+            [];
+        state.editableResumeData.resumeData?.skills?.toolsAndTechnologies!.add(
+          skill,
+        );
+        break;
+      case 'hard':
+      default:
+        state.editableResumeData.resumeData?.skills?.hardSkills ??= [];
+        state.editableResumeData.resumeData?.skills?.hardSkills!.add(skill);
+        break;
+    }
 
     state = state.copyWith(hasChanges: true);
   }
