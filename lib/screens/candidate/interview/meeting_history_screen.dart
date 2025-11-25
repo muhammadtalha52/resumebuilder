@@ -193,7 +193,9 @@ class _MeetingHistoryScreenState extends ConsumerState<MeetingHistoryScreen> {
                   ],
                   const SizedBox(height: 6),
                   Text(
-                    DateHelpers.getTimeAgo(meeting.createdAt?.toString() ?? ''),
+                    meeting.createdAt != null
+                        ? DateHelpers.formatToDisplayDate(meeting.createdAt!)
+                        : '',
                     style: const TextStyle(
                       fontSize: 11,
                       color: AppColors.textLight,

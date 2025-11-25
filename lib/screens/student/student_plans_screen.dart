@@ -229,6 +229,33 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen> {
               ),
             ),
           ),
+          // Offer Badge - Top Left
+          Positioned(
+            top: 8,
+            left: 20,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppSizes.radiusM),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('🎉', style: TextStyle(fontSize: 12)),
+                  SizedBox(width: 4),
+                  Text(
+                    'Limited Time Offer',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

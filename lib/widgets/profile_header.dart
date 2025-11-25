@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../constants/app_colors.dart';
 import '../providers/auth_provider.dart';
+import '../utils/date_helpers.dart';
 import '../providers/profile_image_provider.dart';
 import '../services/image_picker_service.dart';
 import '../utils/s3_utils.dart';
@@ -189,22 +190,7 @@ class _ProfileHeaderState extends ConsumerState<ProfileHeader> {
 
     try {
       final date = DateTime.parse(createdAt);
-      final months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-
-      return '$label since ${months[date.month - 1]} ${date.year}';
+      return '$label since ${DateHelpers.formatToDisplayDate(date)}';
     } catch (e) {
       return '$label since recently';
     }

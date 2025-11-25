@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../providers/auth_provider.dart';
@@ -85,8 +84,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildWelcomeSection(WidgetRef ref) {
-    final now = DateTime.now();
-    final formattedDate = DateFormat('EEEE, MMMM d, yyyy').format(now);
     final authState = ref.watch(authProvider);
 
     // Get user's first name or fallback
@@ -116,11 +113,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(width: 8),
             const Text('😊', style: TextStyle(fontSize: 24)),
           ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          formattedDate,
-          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
       ],
     );
@@ -354,6 +346,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  String _formatActivityDate(String? dateString) {
+    if (dateString == null || dateString.isEmpty) return '';
+    try {
+      final date = DateTime.parse(dateString);
+      return DateHelpers.formatToDisplayDate(date);
+    } catch (e) {
+      return '';
+    }
+  }
+
   Widget _buildRecentActivitySection(WidgetRef ref) {
     // Commented out tab selection - using default 'week' filter
     // final selectedTab = ref.watch(selectedTabProvider);
@@ -414,7 +416,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   return _buildActivityItem(
                     title: item.title ?? 'Unknown',
                     subtitle: item.activityTypeDisplay ?? item.subTitle ?? '',
-                    timeAgo: DateHelpers.getTimeAgo(
+                    timeAgo: _formatActivityDate(
                       item.timestamp ?? item.createdAt ?? '',
                     ),
                     iconPath: iconPath,

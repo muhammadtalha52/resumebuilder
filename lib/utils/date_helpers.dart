@@ -36,12 +36,12 @@ class DateHelpers {
     return null;
   }
 
-  /// Formats a DateTime to display format DD/MM/YYYY
+  /// Formats a DateTime to display format MM/DD/YYYY
   /// Returns empty string if date is null
   static String formatToDisplayDate(DateTime? date) {
     if (date == null) return '';
 
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+    return '${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}/${date.year}';
   }
 
   /// Converts a string date (that might be in ISO8601 format) to yyyy-MM-dd format
@@ -90,7 +90,7 @@ class DateHelpers {
 
   /// Formats a DateTime to a readable format with time
   /// Returns 'N/A' if date is null
-  /// Example: "15 Jan, 2:30pm"
+  /// Example: "11/25/2025, 2:30pm"
   static String formatToReadableDateTime(DateTime? dateTime) {
     if (dateTime == null) return 'N/A';
 
@@ -98,22 +98,7 @@ class DateHelpers {
     final period = dateTime.hour >= 12 ? 'pm' : 'am';
     final displayHour = hour == 0 ? 12 : hour; // Handle midnight and noon
 
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-
-    return '${dateTime.day} ${months[dateTime.month - 1]}, $displayHour:${dateTime.minute.toString().padLeft(2, '0')}$period';
+    return '${dateTime.month.toString().padLeft(2, '0')}/${dateTime.day.toString().padLeft(2, '0')}/${dateTime.year}, $displayHour:${dateTime.minute.toString().padLeft(2, '0')}$period';
   }
 
   /// Formats duration in minutes to a readable format
@@ -181,10 +166,10 @@ class DateHelpers {
 
   /// Parses a UTC datetime string, converts to local, and formats it
   /// Returns defaultValue if parsing fails
-  /// Example: "2025-10-20T12:18:58.175018Z" -> "Oct 20, 2025 • 05:18 PM"
+  /// Example: "2025-10-20T12:18:58.175018Z" -> "10/20/2025 • 05:18 PM"
   static String formatUtcToLocal(
     String? dateString, {
-    String format = 'MMM dd, yyyy • hh:mm a',
+    String format = 'MM/dd/yyyy • hh:mm a',
     String defaultValue = 'N/A',
   }) {
     final localDate = parseUtcToLocal(dateString);
@@ -198,27 +183,11 @@ class DateHelpers {
       final hour = localDate.hour;
       final minute = localDate.minute;
 
-      // Simple formatter to avoid importing intl package everywhere
-      final monthNames = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-
       final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
       final period = hour >= 12 ? 'PM' : 'AM';
 
-      // Default format: "Oct 20, 2025 • 05:18 PM"
-      return '${monthNames[month - 1]} ${day.toString().padLeft(2, '0')}, $year • ${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
+      // Default format: "10/20/2025 • 05:18 PM"
+      return '${month.toString().padLeft(2, '0')}/${day.toString().padLeft(2, '0')}/$year • ${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
     } catch (e) {
       return defaultValue;
     }
@@ -227,7 +196,7 @@ class DateHelpers {
   /// Formats a DateTime object to local time string
   /// Assumes the DateTime is in UTC and converts to local
   /// Returns defaultValue if date is null
-  /// Example: DateTime(UTC) -> "Oct 20, 2025 • 05:18 PM"
+  /// Example: DateTime(UTC) -> "10/20/2025 • 05:18 PM"
   static String formatDateTimeToLocal(
     DateTime? dateTime, {
     String defaultValue = 'N/A',
@@ -244,26 +213,11 @@ class DateHelpers {
       final hour = localDate.hour;
       final minute = localDate.minute;
 
-      final monthNames = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-
       final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
       final period = hour >= 12 ? 'PM' : 'AM';
 
-      // Default format: "Oct 20, 2025 • 05:18 PM"
-      return '${monthNames[month - 1]} ${day.toString().padLeft(2, '0')}, $year • ${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
+      // Default format: "10/20/2025 • 05:18 PM"
+      return '${month.toString().padLeft(2, '0')}/${day.toString().padLeft(2, '0')}/$year • ${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
     } catch (e) {
       return defaultValue;
     }

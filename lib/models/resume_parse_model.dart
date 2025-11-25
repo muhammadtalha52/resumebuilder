@@ -310,42 +310,78 @@ class WorkExperience {
   }
 
   /// Parse from date to DateTime
+  /// Handles formats: "May 2019", "2019", "05/2019", "2019-05"
   DateTime? get parsedFromDate {
-    if (fromDate == null) return null;
-    try {
-      // Handle various date formats like "May 2019", "2019-05", etc.
-      final parts = fromDate!.split(' ');
-      if (parts.length == 2) {
-        final month = _parseMonth(parts[0]);
-        final year = int.tryParse(parts[1]);
-        if (month != null && year != null) {
-          return DateTime(year, month);
-        }
-      }
-    } catch (e) {
-      debugPrint('Error parsing from date: $e');
-    }
-    return null;
+    if (fromDate == null || fromDate!.isEmpty) return null;
+    return _parseDateString(fromDate!);
   }
 
   /// Parse to date to DateTime
+  /// Handles formats: "May 2019", "2019", "05/2019", "2019-05"
+  /// Returns null if current/present (indicates current job)
   DateTime? get parsedToDate {
-    if (toDate == null ||
-        toDate!.toLowerCase() == 'current' ||
-        toDate!.toLowerCase() == 'present') {
+    if (toDate == null || toDate!.isEmpty) return null;
+
+    final lower = toDate!.toLowerCase().trim();
+    // Check if currently working
+    if (lower == 'current' ||
+        lower == 'present' ||
+        lower == 'now' ||
+        lower == 'till date' ||
+        lower == 'till now' ||
+        lower == 'ongoing') {
       return null; // Current job
     }
+
+    return _parseDateString(toDate!);
+  }
+
+  /// Parse date string in various formats
+  DateTime? _parseDateString(String dateStr) {
+    final trimmed = dateStr.trim();
+
     try {
-      final parts = toDate!.split(' ');
+      // Try just year format (e.g., "2020")
+      final yearOnly = int.tryParse(trimmed);
+      if (yearOnly != null && yearOnly > 1900 && yearOnly < 2100) {
+        return DateTime(yearOnly, 1, 1);
+      }
+
+      // Try "Month Year" format (e.g., "May 2020")
+      final parts = trimmed.split(' ');
       if (parts.length == 2) {
         final month = _parseMonth(parts[0]);
         final year = int.tryParse(parts[1]);
         if (month != null && year != null) {
-          return DateTime(year, month);
+          return DateTime(year, month, 1);
+        }
+      }
+
+      // Try "MM/YYYY" format (e.g., "05/2020")
+      if (trimmed.contains('/')) {
+        final slashParts = trimmed.split('/');
+        if (slashParts.length == 2) {
+          final month = int.tryParse(slashParts[0]);
+          final year = int.tryParse(slashParts[1]);
+          if (month != null && year != null && month >= 1 && month <= 12) {
+            return DateTime(year, month, 1);
+          }
+        }
+      }
+
+      // Try "YYYY-MM" format (e.g., "2020-05")
+      if (trimmed.contains('-')) {
+        final dashParts = trimmed.split('-');
+        if (dashParts.length >= 2) {
+          final year = int.tryParse(dashParts[0]);
+          final month = int.tryParse(dashParts[1]);
+          if (year != null && month != null && month >= 1 && month <= 12) {
+            return DateTime(year, month, 1);
+          }
         }
       }
     } catch (e) {
-      debugPrint('Error parsing to date: $e');
+      debugPrint('Error parsing date: $e');
     }
     return null;
   }

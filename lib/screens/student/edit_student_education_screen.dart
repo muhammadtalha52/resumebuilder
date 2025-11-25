@@ -129,8 +129,8 @@ class _EditStudentEducationScreenState
                 Expanded(
                   child: Text(
                     _graduationDate != null
-                        ? '${_graduationDate!.day.toString().padLeft(2, '0')}/${_graduationDate!.month.toString().padLeft(2, '0')}/${_graduationDate!.year}'
-                        : 'DD/MM/YYYY',
+                        ? DateHelpers.formatToDisplayDate(_graduationDate!)
+                        : 'MM/DD/YYYY',
                     style: TextStyle(
                       color: _graduationDate != null
                           ? AppColors.textPrimary

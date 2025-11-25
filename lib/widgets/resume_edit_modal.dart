@@ -727,7 +727,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
 
     if (experience?.fromDate != null && experience!.fromDate!.isNotEmpty) {
       try {
-        selectedFromDate = DateFormat('MMM yyyy').parse(experience.fromDate!);
+        selectedFromDate = DateFormat('MM/yyyy').parse(experience.fromDate!);
       } catch (e) {
         // If parsing fails, leave as null
       }
@@ -737,7 +737,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
         experience!.toDate!.isNotEmpty &&
         experience!.toDate!.toLowerCase() != 'present') {
       try {
-        selectedToDate = DateFormat('MMM yyyy').parse(experience!.toDate!);
+        selectedToDate = DateFormat('MM/yyyy').parse(experience!.toDate!);
       } catch (e) {
         // If parsing fails, leave as null
       }
@@ -920,9 +920,9 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                                       Text(
                                         selectedFromDate != null
                                             ? DateFormat(
-                                                'MMM yyyy',
+                                                'MM/yyyy',
                                               ).format(selectedFromDate!)
-                                            : 'Jan 2020',
+                                            : '01/2020',
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: selectedFromDate != null
@@ -994,9 +994,9 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                                             ? 'Present'
                                             : (selectedToDate != null
                                                   ? DateFormat(
-                                                      'MMM yyyy',
+                                                      'MM/yyyy',
                                                     ).format(selectedToDate!)
-                                                  : 'Dec 2023'),
+                                                  : '12/2023'),
                                         style: TextStyle(
                                           fontSize: 14,
                                           color:
@@ -1232,13 +1232,13 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                                   ? null
                                   : locationController.text.trim(),
                               fromDate: DateFormat(
-                                'MMM yyyy',
+                                'MM/yyyy',
                               ).format(selectedFromDate!),
                               toDate: isCurrentlyWorking
                                   ? 'Present'
                                   : (selectedToDate != null
                                         ? DateFormat(
-                                            'MMM yyyy',
+                                            'MM/yyyy',
                                           ).format(selectedToDate!)
                                         : null),
                               description: descriptions.isEmpty
@@ -1331,14 +1331,14 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     DateTime? selectedToDate;
     if (project?.fromDate != null && project!.fromDate!.isNotEmpty) {
       try {
-        selectedFromDate = DateFormat('MMM yyyy').parse(project.fromDate!);
+        selectedFromDate = DateFormat('MM/yyyy').parse(project.fromDate!);
       } catch (e) {
         selectedFromDate = null;
       }
     }
     if (project?.toDate != null && project!.toDate!.isNotEmpty) {
       try {
-        selectedToDate = DateFormat('MMM yyyy').parse(project.toDate!);
+        selectedToDate = DateFormat('MM/yyyy').parse(project.toDate!);
       } catch (e) {
         selectedToDate = null;
       }

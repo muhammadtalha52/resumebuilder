@@ -6,6 +6,11 @@ class StudentPlanModel {
   final List<String> features;
   final bool isRecommended;
 
+  // Promotional pricing
+  static const double discountAmount = 5.0;
+
+  double get discountedPrice => price - discountAmount;
+
   const StudentPlanModel({
     required this.id,
     required this.name,

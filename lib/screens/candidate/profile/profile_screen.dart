@@ -6,6 +6,7 @@ import '../../../constants/app_colors.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/education_data_provider.dart';
 import '../../../services/auth_service.dart';
+import '../../../utils/date_helpers.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/tag_list.dart';
@@ -175,6 +176,15 @@ class ProfileScreen extends ConsumerWidget {
     final certifications = _extractCertifications(user?.certificationsTraining);
     final hasCertifications = certifications.isNotEmpty;
 
+    // Format graduation date to MM/DD/YYYY
+    String formattedGraduationDate = '';
+    if (user?.graduationDate != null && user!.graduationDate!.isNotEmpty) {
+      final parsedDate = DateHelpers.parseApiDate(user.graduationDate);
+      if (parsedDate != null) {
+        formattedGraduationDate = DateHelpers.formatToDisplayDate(parsedDate);
+      }
+    }
+
     return ProfileCard(
       title: '🎓 Education',
       onEdit: () => context.push('/profile/edit-education'),
@@ -186,7 +196,7 @@ class ProfileScreen extends ConsumerWidget {
             displayDegreeType,
             displayMajor,
             displayInstitution,
-            user?.graduationDate ?? '',
+            formattedGraduationDate,
             showDivider: hasCertifications,
           ),
           if (hasCertifications)

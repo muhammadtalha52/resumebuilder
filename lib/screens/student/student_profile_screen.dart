@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/auth_service.dart';
+import '../../utils/date_helpers.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/common/tag_list.dart';
@@ -128,6 +129,16 @@ class StudentProfileScreen extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final user = authState.user;
 
+    // Format graduation date to MM/DD/YYYY
+    String formattedGraduationDate = '';
+    if (user?.schoolGraduationDate != null &&
+        user!.schoolGraduationDate!.isNotEmpty) {
+      final parsedDate = DateHelpers.parseApiDate(user.schoolGraduationDate);
+      if (parsedDate != null) {
+        formattedGraduationDate = DateHelpers.formatToDisplayDate(parsedDate);
+      }
+    }
+
     return ProfileCard(
       title: '🎓 Education',
       onEdit: () {
@@ -140,7 +151,7 @@ class StudentProfileScreen extends ConsumerWidget {
           _buildEducationDetailRow(
             user?.schoolMajor ?? '',
             user?.schoolName ?? '',
-            user?.schoolGraduationDate ?? '',
+            formattedGraduationDate,
             showDivider: false,
           ),
         ],

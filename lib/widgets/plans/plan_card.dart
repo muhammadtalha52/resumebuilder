@@ -104,13 +104,45 @@ class PlanCard extends StatelessWidget {
   }
 
   Widget _buildPriceSection() {
-    return Text(
-      '\$${plan.price.toStringAsFixed(2)}',
-      style: const TextStyle(
-        color: AppColors.textPrimary,
-        fontSize: 32,
-        fontWeight: FontWeight.bold,
-      ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          '\$${plan.price.toStringAsFixed(2)}',
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 16,
+            fontWeight: FontWeight.normal,
+            decoration: TextDecoration.lineThrough,
+            decorationColor: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '\$${plan.discountedPrice.toStringAsFixed(2)}',
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          decoration: BoxDecoration(
+            color: const Color(0xFF22C55E).withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            'Save \$${PlanModel.discountAmount.toStringAsFixed(0)}',
+            style: const TextStyle(
+              color: Color(0xFF22C55E),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

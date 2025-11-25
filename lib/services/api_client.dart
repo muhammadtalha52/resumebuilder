@@ -81,14 +81,14 @@ class APIClient {
           log('_RESPONSE');
           log(e.response.toString());
 
-          // Check for authentication errors (401 Unauthorized, 403 Forbidden)
-          if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
-            log(
-              '-------------- AUTH ERROR (${e.response?.statusCode}) ---------------',
-            );
-            log('Unauthorized or Forbidden - logging out user');
-            _handleAuthError();
-          }
+          // // Check for authentication errors (401 Unauthorized, 403 Forbidden)
+          // if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
+          //   log(
+          //     '-------------- AUTH ERROR (${e.response?.statusCode}) ---------------',
+          //   );
+          //   log('Unauthorized or Forbidden - logging out user');
+          //   _handleAuthError();
+          // }
 
           return handler.next(e); //continue
         },

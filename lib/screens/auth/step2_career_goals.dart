@@ -492,11 +492,17 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
           const SizedBox(height: 20),
           _buildTextField(
             label: 'Long-term Goals',
-            isRequired: false,
+            isRequired: true,
             controller: _longTermGoalsController,
             hintText:
                 'e.g., Become a technical lead and mentor junior developers',
             maxLines: 5,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter your long-term goals';
+              }
+              return null;
+            },
           ),
           const SizedBox(height: 20),
           // Next button

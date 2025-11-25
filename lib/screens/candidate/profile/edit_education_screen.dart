@@ -197,8 +197,8 @@ class _EditEducationScreenState extends ConsumerState<EditEducationScreen> {
                 Expanded(
                   child: Text(
                     _graduationDate != null && !_degreeNotCompleted
-                        ? '${_graduationDate!.day.toString().padLeft(2, '0')}/${_graduationDate!.month.toString().padLeft(2, '0')}/${_graduationDate!.year}'
-                        : 'DD/MM/YYYY',
+                        ? DateHelpers.formatToDisplayDate(_graduationDate!)
+                        : 'MM/DD/YYYY',
                     style: TextStyle(
                       color: _degreeNotCompleted
                           ? AppColors.grey.withValues(alpha: 0.5)

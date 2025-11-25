@@ -1,24 +1,25 @@
 import 'dart:io';
+
+import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:file_picker/file_picker.dart' as file_picker;
-import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../constants/app_colors.dart';
+import '../../models/documents_response.dart';
 import '../../providers/documents_provider.dart';
+import '../../providers/quiz_provider.dart';
 import '../../providers/resume_provider.dart';
 import '../../providers/usage_provider.dart';
-import '../../models/documents_response.dart';
-import '../../widgets/common/custom_app_bar.dart';
-import '../../widgets/dialogs/delete_confirmation_dialog.dart';
-import '../../widgets/dialogs/confirmation_dialog.dart';
-import '../../utils/snackbar_utils.dart';
-import '../../utils/s3_utils.dart';
-import '../../providers/quiz_provider.dart';
 import '../../services/api_client.dart';
 import '../../services/subscription_service.dart';
-import 'document_viewer_screen.dart';
+import '../../utils/date_helpers.dart';
+import '../../utils/s3_utils.dart';
+import '../../utils/snackbar_utils.dart';
+import '../../widgets/common/custom_app_bar.dart';
+import '../../widgets/dialogs/confirmation_dialog.dart';
+import '../../widgets/dialogs/delete_confirmation_dialog.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
   final String lectureId;
@@ -165,9 +166,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         final icon = _getFileIcon(document.fileType ?? '');
         final size = _formatFileSize(document.fileSize ?? 0);
         final date = document.createdAt != null
-            ? DateFormat(
-                'MMM dd, yyyy',
-              ).format(DateTime.parse(document.createdAt!))
+            ? DateHelpers.formatToDisplayDate(
+                DateTime.parse(document.createdAt!),
+              )
             : '';
 
         return Slidable(

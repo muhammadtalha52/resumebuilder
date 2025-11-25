@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+
 import '../../constants/app_colors.dart';
-import '../../widgets/common/custom_app_bar.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/student_dashboard_provider.dart';
+import '../../utils/date_helpers.dart';
+import '../../widgets/common/custom_app_bar.dart';
 import '../common/main_screen.dart';
 
 class StudentDashboardScreen extends ConsumerStatefulWidget {
@@ -71,7 +72,7 @@ class _StudentDashboardScreenState
 
   Widget _buildWelcomeSection(WidgetRef ref) {
     final now = DateTime.now();
-    final formattedDate = DateFormat('EEEE, MMMM d, yyyy').format(now);
+    final formattedDate = DateHelpers.formatToDisplayDate(now);
     final authState = ref.watch(authProvider);
 
     // Get user's first name or fallback
@@ -107,11 +108,6 @@ class _StudentDashboardScreenState
             const SizedBox(width: 8),
             const Text('📚', style: TextStyle(fontSize: 24)),
           ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          formattedDate,
-          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
       ],
     );

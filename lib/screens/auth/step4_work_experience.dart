@@ -7,6 +7,7 @@ import '../../../../constants/app_colors.dart';
 import '../../../../providers/onboarding_provider.dart';
 import '../../../../widgets/common/custom_text_field.dart';
 import '../../../../models/resume_parse_model.dart';
+import '../../../../utils/date_helpers.dart';
 import '../../../../utils/snackbar_utils.dart';
 import '../../../../providers/resume_service_provider.dart';
 import '../../../../services/resume_service.dart';
@@ -524,8 +525,8 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
                 Expanded(
                   child: Text(
                     selectedDate != null && !isDisabled
-                        ? '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}'
-                        : 'DD/MM/YYYY',
+                        ? DateHelpers.formatToDisplayDate(selectedDate)
+                        : 'MM/DD/YYYY',
                     style: TextStyle(
                       color: isDisabled
                           ? AppColors.grey.withValues(alpha: 0.5)

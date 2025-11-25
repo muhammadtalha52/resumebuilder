@@ -158,6 +158,16 @@ class _ActivityHistoryScreenState extends ConsumerState<ActivityHistoryScreen> {
     );
   }
 
+  String _formatActivityDate(String? dateString) {
+    if (dateString == null || dateString.isEmpty) return '';
+    try {
+      final date = DateTime.parse(dateString);
+      return DateHelpers.formatToDisplayDate(date);
+    } catch (e) {
+      return '';
+    }
+  }
+
   Widget _buildActivityCard(Items activity, BuildContext context) {
     final activityType = activity.type?.toLowerCase() ?? '';
     final iconPath = activityType == 'resume'
@@ -199,7 +209,7 @@ class _ActivityHistoryScreenState extends ConsumerState<ActivityHistoryScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    DateHelpers.getTimeAgo(
+                    _formatActivityDate(
                       activity.timestamp ?? activity.createdAt ?? '',
                     ),
                     style: const TextStyle(
