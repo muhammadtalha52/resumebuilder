@@ -51,6 +51,7 @@ dependencies:
   crypto: ^3.0.7
   syncfusion_flutter_pdfviewer: ^31.2.12
   webview_flutter: ^4.13.0
+  in_app_review: ^2.0.11
 
 
 dependency_overrides:

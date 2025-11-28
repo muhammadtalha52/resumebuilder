@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AppPreferences {
   static const String _isFirstTimeKey = 'is_first_time';
   static const String _hasSeenWelcomeKey = 'has_seen_welcome';
+  static const String _hasRequestedInAppReviewKey =
+      'has_requested_in_app_review';
 
   static Future<bool> isFirstTime() async {
     final prefs = await SharedPreferences.getInstance();
@@ -27,5 +29,16 @@ class AppPreferences {
   static Future<void> markWelcomeComplete() async {
     await setHasSeenWelcome(true);
     await setFirstTime(false);
+  }
+
+  // In-App Review tracking methods (single key for all triggers)
+  static Future<bool> hasRequestedInAppReview() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_hasRequestedInAppReviewKey) ?? false;
+  }
+
+  static Future<void> setInAppReviewRequested() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_hasRequestedInAppReviewKey, true);
   }
 }

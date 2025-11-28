@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/meeting_summary_model.dart';
 import '../services/interview_service.dart';
+import '../services/in_app_review_service.dart';
 import 'continuous_transcription_provider.dart';
 import 'interview_session_provider.dart';
 
@@ -169,6 +170,9 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
           print('Meeting saved successfully: ${result['message']}');
           _ref.read(interviewSessionProvider.notifier).markAsSaved();
           state = state.copyWith(isSaving: false, hasSaved: true);
+
+          // Request in-app review (non-blocking, only shows once)
+          InAppReviewService().requestReview();
         } else {
           print('Failed to save : ${result['message']}');
           state = state.copyWith(

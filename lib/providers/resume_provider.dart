@@ -11,6 +11,7 @@ import '../models/generate_resume_response.dart';
 import '../services/resume_service.dart';
 import '../services/education_service.dart';
 import '../services/subscription_service.dart';
+import '../services/in_app_review_service.dart';
 import '../services/api_client.dart';
 
 class ResumeState {
@@ -83,11 +84,13 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
   final ResumeService _resumeService;
   final EducationService _educationService;
   final SubscriptionService _subscriptionService;
+  final InAppReviewService _inAppReviewService;
 
   ResumeNotifier(
     this._resumeService,
     this._educationService,
     this._subscriptionService,
+    this._inAppReviewService,
   ) : super(ResumeState());
 
   /// Pick resume file without parsing
@@ -533,6 +536,9 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
 
       state = state.copyWith(isLoading: false);
 
+      // Request in-app review (non-blocking, only shows once)
+      _inAppReviewService.requestReview();
+
       return result;
     } catch (e) {
       state = state.copyWith(
@@ -564,11 +570,21 @@ final subscriptionServiceProvider = Provider<SubscriptionService>((ref) {
   return SubscriptionService(apiClient);
 });
 
+final inAppReviewServiceProvider = Provider<InAppReviewService>((ref) {
+  return InAppReviewService();
+});
+
 final resumeProvider = StateNotifierProvider<ResumeNotifier, ResumeState>((
   ref,
 ) {
   final resumeService = ref.watch(resumeServiceProvider);
   final educationService = ref.watch(educationServiceProvider);
   final subscriptionService = ref.watch(subscriptionServiceProvider);
-  return ResumeNotifier(resumeService, educationService, subscriptionService);
+  final inAppReviewService = ref.watch(inAppReviewServiceProvider);
+  return ResumeNotifier(
+    resumeService,
+    educationService,
+    subscriptionService,
+    inAppReviewService,
+  );
 });
