@@ -21,6 +21,7 @@ import '../screens/candidate/profile/edit_personal_details_screen.dart';
 import '../screens/candidate/profile/edit_skills_tools_screen.dart';
 import '../screens/candidate/profile/edit_work_experience_screen.dart';
 
+import '../screens/candidate/invite/invite_friends_screen.dart';
 import '../screens/candidate/plans/candidate_plans_screen.dart';
 import '../screens/candidate/resume/resume_history_screen.dart';
 import '../screens/candidate/resume/resume_review_screen.dart';
@@ -313,6 +314,13 @@ final GoRouter appRouter = GoRouter(
       path: '/usage',
       pageBuilder: (context, state) => buildPageWithoutSwipeBack(
         child: const UsageScreen(),
+        key: state.pageKey,
+      ),
+    ),
+    GoRoute(
+      path: '/invite-friends',
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const InviteFriendsScreen(),
         key: state.pageKey,
       ),
     ),

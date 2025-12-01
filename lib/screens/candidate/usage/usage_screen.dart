@@ -8,6 +8,7 @@ import '../../../providers/usage_provider.dart';
 import '../../../providers/user_provider.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/custom_button.dart';
+import '../../../widgets/invite_friends_card.dart';
 
 class UsageScreen extends ConsumerStatefulWidget {
   const UsageScreen({super.key});
@@ -187,6 +188,10 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Invite friends card
+                InviteFriendsCard(isStudent: isStudent),
+                const SizedBox(height: 16),
+
                 // User info section
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

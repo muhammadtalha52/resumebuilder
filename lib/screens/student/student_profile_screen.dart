@@ -9,6 +9,7 @@ import '../../utils/snackbar_utils.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/common/tag_list.dart';
 import '../../widgets/dialogs/confirmation_dialog.dart';
+import '../../widgets/invite_friends_card.dart';
 import '../../widgets/profile_card.dart';
 import '../../widgets/profile_header.dart';
 
@@ -36,8 +37,10 @@ class StudentProfileScreen extends ConsumerWidget {
             child: Column(
               children: [
                 const SizedBox(height: 10),
+                const InviteFriendsCard(isStudent: true),
+                const SizedBox(height: 16),
                 const ProfileHeader(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 _buildPersonalDetailsCard(context, ref),
                 const SizedBox(height: 16),
                 _buildCareerGoalsCard(context, ref),

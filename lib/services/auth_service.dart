@@ -476,4 +476,85 @@ class AuthService {
       throw Exception('Failed to delete account: $e');
     }
   }
+
+  Future<Map<String, dynamic>> sendInviteEmail({required String email}) async {
+    try {
+      final response = await _apiClient.dio.post(
+        ApiEndpoints.sendInvite,
+        data: {'invitee_email': email},
+        options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return response.data;
+      } else {
+        throw Exception(
+          response.data?['error'] ??
+              response.data?['message'] ??
+              'Failed to send invitation',
+        );
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final responseData = e.response!.data;
+        String errorMessage = 'Failed to send invitation';
+
+        if (responseData is Map) {
+          if (responseData.containsKey('error')) {
+            errorMessage = responseData['error'].toString();
+          } else if (responseData.containsKey('message')) {
+            errorMessage = responseData['message'].toString();
+          } else if (responseData.containsKey('detail')) {
+            errorMessage = responseData['detail'].toString();
+          }
+        } else if (responseData is String) {
+          errorMessage = responseData;
+        }
+
+        throw Exception(errorMessage);
+      }
+      throw Exception('Network error. Please check your connection.');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to send invitation');
+    }
+  }
+
+  Future<Map<String, dynamic>> getInvites() async {
+    try {
+      final response = await _apiClient.dio.get(
+        ApiEndpoints.getInvites,
+        options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data;
+      } else {
+        throw Exception(response.data?['message'] ?? 'Failed to fetch invites');
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final responseData = e.response!.data;
+        String errorMessage = 'Failed to fetch invites';
+
+        if (responseData is Map) {
+          if (responseData.containsKey('error')) {
+            errorMessage = responseData['error'].toString();
+          } else if (responseData.containsKey('message')) {
+            errorMessage = responseData['message'].toString();
+          } else if (responseData.containsKey('detail')) {
+            errorMessage = responseData['detail'].toString();
+          }
+        } else if (responseData is String) {
+          errorMessage = responseData;
+        }
+
+        throw Exception(errorMessage);
+      }
+      throw Exception('Network error. Please check your connection.');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to fetch invites');
+    }
+  }
 }

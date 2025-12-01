@@ -26,6 +26,7 @@ class InAppReviewService {
       // Request review
       print('⭐ Requesting in-app review');
       await _inAppReview.requestReview();
+      //await _inAppReview.openStoreListing(appStoreId: '6755155918');
 
       // Mark as requested
       await AppPreferences.setInAppReviewRequested();
@@ -34,15 +35,6 @@ class InAppReviewService {
     } catch (e) {
       print('❌ Error requesting in-app review: $e');
       return false;
-    }
-  }
-
-  /// Open store listing as fallback
-  Future<void> openStoreListing() async {
-    try {
-      await _inAppReview.openStoreListing();
-    } catch (e) {
-      print('❌ Error opening store listing: $e');
     }
   }
 }
