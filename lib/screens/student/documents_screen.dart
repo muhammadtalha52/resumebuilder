@@ -777,8 +777,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             .markCreditsUsed(
               resourceType: 'document_upload',
               count: 1,
-              description: 'Document uploaded: $fileName',
-              referenceId: saveDocResponse.s3FileName,
+              description: 'Document uploaded',
             )
             .catchError((e) {
               print('Failed to mark credits used: $e');
@@ -887,9 +886,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
           .markCreditsUsed(
             resourceType: 'quiz',
             count: 1,
-            description:
-                'Quiz generated from ${selectionState.selectionCount} documents',
-            referenceId: widget.lectureName,
+            description: 'Quiz generated from documents',
           )
           .catchError((e) {
             print('Failed to mark credits used: $e');

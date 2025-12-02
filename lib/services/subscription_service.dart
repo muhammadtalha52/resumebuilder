@@ -231,7 +231,6 @@ class SubscriptionService {
     required String resourceType,
     required int count,
     required String description,
-    String? referenceId,
   }) async {
     const maxRetries = 2;
     int attemptCount = 0;
@@ -249,7 +248,7 @@ class SubscriptionService {
             'resource_type': resourceType,
             'count': count,
             'description': description,
-            'reference_id': referenceId ?? '',
+            'reference_id': "",
           },
           options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
         );

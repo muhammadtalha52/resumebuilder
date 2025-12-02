@@ -403,12 +403,7 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
           .markCreditsUsed(
             resourceType: 'resume',
             count: 1,
-            description: jobUrl != null && jobUrl.isNotEmpty
-                ? 'Resume generated for job: $jobUrl'
-                : jobDescription != null && jobDescription.isNotEmpty
-                ? 'Resume generated with custom job description'
-                : 'Resume generated',
-            referenceId: file.path,
+            description: 'Resume generated',
           )
           .then((success) {
             if (success) {

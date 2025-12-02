@@ -74,62 +74,81 @@ class _InviteFriendsScreenState extends ConsumerState<InviteFriendsScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
               ),
-              child: const Icon(
-                Icons.celebration,
-                color: AppColors.success,
-                size: 32,
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: AppColors.success,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.celebration,
+                  color: Colors.white,
+                  size: 32,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Congratulations!',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              rewardMessage,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
+              const SizedBox(height: 24),
+              const Text(
+                'Congratulations!',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  ref.read(inviteProvider.notifier).clearReward();
-                  Navigator.of(dialogContext).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 12),
+              Text(
+                rewardMessage,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: GestureDetector(
+                  onTap: () {
+                    ref.read(inviteProvider.notifier).clearReward();
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Awesome!',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                child: const Text(
-                  'Awesome!',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -140,9 +159,10 @@ class _InviteFriendsScreenState extends ConsumerState<InviteFriendsScreen> {
     final inviteState = ref.watch(inviteProvider);
     final authState = ref.watch(authProvider);
     final isStudent = authState.user?.role == 2;
-    final rewardText = isStudent
-        ? 'FREE study session credit!'
-        : 'FREE resume credit!';
+
+    // Check if user still needs to invite friends for reward
+    final showRewardText = inviteState.sentEmails.length < 3;
+    final rewardType = isStudent ? 'study session' : 'resume';
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
@@ -222,7 +242,7 @@ class _InviteFriendsScreenState extends ConsumerState<InviteFriendsScreen> {
                               ),
                               const SizedBox(height: 12),
                               const Text(
-                                'Invite Friends & Earn Rewards',
+                                'Invite Friends',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -231,7 +251,9 @@ class _InviteFriendsScreenState extends ConsumerState<InviteFriendsScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Invite 3 friends to join SkillResy and get a $rewardText',
+                                showRewardText
+                                    ? 'Invite 3 friends and get a FREE $rewardType!'
+                                    : 'Help friends and family succeed - invite them today!',
                                 style: const TextStyle(
                                   fontSize: 13,
                                   color: Colors.black54,

@@ -86,7 +86,7 @@ class _InterviewSummaryScreenState extends ConsumerState<MeetingSummaryScreen> {
         icon: Icons.save_outlined,
         iconBackgroundColor: AppColors.primary,
         confirmText: 'Save & Exit',
-        cancelText: 'Cancel',
+        cancelText: "Don't Save",
         confirmButtonColor: AppColors.primary,
         confirmTextColor: Colors.white,
       );
@@ -115,8 +115,11 @@ class _InterviewSummaryScreenState extends ConsumerState<MeetingSummaryScreen> {
             );
           }
         }
+      } else if (confirmed == false && mounted) {
+        // Don't Save clicked - navigate back without saving
+        context.go('/home');
       }
-      // If confirmed == false (Cancel clicked), dialog closes and user stays on screen
+      // If confirmed == null (dialog dismissed), user stays on screen
     } else {
       // No summary data, just go back
       context.go('/home');

@@ -1079,6 +1079,26 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           ],
         ),
         const SizedBox(height: 20),
+        // Done button - matches Edit Resume style
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: () => _showSaveDialog(context),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.primary),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            child: const Text(
+              'Done',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ),
+        const SizedBox(height: 40),
       ],
     );
   }
@@ -2768,8 +2788,8 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
                       key: ValueKey(pdfBytes.hashCode),
                       controller: pdfController,
                       canShowPaginationDialog: false,
-                      canShowScrollHead: true,
-                      canShowScrollStatus: true,
+                      canShowScrollHead: false,
+                      canShowScrollStatus: false,
                       pageSpacing: 4.0,
                     ),
                     // Top bar with close and download buttons
@@ -3067,13 +3087,19 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     showDialog(
       context: context,
       barrierDismissible: true, // Allow dismissal by tapping outside
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return _SaveDialog(
           onSave: () async {
             final success = await _saveResumeAndNavigateBack();
             if (mounted && success && parentContext.mounted) {
-              Navigator.of(context).pop(); // Close dialog
+              Navigator.of(dialogContext).pop(); // Close dialog
               parentContext.pop(); // Navigate back
+            }
+          },
+          onDontSave: () {
+            Navigator.of(dialogContext).pop(); // Close dialog
+            if (parentContext.mounted) {
+              parentContext.pop(); // Navigate back without saving
             }
           },
         );
@@ -3114,8 +3140,9 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
 
 class _SaveDialog extends StatefulWidget {
   final Future<void> Function() onSave;
+  final VoidCallback onDontSave;
 
-  const _SaveDialog({required this.onSave});
+  const _SaveDialog({required this.onSave, required this.onDontSave});
 
   @override
   State<_SaveDialog> createState() => _SaveDialogState();
@@ -3161,6 +3188,22 @@ class _SaveDialogState extends State<_SaveDialog> {
         ],
       ),
       actions: [
+        // Don't Save button
+        TextButton(
+          onPressed: _isLoading ? null : widget.onDontSave,
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.textSecondary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            minimumSize: const Size(100, 44),
+          ),
+          child: Text(
+            "Don't Save",
+            style: TextStyle(fontWeight: FontWeight.w500),
+          ),
+        ),
+        // Save & Exit button
         ElevatedButton(
           onPressed: _isLoading ? null : _handleSave,
           style: ElevatedButton.styleFrom(
@@ -3251,8 +3294,9 @@ class _DynamicPdfViewerState extends State<_DynamicPdfViewer> {
           'pdf_viewer_v${widget.version}_${widget.pdfBytes.hashCode}',
         ),
         controller: _pdfController,
-        canShowScrollHead: true,
-        canShowScrollStatus: true,
+        canShowScrollHead: false,
+        canShowScrollStatus: false,
+        canShowPaginationDialog: false,
         pageSpacing: 4.0,
       ),
     );

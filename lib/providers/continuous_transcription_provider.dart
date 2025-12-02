@@ -818,10 +818,7 @@ class ContinuousTranscriptionNotifier
             .markCreditsUsed(
               resourceType: 'interview',
               count: 1,
-              description: sessionType.toLowerCase() == 'interview'
-                  ? 'Interview session started for $companyName'
-                  : 'Meeting session started for $role',
-              referenceId: response.sessionId,
+              description: "Meeting session",
             )
             .then((success) async {
               if (success) {

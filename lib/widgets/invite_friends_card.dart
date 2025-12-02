@@ -44,7 +44,7 @@ class InviteFriendsCard extends ConsumerWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Invite 3 friends & get a $rewardText',
+                'Help friends and family succeed invite them today!',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
