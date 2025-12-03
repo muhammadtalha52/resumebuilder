@@ -10,7 +10,7 @@ import '../services/interview_service.dart';
 import '../services/subscription_service.dart';
 import '../services/api_client.dart';
 import '../services/transcription/transcriber_interface.dart';
-import '../services/transcription/realtime_audio_transcriber.dart';
+import '../services/transcription/deepgram_audio_transcriber.dart';
 import 'usage_provider.dart';
 
 enum InterviewSessionState {
@@ -192,12 +192,10 @@ class ContinuousTranscriptionNotifier
     _subscriptionService = SubscriptionService(apiClient);
   }
 
-  // Create realtime transcriber (using WebSocket streaming)
+  // Create Deepgram transcriber for real-time word-by-word streaming
   AudioTranscriber _createTranscriber() {
-    print(
-      '[FACTORY] Creating transcriber: RealtimeAudioTranscriber (WebSocket streaming)',
-    );
-    return RealtimeAudioTranscriber();
+    print('[FACTORY] Creating Deepgram transcriber');
+    return DeepgramAudioTranscriber();
   }
 
   // Listen to audio transcriber updates and sync with provider state
@@ -860,7 +858,8 @@ class ContinuousTranscriptionNotifier
     }
   }
 
-  // Get help with current transcript (now using streaming with focused cutoff)
+  // Get help with current transcript
+  // Deepgram streams words continuously - no commit/wait needed!
   Future<void> getHelp() async {
     // Only allow help if we have a session ID and some transcript
     if (state.sessionId == null || state.sessionId!.isEmpty) {
@@ -870,8 +869,11 @@ class ContinuousTranscriptionNotifier
       return;
     }
 
-    final transcript = state.fullTranscript.trim();
-    if (transcript.isEmpty) {
+    // Get transcript directly - Deepgram is always up-to-date
+    final completeTranscript =
+        (_audioTranscriber?.rawTranscript ?? state.fullTranscript).trim();
+
+    if (completeTranscript.isEmpty) {
       state = state.copyWith(
         error: 'No transcript available. Please record some speech first.',
       );
@@ -879,59 +881,69 @@ class ContinuousTranscriptionNotifier
     }
 
     try {
-      // 1. IMMEDIATELY show Scout is responding (seamless UX)
+      // 1. Show Scout is responding
       state = state.copyWith(isGettingHelp: true, error: null);
       final scoutMessageId = _addScoutResponse('', AssistantMessageType.help);
       state = state.copyWith(helpTimestamp: DateTime.now(), error: null);
 
-      // 2. SET CUTOFF POINT - ignore chunks created after this moment
-      _audioTranscriber?.setHelpRequestCutoff();
-
-      // 3. Force commit and wait for transcription to ensure we have latest context
-      if (_audioTranscriber != null) {
-        await _audioTranscriber!.commitAndWaitForTranscription(maxWaitMs: 5000);
+      // 2. Calculate delta (only new text since last help request)
+      String deltaTranscript;
+      if (_lastHelpTranscriptLength > 0 &&
+          _lastHelpTranscriptLength < completeTranscript.length) {
+        // Send only new text since last help
+        deltaTranscript = completeTranscript
+            .substring(_lastHelpTranscriptLength)
+            .trim();
+      } else if (_lastHelpTranscriptLength > 0 &&
+          _lastHelpTranscriptLength >= completeTranscript.length) {
+        // No new text - send last 500 chars as context
+        final contextStart = (completeTranscript.length - 500).clamp(
+          0,
+          completeTranscript.length,
+        );
+        deltaTranscript = completeTranscript.substring(contextStart).trim();
+        print('[HELP] No new text, sending last 500 chars as context');
+      } else {
+        // First help request - send entire transcript
+        deltaTranscript = completeTranscript;
       }
 
-      // 4. Get the complete transcript with all context (from chunks ≤ cutoff)
-      final completeTranscript =
-          (_audioTranscriber?.transcript ?? state.fullTranscript).trim();
+      // 3. Skip if delta too short
+      if (deltaTranscript.length < 10) {
+        print(
+          '[HELP] Delta too short (${deltaTranscript.length} chars), skipping',
+        );
+        _updateScoutResponse(
+          scoutMessageId,
+          'I need more context to help. Please wait for the interviewer to finish speaking and try again.',
+        );
+        state = state.copyWith(isGettingHelp: false);
+        return;
+      }
 
-      // OPTIMIZATION: Only send NEW transcript since last help request (delta)
-      final deltaTranscript =
-          _lastHelpTranscriptLength > 0 &&
-              _lastHelpTranscriptLength < completeTranscript.length
-          ? completeTranscript.substring(_lastHelpTranscriptLength).trim()
-          : completeTranscript;
-
-      // Create help request with ONLY delta transcript
+      // Create help request
       final request = SessionHelpRequest(
         sessionId: state.sessionId!,
         transcript: deltaTranscript,
       );
 
       print(
-        '[HELP] Complete transcript length: ${completeTranscript.length} chars',
-      );
-      print(
-        '[HELP] Delta transcript length: ${deltaTranscript.length} chars (from position $_lastHelpTranscriptLength)',
+        '[HELP] Transcript: ${completeTranscript.length} chars, Delta: ${deltaTranscript.length} chars',
       );
 
-      // Update last position BEFORE sending to capture current state
+      // Update last position
       _lastHelpTranscriptLength = completeTranscript.length;
 
-      // Stream help response
+      // 4. Stream help response (audio continues recording in background)
       String accumulatedResponse = '';
       await for (final chunk in _interviewService.getHelpStreaming(request)) {
         if (chunk.startsWith('Error:')) {
           print('[HELP] Help request failed: $chunk');
-          // Update the message with error
           _updateScoutResponse(scoutMessageId, chunk);
           break;
         } else {
-          // Accumulate the streaming response
           accumulatedResponse += chunk;
-          print('[HELP] Received chunk: "$chunk"');
-          // Batch Scout message updates - only update every 10 chars or on punctuation
+          // Batch updates
           if (accumulatedResponse.length - _pendingScoutContent.length >= 10 ||
               chunk.contains('.') ||
               chunk.contains('?') ||
@@ -939,30 +951,16 @@ class ContinuousTranscriptionNotifier
             _updateScoutResponse(scoutMessageId, accumulatedResponse);
             _pendingScoutContent = accumulatedResponse;
           }
-
-          // Update help response in state for legacy compatibility
           state = state.copyWith(helpResponse: accumulatedResponse);
-          print(
-            '[SCOUT-DEBUG] Updated helpResponse: ${accumulatedResponse.length} chars',
-          );
         }
       }
 
-      // Final update to ensure complete response is shown
+      // Final update
       _updateScoutResponse(scoutMessageId, accumulatedResponse);
       _pendingScoutContent = '';
-
-      // 5. CLEAR CUTOFF - resume normal processing for future help requests
-      _audioTranscriber?.clearHelpRequestCutoff();
-
-      // Mark help as complete
       state = state.copyWith(isGettingHelp: false);
     } catch (e) {
-      print('[HELP] Error getting streaming help: $e');
-
-      // Ensure cutoff is cleared even if there's an error
-      _audioTranscriber?.clearHelpRequestCutoff();
-
+      print('[HELP] Error: $e');
       state = state.copyWith(
         isGettingHelp: false,
         error: 'Failed to get help from AI assistant: ${e.toString()}',

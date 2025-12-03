@@ -3,11 +3,12 @@ import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-/// Multi-layer security for OpenAI API key
+/// Multi-layer security for API keys
 /// This file contains only encryption/decryption logic - NO actual secrets
 class SecureKeys {
   static const _storage = FlutterSecureStorage();
   static const _keyStorageName = 'oai_k';
+  static const _deepgramKeyStorageName = 'dg_k';
 
   // Obfuscated encryption key parts (split to avoid easy detection)
   static String _getP1() => 'SkR3';
@@ -17,43 +18,6 @@ class SecureKeys {
   static String _getP3() => '1K3y';
 
   static String _getP4() => '2024';
-
-  /// Get OpenAI API key with multi-layer security
-  static Future<String> getOpenAiKey() async {
-    // Layer 1: Try to get from secure storage (Android Keystore/iOS Keychain)
-    try {
-      final storedKey = await _storage.read(key: _keyStorageName);
-      if (storedKey != null && storedKey.isNotEmpty) {
-        return _decrypt(storedKey);
-      }
-    } catch (e) {
-      // If secure storage fails, fall through to environment variable
-    }
-
-    // Layer 2: Get from .env file and store encrypted in secure storage
-    try {
-      final envKey = dotenv.env['OPENAI_API_KEY'];
-      if (envKey != null && envKey.isNotEmpty) {
-        // Encrypt and store for next time
-        final encrypted = _encrypt(envKey);
-        try {
-          await _storage.write(key: _keyStorageName, value: encrypted);
-        } catch (e) {
-          // Ignore storage errors
-        }
-        return envKey;
-      }
-    } catch (e) {
-      // .env not loaded or key not found
-    }
-
-    throw Exception(
-      'OpenAI API key not configured!\n\n'
-      'Please create a .env file in the project root with:\n'
-      'OPENAI_API_KEY=your-key-here\n\n'
-      'Get your key from: https://platform.openai.com/api-keys',
-    );
-  }
 
   /// Encrypt the API key using AES
   static String _encrypt(String plainText) {
@@ -83,10 +47,56 @@ class SecureKeys {
     return decrypted;
   }
 
+  /// Get Deepgram API key with multi-layer security
+  static Future<String> getDeepgramKey() async {
+    // Layer 1: Try to get from secure storage (Android Keystore/iOS Keychain)
+    try {
+      final storedKey = await _storage.read(key: _deepgramKeyStorageName);
+      if (storedKey != null && storedKey.isNotEmpty) {
+        return _decrypt(storedKey);
+      }
+    } catch (e) {
+      // If secure storage fails, fall through to environment variable
+    }
+
+    // Layer 2: Get from .env file and store encrypted in secure storage
+    try {
+      final envKey = dotenv.env['DEEPGRAM_API_KEY'];
+      if (envKey != null && envKey.isNotEmpty) {
+        // Encrypt and store for next time
+        final encrypted = _encrypt(envKey);
+        try {
+          await _storage.write(key: _deepgramKeyStorageName, value: encrypted);
+        } catch (e) {
+          // Ignore storage errors
+        }
+        return envKey;
+      }
+    } catch (e) {
+      // .env not loaded or key not found
+    }
+
+    throw Exception(
+      'Deepgram API key not configured!\n\n'
+      'Please add to your .env file:\n'
+      'DEEPGRAM_API_KEY=your-key-here\n\n'
+      'Get your key from: https://console.deepgram.com/',
+    );
+  }
+
   /// Clear stored key (useful for logout or key rotation)
   static Future<void> clearStoredKey() async {
     try {
       await _storage.delete(key: _keyStorageName);
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+
+  /// Clear stored Deepgram key
+  static Future<void> clearDeepgramKey() async {
+    try {
+      await _storage.delete(key: _deepgramKeyStorageName);
     } catch (e) {
       // Ignore errors
     }

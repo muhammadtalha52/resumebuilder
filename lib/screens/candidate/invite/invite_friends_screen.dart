@@ -128,6 +128,9 @@ class _InviteFriendsScreenState extends ConsumerState<InviteFriendsScreen> {
                   onTap: () {
                     ref.read(inviteProvider.notifier).clearReward();
                     Navigator.of(dialogContext).pop();
+                    if (context.mounted) {
+                      context.pushReplacement('/usage');
+                    }
                   },
                   child: Container(
                     decoration: BoxDecoration(
@@ -161,7 +164,9 @@ class _InviteFriendsScreenState extends ConsumerState<InviteFriendsScreen> {
     final isStudent = authState.user?.role == 2;
 
     // Check if user still needs to invite friends for reward
-    final showRewardText = inviteState.sentEmails.length < 3;
+    final invitesSent = inviteState.sentEmails.length;
+    final invitesRemaining = 3 - invitesSent;
+    final showRewardText = invitesRemaining > 0;
     final rewardType = isStudent ? 'study session' : 'resume';
 
     return Scaffold(
@@ -252,7 +257,9 @@ class _InviteFriendsScreenState extends ConsumerState<InviteFriendsScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 showRewardText
-                                    ? 'Invite 3 friends and get a FREE $rewardType!'
+                                    ? invitesSent == 0
+                                          ? 'Invite 3 friends and get a FREE $rewardType!'
+                                          : 'Invite $invitesRemaining more ${invitesRemaining == 1 ? 'friend' : 'friends'} and get a FREE $rewardType!'
                                     : 'Help friends and family succeed - invite them today!',
                                 style: const TextStyle(
                                   fontSize: 13,

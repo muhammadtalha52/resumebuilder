@@ -1,55 +1,75 @@
-/// Configuration for real-time WebSocket transcription
+/// Configuration for Deepgram real-time transcription
 ///
-/// Uses OpenAI's Realtime API for near-instant transcription with:
-/// - WebSocket streaming (no disk I/O)
-/// - Real-time partial updates (~1-2 second delay)
-/// - Server-side Voice Activity Detection
-/// - PCM16 audio format @ 16kHz
+/// Deepgram provides true word-by-word streaming with:
+/// - Low latency (~200-300ms)
+/// - No commit/wait logic needed
+/// - Better accuracy for continuous speech
 class TranscriptionConfig {
-  // ==================== REALTIME CONFIG ====================
+  /// Configuration for Deepgram real-time transcription
+  static const deepgramConfig = {
+    /// Deepgram model to use
+    /// Options: 'nova-3' (latest, best accuracy), 'nova-2', 'nova-2-meeting'
+    /// Using 'nova-3' for best accuracy in interview transcription
+    'model': 'nova-3',
 
-  /// Configuration for real-time transcription
-  static const realtimeConfig = {
-    /// OpenAI model to use
-    /// Options: 'whisper-1', 'gpt-4o-transcribe', 'gpt-4o-mini-transcribe'
-    'model': 'gpt-4o-transcribe',
+    /// Language code
+    'language': 'en-US',
 
-    /// Audio format (must be pcm16 for realtime API)
-    'audioFormat': 'pcm16',
+    /// Audio encoding format
+    /// Options: 'linear16' (PCM16), 'flac', 'mulaw', 'amr-nb', 'amr-wb', 'opus', 'speex'
+    'encoding': 'linear16',
 
-    /// Sample rate in Hz (16000 or 24000 recommended for speech)
+    /// Sample rate in Hz (must match audio input)
     'sampleRate': 16000,
 
-    /// Audio buffer size in milliseconds (how often to send audio chunks)
-    /// Lower = more frequent updates but more overhead
-    /// Higher = less frequent updates but more efficient
-    'audioBufferMs': 250,
+    /// Number of audio channels (1 = mono, 2 = stereo)
+    'channels': 1,
 
-    /// Voice Activity Detection (VAD) threshold (0.0 - 1.0)
-    /// Lower = more sensitive to speech
-    /// Higher = requires louder/clearer speech
-    'vadThreshold': 0.5,
+    /// Enable interim results (partial transcripts while speaking)
+    /// true = get words as they're spoken, false = wait for final transcript
+    'interimResults': true,
 
-    /// Silence duration in ms before considering speech ended
-    'silenceDurationMs': 500,
+    /// Enable punctuation in transcripts
+    'punctuate': true,
 
-    /// Prefix padding in ms (context before speech starts)
-    'prefixPaddingMs': 300,
+    /// Enable smart formatting (numbers, dates, etc.)
+    'smartFormat': true,
 
-    /// Noise reduction type
-    /// Options: 'near_field' (close mic), 'far_field' (distant mic)
-    'noiseReduction': 'near_field',
+    /// Enable profanity filtering
+    'profanityFilter': false,
 
-    /// Include log probabilities for confidence scores
-    'includeLogProbs': false,
+    /// Enable diarization (speaker identification)
+    /// Useful if multiple speakers, but adds latency
+    'diarize': false,
 
-    /// WebSocket reconnection attempts
+    /// End of speech detection sensitivity (ms of silence before finalizing)
+    /// Lower = faster response, Higher = waits longer for speaker to continue
+    'endpointing': 300,
+
+    /// Utterance end detection (ms) - when to finalize an utterance
+    /// Longer values = fewer interruptions in transcript
+    'utteranceEndMs': 1000,
+
+    /// Voice Activity Detection (VAD) model
+    /// Options: 'true' (enable), 'false' (disable)
+    'vadEvents': true,
+
+    /// Filler words handling
+    /// 'true' = include "um", "uh", etc. | 'false' = filter them out
+    'fillerWords': false,
+
+    /// Keywords to boost (improve recognition accuracy for specific terms)
+    /// Add interview-specific terms if needed
+    'keywords': <String>[],
+
+    /// Maximum reconnection attempts
     'maxReconnectAttempts': 3,
 
     /// Delay between reconnection attempts in ms
     'reconnectDelayMs': 1000,
 
-    /// WebSocket ping interval to keep connection alive (ms)
-    'pingIntervalMs': 30000,
+    /// WebSocket keep-alive interval (ms)
+    /// Deepgram requires periodic keep-alive messages
+    'keepAliveIntervalMs': 10000,
   };
 }
