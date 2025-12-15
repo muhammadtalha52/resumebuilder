@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../models/conversation_models.dart';
 import '../../../models/meeting_history_response.dart';
 import '../../../utils/date_helpers.dart';
 import '../../../widgets/common/custom_app_bar.dart';
@@ -19,14 +20,6 @@ class MeetingDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _MeetingDetailScreenState extends ConsumerState<MeetingDetailScreen> {
-  final TextEditingController _questionController = TextEditingController();
-
-  @override
-  void dispose() {
-    _questionController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -300,6 +293,13 @@ class _MeetingDetailScreenState extends ConsumerState<MeetingDetailScreen> {
                             ),
                           ],
 
+                          // Transcript Section
+                          if (widget.meeting.transcript != null &&
+                              widget.meeting.transcript!.isNotEmpty) ...[
+                            const SizedBox(height: 24),
+                            _buildTranscriptSection(),
+                          ],
+
                           const SizedBox(height: 24),
 
                           // Ask Scout the fox - Tappable container
@@ -529,6 +529,376 @@ class _MeetingDetailScreenState extends ConsumerState<MeetingDetailScreen> {
             );
           }),
       ],
+    );
+  }
+
+  Widget _buildTranscriptSection() {
+    // Try to parse as JSON pairs
+    final pairs = TranscriptAnswerPair.decodeList(widget.meeting.transcript);
+
+    if (pairs != null && pairs.isNotEmpty) {
+      // New format: Button to open bottom sheet with all pairs
+      return _buildTranscriptButton(pairs);
+    } else {
+      // Legacy format: Display as plain text
+      return _buildLegacyTranscriptSection();
+    }
+  }
+
+  /// Builds a button that opens the transcript bottom sheet
+  Widget _buildTranscriptButton(List<TranscriptAnswerPair> pairs) {
+    return GestureDetector(
+      onTap: () => _openTranscriptBottomSheet(pairs),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.blue.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.blue.shade200),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade100,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.description_outlined,
+                color: Colors.blue.shade700,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Transcript & Scout Responses',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tap to view full conversation',
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade700,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.arrow_forward_ios,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Opens the bottom sheet with all transcript-answer pairs
+  void _openTranscriptBottomSheet(List<TranscriptAnswerPair> pairs) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _TranscriptBottomSheet(pairs: pairs),
+    );
+  }
+
+  /// Legacy transcript display (plain text)
+  Widget _buildLegacyTranscriptSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Full Transcript',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              tilePadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 4,
+              ),
+              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.description_outlined,
+                  color: Colors.blue.shade700,
+                  size: 20,
+                ),
+              ),
+              title: const Text(
+                'View Transcript',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              subtitle: Text(
+                'Tap to expand full conversation',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: SelectableText(
+                    widget.meeting.transcript!,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[800],
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Bottom sheet displaying all transcript-answer pairs in a scrollable list
+class _TranscriptBottomSheet extends StatelessWidget {
+  final List<TranscriptAnswerPair> pairs;
+
+  const _TranscriptBottomSheet({required this.pairs});
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.9,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.description_outlined,
+                        color: Colors.blue.shade700,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Transcript & Scout Responses',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          size: 20,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Divider(color: Colors.grey[200], height: 1),
+              // Scrollable list of pairs
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: pairs.length,
+                  itemBuilder: (context, index) {
+                    final pair = pairs[index];
+                    return _buildPairItem(context, pair, index + 1);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPairItem(
+    BuildContext context,
+    TranscriptAnswerPair pair,
+    int index,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Transcript section
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.mic, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Transcript/Question',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                SelectableText(
+                  pair.transcript,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[800],
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Scout response section
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: Image.asset(
+                        'assets/icons/fox-mascot.png',
+                        width: 20,
+                        height: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Scout\'s Response',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                SelectableText(
+                  pair.answer,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[800],
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Divider between pairs (except last one)
+          if (index < pairs.length) ...[
+            const SizedBox(height: 16),
+            Divider(color: Colors.grey[200], height: 1),
+          ],
+        ],
+      ),
     );
   }
 }

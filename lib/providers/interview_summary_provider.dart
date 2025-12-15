@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/conversation_models.dart';
 import '../models/meeting_summary_model.dart';
 import '../services/interview_service.dart';
 import '../services/in_app_review_service.dart';
@@ -109,21 +110,31 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
         state.meetingSummaryModel!.summary != null) {
       try {
         final summary = state.meetingSummaryModel!.summary!;
-        // Simple: fullTranscript + helpResponse (if exists)
-        String completeTranscriptAndScoutResponses =
-            transcriptionData.fullTranscript;
 
-        if (transcriptionData.conversation.messages.isNotEmpty) {
-          if (completeTranscriptAndScoutResponses.isNotEmpty) {
-            completeTranscriptAndScoutResponses +=
-                '\n\n--- Scout AI Responses ---\n\n';
-          }
-
-          for (var element in transcriptionData.conversation.messages) {
-            if (element.content.isNotEmpty) {
-              completeTranscriptAndScoutResponses += element.content;
+        // NEW: Use JSON format for transcript-answer pairs
+        String transcriptToSave;
+        if (transcriptionData.transcriptAnswerPairs.isNotEmpty) {
+          // Encode pairs as JSON for structured display
+          transcriptToSave = TranscriptAnswerPair.encodeList(
+            transcriptionData.transcriptAnswerPairs,
+          );
+          print(
+            '[SAVE] Using JSON format with ${transcriptionData.transcriptAnswerPairs.length} pairs',
+          );
+        } else {
+          // Fallback to old format if no pairs captured
+          transcriptToSave = transcriptionData.fullTranscript;
+          if (transcriptionData.conversation.messages.isNotEmpty) {
+            if (transcriptToSave.isNotEmpty) {
+              transcriptToSave += '\n\n--- Scout AI Responses ---\n\n';
+            }
+            for (var element in transcriptionData.conversation.messages) {
+              if (element.content.isNotEmpty) {
+                transcriptToSave += element.content;
+              }
             }
           }
+          print('[SAVE] Using legacy format (no pairs captured)');
         }
 
         final nowDateTime = DateTime.now().toUtc().toIso8601String();
@@ -146,7 +157,7 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
           'job_description': sessionData.jobDescription,
           "interview_date": nowDateTime,
           "duration_minutes": durationMinutes,
-          "transcript": completeTranscriptAndScoutResponses,
+          "transcript": transcriptToSave,
           "key_topics": summary.keyDiscussionPoints,
           "strength_highlight": summary.strengthsHighlighted,
           "weakness_highlight": summary.potentialWeaknessOrStrengths,

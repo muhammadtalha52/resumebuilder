@@ -87,6 +87,9 @@ class InterviewSessionData {
   final bool sessionWarning5Min; // Warning at 55 minutes
   final bool sessionAutoEnd; // Auto-end at 60 minutes
 
+  // Transcript-answer pairs for saving (tracks transcript segment + Scout response)
+  final List<TranscriptAnswerPair> transcriptAnswerPairs;
+
   InterviewSessionData({
     this.state = InterviewSessionState.idle,
     this.sessionDuration = Duration.zero,
@@ -113,6 +116,7 @@ class InterviewSessionData {
     this.helpTimestamp,
     this.sessionWarning5Min = false,
     this.sessionAutoEnd = false,
+    this.transcriptAnswerPairs = const [],
   }) : conversation = conversation ?? ConversationData();
 
   InterviewSessionData copyWith({
@@ -141,6 +145,7 @@ class InterviewSessionData {
     DateTime? helpTimestamp,
     bool? sessionWarning5Min,
     bool? sessionAutoEnd,
+    List<TranscriptAnswerPair>? transcriptAnswerPairs,
   }) {
     return InterviewSessionData(
       state: state ?? this.state,
@@ -168,6 +173,8 @@ class InterviewSessionData {
       helpTimestamp: helpTimestamp ?? this.helpTimestamp,
       sessionWarning5Min: sessionWarning5Min ?? this.sessionWarning5Min,
       sessionAutoEnd: sessionAutoEnd ?? this.sessionAutoEnd,
+      transcriptAnswerPairs:
+          transcriptAnswerPairs ?? this.transcriptAnswerPairs,
     );
   }
 }
@@ -340,8 +347,12 @@ class ContinuousTranscriptionNotifier
     final currentHelpResponse = state.helpResponse;
     final currentHelpTimestamp = state.helpTimestamp;
     final currentSessionDuration = state.sessionDuration;
+    final currentTranscriptAnswerPairs = state.transcriptAnswerPairs;
 
     print('[SESSION-STOP] Preserved data:');
+    print(
+      '[SESSION-STOP] Transcript-Answer pairs: ${currentTranscriptAnswerPairs.length}',
+    );
 
     // Stop audio recording and timer
     _stopTimer();
@@ -378,6 +389,8 @@ class ContinuousTranscriptionNotifier
       transcriptionState: null,
       chunkCount: 0,
       pendingChunks: 0,
+      // PRESERVE TRANSCRIPT-ANSWER PAIRS
+      transcriptAnswerPairs: currentTranscriptAnswerPairs,
     );
 
     print('[SESSION-STOP] ✅ Session stopped - all data preserved for summary');
@@ -751,8 +764,27 @@ class ContinuousTranscriptionNotifier
         '[MEETING-NEXT] Streaming completed. Final response length: ${accumulatedResponse.length} chars',
       );
 
-      // Mark help as complete
-      state = state.copyWith(isGettingHelp: false);
+      // Add transcript-answer pair for saving
+      final transcriptUsed = state.fullTranscript.trim();
+      if (accumulatedResponse.isNotEmpty &&
+          !accumulatedResponse.startsWith('Error:') &&
+          transcriptUsed.isNotEmpty) {
+        final pair = TranscriptAnswerPair(
+          transcript: transcriptUsed,
+          answer: accumulatedResponse,
+          answerType: 'help',
+        );
+        final updatedPairs = [...state.transcriptAnswerPairs, pair];
+        state = state.copyWith(
+          isGettingHelp: false,
+          transcriptAnswerPairs: updatedPairs,
+        );
+        print(
+          '[MEETING-NEXT] Added transcript-answer pair. Total pairs: ${updatedPairs.length}',
+        );
+      } else {
+        state = state.copyWith(isGettingHelp: false);
+      }
     } catch (e) {
       print('[MEETING-NEXT] Error getting streaming meeting assistance: $e');
       state = state.copyWith(
@@ -958,7 +990,26 @@ class ContinuousTranscriptionNotifier
       // Final update
       _updateScoutResponse(scoutMessageId, accumulatedResponse);
       _pendingScoutContent = '';
-      state = state.copyWith(isGettingHelp: false);
+
+      // Add transcript-answer pair for saving
+      if (accumulatedResponse.isNotEmpty &&
+          !accumulatedResponse.startsWith('Error:')) {
+        final pair = TranscriptAnswerPair(
+          transcript: deltaTranscript,
+          answer: accumulatedResponse,
+          answerType: 'help',
+        );
+        final updatedPairs = [...state.transcriptAnswerPairs, pair];
+        state = state.copyWith(
+          isGettingHelp: false,
+          transcriptAnswerPairs: updatedPairs,
+        );
+        print(
+          '[HELP] Added transcript-answer pair. Total pairs: ${updatedPairs.length}',
+        );
+      } else {
+        state = state.copyWith(isGettingHelp: false);
+      }
     } catch (e) {
       print('[HELP] Error: $e');
       state = state.copyWith(
