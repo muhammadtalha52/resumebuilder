@@ -49,6 +49,7 @@ dependencies:
   syncfusion_flutter_pdfviewer: ^31.2.16
   webview_flutter: ^4.13.0
   in_app_review: ^2.0.11
+  open_filex: ^4.7.0
 
 
 dependency_overrides:

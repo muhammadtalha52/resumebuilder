@@ -441,6 +441,8 @@ class User {
     String? schoolMajor,
     String? schoolGraduationDate,
     List<IdealJobTitle>? idealJobTitles,
+    double? yearsOfExperience,
+    String? placementType,
   }) {
     _id = id;
     _email = email;
@@ -492,6 +494,8 @@ class User {
     _schoolMajor = schoolMajor;
     _schoolGraduationDate = schoolGraduationDate;
     _idealJobTitles = idealJobTitles;
+    _yearsOfExperience = yearsOfExperience;
+    _placementType = placementType;
   }
 
   User.fromJson(dynamic json) {
@@ -595,6 +599,10 @@ class User {
               .map((e) => IdealJobTitle.fromJson(e))
               .toList()
         : null;
+    _yearsOfExperience = json['years_of_experience'] != null
+        ? (json['years_of_experience'] as num).toDouble()
+        : null;
+    _placementType = json['placement_type'];
   }
 
   int? _id;
@@ -647,6 +655,8 @@ class User {
   String? _schoolMajor;
   String? _schoolGraduationDate;
   List<IdealJobTitle>? _idealJobTitles;
+  double? _yearsOfExperience;
+  String? _placementType;
 
   int? get id => _id;
 
@@ -749,6 +759,10 @@ class User {
 
   List<IdealJobTitle>? get idealJobTitles => _idealJobTitles;
 
+  double? get yearsOfExperience => _yearsOfExperience;
+
+  String? get placementType => _placementType;
+
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['id'] = _id;
@@ -841,6 +855,8 @@ class User {
           .map((e) => e.toJson())
           .toList();
     }
+    map['years_of_experience'] = _yearsOfExperience;
+    map['placement_type'] = _placementType;
     return map;
   }
 
@@ -895,6 +911,8 @@ class User {
     String? schoolMajor,
     String? schoolGraduationDate,
     List<IdealJobTitle>? idealJobTitles,
+    double? yearsOfExperience,
+    String? placementType,
   }) {
     return User(
       id: id ?? _id,
@@ -948,6 +966,8 @@ class User {
       schoolMajor: schoolMajor ?? _schoolMajor,
       schoolGraduationDate: schoolGraduationDate ?? _schoolGraduationDate,
       idealJobTitles: idealJobTitles ?? _idealJobTitles,
+      yearsOfExperience: yearsOfExperience ?? _yearsOfExperience,
+      placementType: placementType ?? _placementType,
     );
   }
 }

@@ -142,7 +142,7 @@ class ResumeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
           const Text(
-            'Choose resume file to upload',
+            'Have a Resume? Upload It',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -151,7 +151,7 @@ class ResumeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Supported Files: pdf or docx (max. 10mb)',
+            'Upload PDF or DOCX to enhance',
             style: TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary.withValues(alpha: 0.6),
@@ -239,7 +239,7 @@ class ResumeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
           const Text(
-            'Build resume from scratch',
+            "No Resume? We'll Build It",
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -248,7 +248,7 @@ class ResumeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Add your skills and Scout will guide you',
+            'Using your profile information',
             style: TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary.withValues(alpha: 0.6),
@@ -271,7 +271,7 @@ class ResumeScreen extends ConsumerWidget {
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
+                  const Text(
                     'Create Resume',
                     style: TextStyle(
                       fontSize: 16,
@@ -298,7 +298,7 @@ class ResumeScreen extends ConsumerWidget {
     if (resumeState.isLoading) {
       return 'Selecting File...';
     } else {
-      return 'Upload Resume';
+      return 'Create Resume';
     }
   }
 

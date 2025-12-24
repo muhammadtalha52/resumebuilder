@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:skillresy/utils/snackbar_utils.dart';
@@ -64,6 +65,35 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
 
   bool get _hasChanges => _state.hasChanges;
 
+  /// Parses date strings in multiple formats commonly used in resumes
+  /// Supports: MM/yyyy, MMM yyyy, MMMM yyyy, yyyy-MM-dd, yyyy-MM, etc.
+  DateTime? _parseFlexibleDate(String dateStr) {
+    if (dateStr.isEmpty) return null;
+
+    final formats = [
+      'MM/yyyy',
+      'M/yyyy',
+      'MMM yyyy',
+      'MMMM yyyy',
+      'yyyy-MM-dd',
+      'yyyy-MM',
+      'dd/MM/yyyy',
+      'MM-yyyy',
+      'yyyy',
+    ];
+
+    for (final format in formats) {
+      try {
+        return DateFormat(format).parse(dateStr);
+      } catch (_) {
+        // Try next format
+      }
+    }
+
+    debugPrint('⚠️ Could not parse date: $dateStr');
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(_editProvider);
@@ -80,71 +110,69 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                 // Main content
                 Column(
                   children: [
-                    // Header with Scout AI chip
+                    // Header with X close and Save button
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       color: Colors.white,
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Spacer(),
-                          // Scout AI chip - centered
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF4285F4),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.auto_awesome,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Scout AI-Powered',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
+                          // Close button
+                          GestureDetector(
+                            onTap: state.isSavingChanges
+                                ? null
+                                : _handleCloseButton,
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                size: 20,
+                                color: Color(0xFF6B7280),
+                              ),
                             ),
                           ),
-                          const Spacer(),
-                          // Check button
+                          // Save button
                           GestureDetector(
                             onTap: state.isSavingChanges ? null : _saveChanges,
                             child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFF6B35),
-                                borderRadius: BorderRadius.circular(12),
+                              height: 36,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
                               ),
-                              child: state.isSavingChanges
-                                  ? Container(
-                                      padding: EdgeInsets.all(5),
-                                      width: 15,
-                                      height: 15,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
-                                            ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Center(
+                                child: state.isSavingChanges
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.white,
+                                              ),
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Save Changes',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
                                       ),
-                                    )
-                                  : const Icon(
-                                      Icons.check_circle,
-                                      color: Colors.white,
-                                    ),
+                              ),
                             ),
                           ),
                         ],
@@ -154,7 +182,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                     Expanded(
                       child: SingleChildScrollView(
                         controller: _scrollController,
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(8),
                         child: Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -168,20 +196,20 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                             ],
                           ),
                           child: Padding(
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(12),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 _buildProfileSection(),
-                                const SizedBox(height: 32),
+                                const SizedBox(height: 20),
                                 _buildProfessionalSummarySection(),
-                                const SizedBox(height: 32),
+                                const SizedBox(height: 20),
                                 _buildCoreSkillsSection(),
-                                const SizedBox(height: 32),
+                                const SizedBox(height: 20),
                                 _buildWorkExperienceSection(),
-                                const SizedBox(height: 32),
+                                const SizedBox(height: 20),
                                 _buildProjectsSection(),
-                                const SizedBox(height: 32),
+                                const SizedBox(height: 20),
                                 _buildEducationSection(),
                               ],
                             ),
@@ -214,65 +242,64 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
             const Text(
               'Personal Details',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.edit, color: AppColors.primary),
-              onPressed: _editPersonalDetails,
-              tooltip: 'Edit Personal Details',
+            GestureDetector(
+              onTap: _editPersonalDetails,
+              child: const Icon(Icons.edit, color: AppColors.primary, size: 20),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
 
         // Name and details
         Text(
           personal?.name ?? 'Your Name',
           style: const TextStyle(
-            fontSize: 28,
+            fontSize: 22,
             fontWeight: FontWeight.bold,
             color: Colors.black,
           ),
         ),
         if (personal?.email != null && personal!.email!.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.email, size: 16, color: AppColors.primary),
-              const SizedBox(width: 8),
+              const Icon(Icons.email, size: 14, color: AppColors.primary),
+              const SizedBox(width: 6),
               Text(
                 personal.email!,
-                style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
               ),
             ],
           ),
         ],
         if (personal?.phone != null && personal!.phone!.isNotEmpty) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Row(
             children: [
-              const Icon(Icons.phone, size: 16, color: AppColors.primary),
-              const SizedBox(width: 8),
+              const Icon(Icons.phone, size: 14, color: AppColors.primary),
+              const SizedBox(width: 6),
               Text(
                 personal.phone!,
-                style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
               ),
             ],
           ),
         ],
         if (personal?.linkedin != null && personal!.linkedin!.isNotEmpty) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Row(
             children: [
-              const Icon(Icons.link, size: 16, color: AppColors.primary),
-              const SizedBox(width: 8),
+              const Icon(Icons.link, size: 14, color: AppColors.primary),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   personal.linkedin!,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -281,15 +308,15 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
         ],
         if (personal?.personalWebsite != null &&
             personal!.personalWebsite!.isNotEmpty) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Row(
             children: [
-              const Icon(Icons.language, size: 16, color: AppColors.primary),
-              const SizedBox(width: 8),
+              const Icon(Icons.language, size: 14, color: AppColors.primary),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   personal.personalWebsite!,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -310,32 +337,21 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
             const Text(
               'Professional Summary',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
               ),
             ),
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, color: AppColors.primary),
-                  onPressed: _editProfessionalSummary,
-                  tooltip: 'Edit Summary',
-                ),
-                // TODO: Uncomment when regenerate feature is ready
-                // IconButton(
-                //   icon: const Icon(Icons.refresh, color: AppColors.primary),
-                //   onPressed: () => _regenerateSection(['summary']),
-                //   tooltip: 'Regenerate Summary with AI',
-                // ),
-              ],
+            GestureDetector(
+              onTap: _editProfessionalSummary,
+              child: const Icon(Icons.edit, color: AppColors.primary, size: 20),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.shade300),
             borderRadius: BorderRadius.circular(8),
@@ -344,9 +360,9 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
             _editableResumeData.resumeData?.summary ??
                 'Experienced ux/ui designer with 3 years of industry experience. Proven track record of delivering high-quality solutions and collaborating effectively with cross-functional teams. Strong expertise in modern technologies and methodologies.',
             style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[800],
-              height: 1.5,
+              fontSize: 13,
+              color: Colors.grey[700],
+              height: 1.4,
             ),
           ),
         ),
@@ -363,13 +379,13 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
           category: 'hard',
           description: 'Technical skills and job-specific competencies',
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         _buildSkillCategorySection(
           title: 'Soft Skills',
           category: 'soft',
           description: 'Interpersonal and communication abilities',
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         _buildSkillCategorySection(
           title: 'Tools & Technologies',
           category: 'tools',
@@ -411,36 +427,36 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                   Text(
                     title,
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     description,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                   ),
                 ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 6,
+          runSpacing: 6,
           children: [
             ...categorySkills.map((skill) => _buildSkillChip(skill)),
             GestureDetector(
               onTap: () => _showAddSkillDialog(category: category),
               child: Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: const BoxDecoration(
                   color: Color(0xFF4285F4),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.add, color: Colors.white, size: 20),
+                child: const Icon(Icons.add, color: Colors.white, size: 16),
               ),
             ),
           ],
@@ -451,11 +467,11 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
 
   Widget _buildSkillChip(String skill) {
     return Container(
-      constraints: const BoxConstraints(maxWidth: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      constraints: const BoxConstraints(maxWidth: 180),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: const Color(0xFFF1F3F4),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -463,15 +479,15 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
           Flexible(
             child: Text(
               skill,
-              style: const TextStyle(fontSize: 14, color: Colors.black87),
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           GestureDetector(
             onTap: () => _removeSkill(skill),
-            child: const Icon(Icons.close, size: 16, color: Colors.grey),
+            child: const Icon(Icons.close, size: 14, color: Colors.grey),
           ),
         ],
       ),
@@ -491,43 +507,36 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
             Row(
               children: [
                 Container(
-                  width: 24,
-                  height: 24,
+                  width: 20,
+                  height: 20,
                   decoration: const BoxDecoration(
                     color: Color(0xFFFF6B35),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.work, color: Colors.white, size: 14),
+                  child: const Icon(Icons.work, color: Colors.white, size: 11),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 const Text(
                   'Work Experience',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
                   ),
                 ),
               ],
             ),
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.add_circle, color: AppColors.primary),
-                  onPressed: () => _addWorkExperience(),
-                  tooltip: 'Add Work Experience',
-                ),
-                // TODO: Uncomment when regenerate feature is ready
-                // IconButton(
-                //   icon: const Icon(Icons.refresh, color: AppColors.primary),
-                //   onPressed: () => _regenerateSection(['work_experience']),
-                //   tooltip: 'Regenerate with AI',
-                // ),
-              ],
+            GestureDetector(
+              onTap: () => _addWorkExperience(),
+              child: const Icon(
+                Icons.add_circle,
+                color: AppColors.primary,
+                size: 22,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
         if (workExperiences.isNotEmpty)
           ...workExperiences.asMap().entries.map(
@@ -585,8 +594,8 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     final isLast = index == workExperiences.length - 1;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey.shade300),
         borderRadius: BorderRadius.circular(8),
@@ -599,96 +608,92 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               if (!isFirst)
-                IconButton(
-                  icon: const Icon(
-                    Icons.arrow_upward,
-                    size: 20,
-                    color: AppColors.primary,
+                GestureDetector(
+                  onTap: () => _notifier.moveWorkExperienceUp(index),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.arrow_upward,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
                   ),
-                  onPressed: () => _notifier.moveWorkExperienceUp(index),
-                  tooltip: 'Move Up',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
                 ),
               if (!isLast)
-                IconButton(
-                  icon: const Icon(
-                    Icons.arrow_downward,
-                    size: 20,
-                    color: AppColors.primary,
+                GestureDetector(
+                  onTap: () => _notifier.moveWorkExperienceDown(index),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.arrow_downward,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
                   ),
-                  onPressed: () => _notifier.moveWorkExperienceDown(index),
-                  tooltip: 'Move Down',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
                 ),
-              IconButton(
-                icon: const Icon(
-                  Icons.edit,
-                  size: 20,
-                  color: AppColors.primary,
+              GestureDetector(
+                onTap: () => _editWorkExperience(experience, index),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.edit, size: 18, color: AppColors.primary),
                 ),
-                onPressed: () => _editWorkExperience(experience, index),
-                tooltip: 'Edit',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
               ),
-              IconButton(
-                icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-                onPressed: () => _deleteWorkExperience(index),
-                tooltip: 'Delete',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+              GestureDetector(
+                onTap: () => _deleteWorkExperience(index),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.delete, size: 18, color: Colors.red),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             experience.role ?? 'Role',
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 15,
               fontWeight: FontWeight.w600,
               color: Colors.black,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             experience.company ?? 'Company',
-            style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+            style: TextStyle(fontSize: 14, color: Colors.grey[700]),
           ),
           if (experience.location != null) ...[
             const SizedBox(height: 2),
             Text(
               experience.location!,
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
             ),
           ],
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             '${experience.fromDate ?? 'Start Date'} - ${experience.toDate ?? 'End Date'}',
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: 13,
               color: AppColors.primary,
               fontWeight: FontWeight.w500,
             ),
           ),
           if (experience.description != null &&
               experience.description!.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             ...experience.description!.map(
               (desc) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.only(bottom: 3),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('• ', style: TextStyle(fontSize: 14)),
+                    const Text('• ', style: TextStyle(fontSize: 13)),
                     Expanded(
                       child: Text(
                         desc,
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           color: Colors.grey[800],
-                          height: 1.4,
+                          height: 1.35,
                         ),
                       ),
                     ),
@@ -721,34 +726,34 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       text: experience?.location ?? '',
     );
 
-    // Parse dates from string format (MMM yyyy)
+    // Parse dates from string format (supports multiple formats)
     DateTime? selectedFromDate;
     DateTime? selectedToDate;
 
     if (experience?.fromDate != null && experience!.fromDate!.isNotEmpty) {
-      try {
-        selectedFromDate = DateFormat('MM/yyyy').parse(experience.fromDate!);
-      } catch (e) {
-        // If parsing fails, leave as null
-      }
+      selectedFromDate = _parseFlexibleDate(experience.fromDate!);
     }
 
     if (experience?.toDate != null &&
         experience!.toDate!.isNotEmpty &&
-        experience!.toDate!.toLowerCase() != 'present') {
-      try {
-        selectedToDate = DateFormat('MM/yyyy').parse(experience!.toDate!);
-      } catch (e) {
-        // If parsing fails, leave as null
-      }
+        experience.toDate!.toLowerCase() != 'present') {
+      selectedToDate = _parseFlexibleDate(experience.toDate!);
     }
 
+    // Create controllers list for responsibilities (auto-add pattern)
+    // Always include one empty field at the end for easy adding
     final descriptionList = List<String>.from(experience?.description ?? []);
-    final descriptionControllers = descriptionList
-        .map((desc) => TextEditingController(text: desc))
-        .toList();
+    final responsibilitiesControllers = [
+      ...descriptionList.map((d) => TextEditingController(text: d)),
+      TextEditingController(), // Always show one empty field for adding
+    ];
 
     bool isCurrentlyWorking = experience?.toDate?.toLowerCase() == 'present';
+
+    // Error state for inline validation
+    String? roleError;
+    String? companyError;
+    String? startDateError;
 
     showDialog(
       context: context,
@@ -756,16 +761,18 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 24,
+          insetPadding: const EdgeInsets.only(
+            left: 10,
+            right: 10,
+            top: 0,
+            bottom: 20,
           ),
           child: Container(
             width: MediaQuery.of(context).size.width,
             constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.85,
+              maxHeight: MediaQuery.of(context).size.height * 0.9,
             ),
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -777,519 +784,929 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                 ),
               ],
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  Text(
-                    isEditing ? 'Edit Work Experience' : 'Add Work Experience',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A1A1A),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      isEditing ? 'Edit Experience' : 'Add Experience',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1A1A1A),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: const Icon(
+                        Icons.close,
+                        color: Color(0xFF6B7280),
+                        size: 24,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
 
-                  // Company Field
-                  TextField(
-                    controller: companyController,
-                    decoration: InputDecoration(
-                      labelText: 'Company Name *',
-                      hintText: 'e.g., Google, Microsoft',
-                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: AppColors.primary),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                    textCapitalization: TextCapitalization.words,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Role Field
-                  TextField(
-                    controller: roleController,
-                    decoration: InputDecoration(
-                      labelText: 'Job Title / Role *',
-                      hintText: 'e.g., Senior Software Engineer',
-                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: AppColors.primary),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                    textCapitalization: TextCapitalization.words,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Location Field
-                  TextField(
-                    controller: locationController,
-                    decoration: InputDecoration(
-                      labelText: 'Location',
-                      hintText: 'e.g., San Francisco, CA',
-                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: AppColors.primary),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                    textCapitalization: TextCapitalization.words,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Date Fields Row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () async {
-                            final DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: selectedFromDate ?? DateTime.now(),
-                              firstDate: DateTime(1950),
-                              lastDate: DateTime.now(),
-                            );
-                            if (picked != null) {
-                              setDialogState(() {
-                                selectedFromDate = picked;
-                              });
+                // Scrollable content
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Role & Company Row
+                        _buildCompactTextField(
+                          controller: roleController,
+                          label: 'Role *',
+                          hint: 'e.g Software Engineer',
+                          errorText: roleError,
+                          onChanged: () {
+                            if (roleError != null) {
+                              setDialogState(() => roleError = null);
                             }
                           },
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: const Color(0xFFE5E7EB),
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                              color: const Color(0xFFF9FAFB),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Start Date *',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        selectedFromDate != null
-                                            ? DateFormat(
-                                                'MM/yyyy',
-                                              ).format(selectedFromDate!)
-                                            : '01/2020',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: selectedFromDate != null
-                                              ? const Color(0xFF1A1A1A)
-                                              : const Color(0xFF9CA3AF),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.calendar_today,
-                                  size: 18,
-                                  color: AppColors.primary,
-                                ),
-                              ],
-                            ),
-                          ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: isCurrentlyWorking
-                              ? null
-                              : () async {
-                                  final DateTime? picked = await showDatePicker(
-                                    context: context,
-                                    initialDate:
-                                        selectedToDate ?? DateTime.now(),
-                                    firstDate: DateTime(1950),
-                                    lastDate: DateTime.now(),
-                                  );
-                                  if (picked != null) {
-                                    setDialogState(() {
-                                      selectedToDate = picked;
-                                    });
-                                  }
-                                },
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: const Color(0xFFE5E7EB),
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                              color: isCurrentlyWorking
-                                  ? const Color(0xFFE5E7EB)
-                                  : const Color(0xFFF9FAFB),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'End Date',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        isCurrentlyWorking
-                                            ? 'Present'
-                                            : (selectedToDate != null
-                                                  ? DateFormat(
-                                                      'MM/yyyy',
-                                                    ).format(selectedToDate!)
-                                                  : '12/2023'),
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color:
-                                              isCurrentlyWorking ||
-                                                  selectedToDate != null
-                                              ? const Color(0xFF1A1A1A)
-                                              : const Color(0xFF9CA3AF),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.calendar_today,
-                                  size: 18,
-                                  color: isCurrentlyWorking
-                                      ? Colors.grey[400]
-                                      : AppColors.primary,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Currently Working Checkbox
-                  Row(
-                    children: [
-                      Checkbox(
-                        value: isCurrentlyWorking,
-                        onChanged: (value) {
-                          setDialogState(() {
-                            isCurrentlyWorking = value ?? false;
-                            if (isCurrentlyWorking) {
-                              selectedToDate = null;
+                        const SizedBox(height: 12),
+                        _buildCompactTextField(
+                          controller: companyController,
+                          label: 'Company *',
+                          hint: 'e.g Google',
+                          errorText: companyError,
+                          onChanged: () {
+                            if (companyError != null) {
+                              setDialogState(() => companyError = null);
                             }
-                          });
-                        },
-                        activeColor: AppColors.primary,
-                      ),
-                      const Text(
-                        'I currently work here',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF6B7280),
+                          },
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                        const SizedBox(height: 12),
 
-                  // Description/Responsibilities Section
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Key Responsibilities',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A1A1A),
+                        // Location
+                        _buildCompactTextField(
+                          controller: locationController,
+                          label: 'Location',
+                          hint: 'San Francisco, CA (Optional)',
+                          maxLength: 100,
                         ),
-                      ),
-                      TextButton.icon(
-                        onPressed: () {
-                          setDialogState(() {
-                            descriptionControllers.add(TextEditingController());
-                          });
-                        },
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
+                        const SizedBox(height: 12),
 
-                  // Description Items
-                  ...descriptionControllers.asMap().entries.map((entry) {
-                    final idx = entry.key;
-                    final controller = entry.value;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.only(top: 16),
-                            child: Text('• ', style: TextStyle(fontSize: 16)),
-                          ),
-                          Expanded(
-                            child: TextField(
-                              controller: controller,
-                              maxLines: 2,
-                              decoration: InputDecoration(
-                                hintText:
-                                    'Describe your responsibility or achievement',
-                                hintStyle: const TextStyle(
-                                  color: Color(0xFF9CA3AF),
-                                  fontSize: 13,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFFE5E7EB),
+                        // Date Fields Row
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildDateField(
+                                    label: 'Start Date *',
+                                    value: selectedFromDate,
+                                    placeholder: 'MM/YYYY',
+                                    onTap: () async {
+                                      final picked = await showDatePicker(
+                                        context: context,
+                                        initialDate:
+                                            selectedFromDate ?? DateTime.now(),
+                                        firstDate: DateTime(1950),
+                                        lastDate: DateTime.now(),
+                                      );
+                                      if (picked != null) {
+                                        setDialogState(() {
+                                          selectedFromDate = picked;
+                                          startDateError = null;
+                                        });
+                                      }
+                                    },
                                   ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                                filled: true,
-                                fillColor: const Color(0xFFF9FAFB),
-                                contentPadding: const EdgeInsets.all(12),
-                              ),
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF1A1A1A),
+                                  if (startDateError != null) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      startDateError!,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.error,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.close,
-                              size: 18,
-                              color: Colors.red,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildDateField(
+                                label: 'End Date',
+                                value: selectedToDate,
+                                placeholder: isCurrentlyWorking
+                                    ? 'Present'
+                                    : 'MM/YYYY',
+                                enabled: !isCurrentlyWorking,
+                                onTap: isCurrentlyWorking
+                                    ? null
+                                    : () async {
+                                        final picked = await showDatePicker(
+                                          context: context,
+                                          initialDate:
+                                              selectedToDate ?? DateTime.now(),
+                                          firstDate: DateTime(1950),
+                                          lastDate: DateTime.now(),
+                                        );
+                                        if (picked != null) {
+                                          setDialogState(
+                                            () => selectedToDate = picked,
+                                          );
+                                        }
+                                      },
+                              ),
                             ),
-                            onPressed: () {
-                              setDialogState(() {
-                                descriptionControllers.removeAt(idx);
-                              });
-                            },
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-
-                  if (descriptionControllers.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(8),
-                        color: Colors.grey[50],
-                      ),
-                      child: Center(
-                        child: Text(
-                          'No responsibilities added yet. Click "Add" to add one.',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                          ),
-                          textAlign: TextAlign.center,
+                          ],
                         ),
-                      ),
-                    ),
 
-                  const SizedBox(height: 24),
-
-                  // Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => Navigator.of(context).pop(),
-                          child: Container(
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE5E7EB),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'Cancel',
+                        // Currently Working Checkbox - more compact
+                        Transform.translate(
+                          offset: const Offset(-8, 0),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                height: 36,
+                                width: 36,
+                                child: Checkbox(
+                                  value: isCurrentlyWorking,
+                                  onChanged: (value) {
+                                    setDialogState(() {
+                                      isCurrentlyWorking = value ?? false;
+                                      if (isCurrentlyWorking) {
+                                        selectedToDate = null;
+                                      }
+                                    });
+                                  },
+                                  activeColor: AppColors.primary,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                              ),
+                              const Text(
+                                'I currently work here',
                                 style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
                                   color: Color(0xFF6B7280),
                                 ),
                               ),
-                            ),
+                            ],
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            // Validation
-                            if (companyController.text.trim().isEmpty) {
-                              showErrorSnackBar(
-                                context: context,
-                                message: 'Company name is required',
-                              );
-                              return;
-                            }
-                            if (roleController.text.trim().isEmpty) {
-                              showErrorSnackBar(
-                                context: context,
-                                message: 'Job title is required',
-                              );
-                              return;
-                            }
-                            if (selectedFromDate == null) {
-                              showErrorSnackBar(
-                                context: context,
-                                message: 'Start date is required',
-                              );
-                              return;
-                            }
+                        const SizedBox(height: 12),
 
-                            // Collect descriptions
-                            final descriptions = descriptionControllers
-                                .map((c) => c.text.trim())
-                                .where((text) => text.isNotEmpty)
-                                .toList();
+                        // Responsibilities - Auto-add fields
+                        _buildResponsibilitiesSection(
+                          controllers: responsibilitiesControllers,
+                          setDialogState: setDialogState,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
-                            // Create work experience object
-                            final workExp = WorkExperience(
-                              company: companyController.text.trim(),
-                              role: roleController.text.trim(),
-                              location: locationController.text.trim().isEmpty
-                                  ? null
-                                  : locationController.text.trim(),
-                              fromDate: DateFormat(
-                                'MM/yyyy',
-                              ).format(selectedFromDate!),
-                              toDate: isCurrentlyWorking
-                                  ? 'Present'
-                                  : (selectedToDate != null
-                                        ? DateFormat(
-                                            'MM/yyyy',
-                                          ).format(selectedToDate!)
-                                        : null),
-                              description: descriptions.isEmpty
-                                  ? null
-                                  : descriptions,
-                            );
+                const SizedBox(height: 16),
 
-                            // Add or update
-                            if (isEditing) {
-                              _notifier.updateWorkExperience(index, workExp);
-                              showSuccessSnackBar(
-                                context: context,
-                                message: 'Work experience updated',
-                              );
-                            } else {
-                              _notifier.addWorkExperience(workExp);
-                              showSuccessSnackBar(
-                                context: context,
-                                message: 'Work experience added',
-                              );
-                            }
-
-                            Navigator.of(context).pop();
-                          },
-                          child: Container(
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Center(
-                              child: Text(
-                                isEditing ? 'Update' : 'Add',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
+                // Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF6B7280),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: GestureDetector(
+                        onTap: () {
+                          // Validation with inline errors
+                          bool hasError = false;
+
+                          if (roleController.text.trim().isEmpty) {
+                            setDialogState(
+                              () => roleError = 'Role is required',
+                            );
+                            hasError = true;
+                          }
+                          if (companyController.text.trim().isEmpty) {
+                            setDialogState(
+                              () => companyError = 'Company name is required',
+                            );
+                            hasError = true;
+                          }
+                          if (selectedFromDate == null) {
+                            setDialogState(
+                              () => startDateError = 'Start date is required',
+                            );
+                            hasError = true;
+                          }
+
+                          if (hasError) return;
+
+                          // Collect responsibilities from controllers
+                          final descriptions = responsibilitiesControllers
+                              .map((c) => c.text.trim())
+                              .where((text) => text.isNotEmpty)
+                              .toList();
+
+                          // Create work experience object
+                          final workExp = WorkExperience(
+                            company: companyController.text.trim(),
+                            role: roleController.text.trim(),
+                            location: locationController.text.trim().isEmpty
+                                ? null
+                                : locationController.text.trim(),
+                            fromDate: DateFormat(
+                              'MM/yyyy',
+                            ).format(selectedFromDate!),
+                            toDate: isCurrentlyWorking
+                                ? 'Present'
+                                : (selectedToDate != null
+                                      ? DateFormat(
+                                          'MM/yyyy',
+                                        ).format(selectedToDate!)
+                                      : null),
+                            description: descriptions.isEmpty
+                                ? null
+                                : descriptions,
+                          );
+
+                          // Add or update
+                          if (isEditing) {
+                            _notifier.updateWorkExperience(index, workExp);
+                            showSuccessSnackBar(
+                              context: context,
+                              message: 'Experience updated',
+                            );
+                          } else {
+                            _notifier.addWorkExperience(workExp);
+                            showSuccessSnackBar(
+                              context: context,
+                              message: 'Experience added',
+                            );
+                          }
+
+                          Navigator.of(context).pop();
+                        },
+                        child: Container(
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Text(
+                              isEditing ? 'Save Changes' : 'Add Experience',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  // Helper widget for compact text fields
+  Widget _buildCompactTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    List<TextInputFormatter>? inputFormatters,
+    int? maxLength,
+    String? errorText,
+    VoidCallback? onChanged,
+    TextInputType? keyboardType,
+  }) {
+    final hasError = errorText != null && errorText.isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF374151),
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          inputFormatters: inputFormatters,
+          maxLength: maxLength,
+          keyboardType: keyboardType,
+          onChanged: (_) => onChanged?.call(),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+            counterText: '',
+            // Hide the character counter
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(
+                color: hasError ? AppColors.error : const Color(0xFFE5E7EB),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(
+                color: hasError ? AppColors.error : const Color(0xFFE5E7EB),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(
+                color: hasError ? AppColors.error : AppColors.primary,
+              ),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF9FAFB),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 10,
+            ),
+            isDense: true,
+          ),
+          style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+          textCapitalization: TextCapitalization.words,
+        ),
+        if (hasError) ...[
+          const SizedBox(height: 4),
+          Text(
+            errorText,
+            style: const TextStyle(fontSize: 12, color: AppColors.error),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // Helper widget for date fields
+  Widget _buildDateField({
+    required String label,
+    required DateTime? value,
+    required String placeholder,
+    bool enabled = true,
+    VoidCallback? onTap,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF374151),
+          ),
+        ),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onTap: enabled ? onTap : null,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+              borderRadius: BorderRadius.circular(8),
+              color: enabled
+                  ? const Color(0xFFF9FAFB)
+                  : const Color(0xFFE5E7EB),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    value != null
+                        ? DateFormat('MM/yyyy').format(value)
+                        : placeholder,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: value != null || !enabled
+                          ? const Color(0xFF1A1A1A)
+                          : Colors.grey[400],
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.calendar_today_outlined,
+                  size: 16,
+                  color: enabled ? AppColors.primary : Colors.grey[400],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Helper widget for responsibilities section with auto-add pattern
+  Widget _buildResponsibilitiesSection({
+    required List<TextEditingController> controllers,
+    required void Function(void Function()) setDialogState,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Responsibilities',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF374151),
+          ),
+        ),
+        const SizedBox(height: 6),
+        ...List.generate(controllers.length, (i) {
+          // Check if this is the last field and it's empty (the "add more" field)
+          final isAddMoreField =
+              i == controllers.length - 1 && controllers[i].text.trim().isEmpty;
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Bullet or + indicator
+                Container(
+                  margin: const EdgeInsets.only(top: 10, right: 8),
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: isAddMoreField
+                        ? Colors.grey[200]
+                        : AppColors.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: isAddMoreField
+                        ? Icon(Icons.add, size: 14, color: Colors.grey[400])
+                        : Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                  ),
+                ),
+                // Text field
+                Expanded(
+                  child: Focus(
+                    onFocusChange: (hasFocus) {
+                      if (!hasFocus) {
+                        // Remove empty fields on blur (keep at least one)
+                        if (controllers[i].text.trim().isEmpty &&
+                            controllers.length > 1) {
+                          setDialogState(() {
+                            controllers.removeAt(i);
+                          });
+                        }
+                      }
+                    },
+                    child: TextField(
+                      controller: controllers[i],
+                      // maxLength: 500,
+                      decoration: InputDecoration(
+                        hintText: isAddMoreField
+                            ? '+ Add responsibility'
+                            : 'e.g., Led team of 5 engineers...',
+                        hintStyle: TextStyle(
+                          color: isAddMoreField
+                              ? Colors.grey[400]
+                              : Colors.grey[400],
+                          fontSize: 13,
+                          fontStyle: isAddMoreField
+                              ? FontStyle.italic
+                              : FontStyle.normal,
+                        ),
+                        counterText: '',
+                        // Hide the character counter
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: isAddMoreField
+                                ? Colors.grey[300]!
+                                : const Color(0xFFE5E7EB),
+                            style: isAddMoreField
+                                ? BorderStyle.solid
+                                : BorderStyle.solid,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: isAddMoreField
+                                ? Colors.grey[300]!
+                                : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: isAddMoreField
+                            ? Colors.grey[50]
+                            : const Color(0xFFF9FAFB),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        isDense: true,
+                      ),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF1A1A1A),
+                      ),
+                      textCapitalization: TextCapitalization.sentences,
+                      maxLines: 2,
+                      minLines: 1,
+                      onChanged: (value) {
+                        // Auto-add new field when typing in last field
+                        if (i == controllers.length - 1 &&
+                            value.isNotEmpty &&
+                            controllers.length < 10) {
+                          setDialogState(() {
+                            controllers.add(TextEditingController());
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                // Delete button (only show for filled fields, not the add-more field)
+                if (controllers.length > 1 && !isAddMoreField)
+                  GestureDetector(
+                    onTap: () {
+                      setDialogState(() {
+                        controllers.removeAt(i);
+                      });
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(left: 4, top: 6),
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(
+                        Icons.close,
+                        size: 18,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  // Helper widget for courses section with auto-add pattern
+  Widget _buildCoursesSection({
+    required List<TextEditingController> controllers,
+    required void Function(void Function()) setDialogState,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Relevant Courses',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF374151),
+          ),
+        ),
+        const SizedBox(height: 6),
+        ...List.generate(controllers.length, (i) {
+          final isAddMoreField =
+              i == controllers.length - 1 && controllers[i].text.trim().isEmpty;
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Bullet or + indicator
+                Container(
+                  margin: const EdgeInsets.only(top: 10, right: 8),
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: isAddMoreField
+                        ? Colors.grey[200]
+                        : AppColors.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: isAddMoreField
+                        ? Icon(Icons.add, size: 14, color: Colors.grey[400])
+                        : Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                  ),
+                ),
+                // Text field
+                Expanded(
+                  child: Focus(
+                    onFocusChange: (hasFocus) {
+                      if (!hasFocus) {
+                        if (controllers[i].text.trim().isEmpty &&
+                            controllers.length > 1) {
+                          setDialogState(() {
+                            controllers.removeAt(i);
+                          });
+                        }
+                      }
+                    },
+                    child: TextField(
+                      controller: controllers[i],
+                      decoration: InputDecoration(
+                        hintText: isAddMoreField
+                            ? '+ Add course'
+                            : 'e.g., Data Structures, Algorithms',
+                        hintStyle: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 13,
+                          fontStyle: isAddMoreField
+                              ? FontStyle.italic
+                              : FontStyle.normal,
+                        ),
+                        counterText: '',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: isAddMoreField
+                                ? Colors.grey[300]!
+                                : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: isAddMoreField
+                                ? Colors.grey[300]!
+                                : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: isAddMoreField
+                            ? Colors.grey[50]
+                            : const Color(0xFFF9FAFB),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        isDense: true,
+                      ),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF1A1A1A),
+                      ),
+                      textCapitalization: TextCapitalization.words,
+                      onChanged: (value) {
+                        // Auto-add new field when typing in last field
+                        if (i == controllers.length - 1 &&
+                            value.isNotEmpty &&
+                            controllers.length < 10) {
+                          setDialogState(() {
+                            controllers.add(TextEditingController());
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                // Delete button (only show for filled fields, not the add-more field)
+                if (controllers.length > 1 && !isAddMoreField)
+                  GestureDetector(
+                    onTap: () {
+                      setDialogState(() {
+                        controllers.removeAt(i);
+                      });
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(left: 4, top: 6),
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(
+                        Icons.close,
+                        size: 18,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  // Helper widget for project description section with auto-add pattern
+  Widget _buildProjectDescriptionSection({
+    required List<TextEditingController> controllers,
+    required void Function(void Function()) setDialogState,
+  }) {
+    // Ensure there's always one empty field at the end for adding
+    if (controllers.isEmpty || controllers.last.text.trim().isNotEmpty) {
+      controllers.add(TextEditingController());
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Description',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF374151),
+          ),
+        ),
+        const SizedBox(height: 6),
+        ...List.generate(controllers.length, (i) {
+          final isAddMoreField =
+              i == controllers.length - 1 && controllers[i].text.trim().isEmpty;
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Bullet or + indicator
+                Container(
+                  margin: const EdgeInsets.only(top: 10, right: 8),
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: isAddMoreField
+                        ? Colors.grey[200]
+                        : AppColors.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: isAddMoreField
+                        ? Icon(Icons.add, size: 14, color: Colors.grey[400])
+                        : Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                  ),
+                ),
+                // Text field
+                Expanded(
+                  child: Focus(
+                    onFocusChange: (hasFocus) {
+                      if (!hasFocus) {
+                        if (controllers[i].text.trim().isEmpty &&
+                            controllers.length > 1) {
+                          setDialogState(() {
+                            controllers.removeAt(i);
+                          });
+                        }
+                      }
+                    },
+                    child: TextField(
+                      controller: controllers[i],
+                      maxLength: 500,
+                      decoration: InputDecoration(
+                        hintText: isAddMoreField
+                            ? '+ Add description'
+                            : 'e.g., Built REST API with Node.js...',
+                        hintStyle: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 13,
+                          fontStyle: isAddMoreField
+                              ? FontStyle.italic
+                              : FontStyle.normal,
+                        ),
+                        counterText: '',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: isAddMoreField
+                                ? Colors.grey[300]!
+                                : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: isAddMoreField
+                                ? Colors.grey[300]!
+                                : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: isAddMoreField
+                            ? Colors.grey[50]
+                            : const Color(0xFFF9FAFB),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        isDense: true,
+                      ),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF1A1A1A),
+                      ),
+                      textCapitalization: TextCapitalization.sentences,
+                      maxLines: 2,
+                      minLines: 1,
+                      onChanged: (value) {
+                        if (i == controllers.length - 1 &&
+                            value.isNotEmpty &&
+                            controllers.length < 10) {
+                          setDialogState(() {
+                            controllers.add(TextEditingController());
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                // Delete button
+                if (controllers.length > 1 && !isAddMoreField)
+                  GestureDetector(
+                    onTap: () {
+                      setDialogState(() {
+                        controllers.removeAt(i);
+                      });
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(left: 4, top: 6),
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(
+                        Icons.close,
+                        size: 18,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }),
+      ],
     );
   }
 
@@ -1323,25 +1740,27 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     final isEditing = project != null && index != null;
 
     final nameController = TextEditingController(text: project?.name ?? '');
-    final typeController = TextEditingController(text: project?.type ?? '');
     final linkController = TextEditingController(text: project?.link ?? '');
 
-    // Parse existing dates for editing
+    // Error state for inline validation
+    String? nameError;
+
+    // Parse existing dates for editing (supports multiple formats)
     DateTime? selectedFromDate;
     DateTime? selectedToDate;
+
     if (project?.fromDate != null && project!.fromDate!.isNotEmpty) {
-      try {
-        selectedFromDate = DateFormat('MM/yyyy').parse(project.fromDate!);
-      } catch (e) {
-        selectedFromDate = null;
-      }
+      selectedFromDate = _parseFlexibleDate(project.fromDate!);
+      debugPrint(
+        '📅 Project parsed fromDate: ${project.fromDate} -> $selectedFromDate',
+      );
     }
+
     if (project?.toDate != null && project!.toDate!.isNotEmpty) {
-      try {
-        selectedToDate = DateFormat('MM/yyyy').parse(project.toDate!);
-      } catch (e) {
-        selectedToDate = null;
-      }
+      selectedToDate = _parseFlexibleDate(project.toDate!);
+      debugPrint(
+        '📅 Project parsed toDate: ${project.toDate} -> $selectedToDate',
+      );
     }
 
     final descriptionList = List<String>.from(project?.description ?? []);
@@ -1355,16 +1774,18 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 24,
+          insetPadding: const EdgeInsets.only(
+            left: 10,
+            right: 10,
+            top: 0,
+            bottom: 20,
           ),
           child: Container(
             width: MediaQuery.of(context).size.width,
             constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.85,
+              maxHeight: MediaQuery.of(context).size.height * 0.9,
             ),
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -1376,466 +1797,216 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                 ),
               ],
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  Text(
-                    isEditing ? 'Edit Project' : 'Add Project',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A1A1A),
-                    ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Title
+                Text(
+                  isEditing ? 'Edit Project' : 'Add Project',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A1A),
                   ),
-                  const SizedBox(height: 24),
+                ),
+                const SizedBox(height: 16),
 
-                  // Project Name Field
-                  TextField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: 'Project Name *',
-                      hintText: 'e.g., E-commerce Platform',
-                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: AppColors.primary),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                    textCapitalization: TextCapitalization.words,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Project Type Field
-                  TextField(
-                    controller: typeController,
-                    decoration: InputDecoration(
-                      labelText: 'Project Type',
-                      hintText: 'e.g., Web Application, Mobile App',
-                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: AppColors.primary),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                    textCapitalization: TextCapitalization.words,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Date Fields Row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () async {
-                            final DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: selectedFromDate ?? DateTime.now(),
-                              firstDate: DateTime(1950),
-                              lastDate: DateTime.now(),
-                            );
-                            if (picked != null) {
-                              setDialogState(() {
-                                selectedFromDate = picked;
-                              });
+                // Scrollable content
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Name Field
+                        _buildCompactTextField(
+                          controller: nameController,
+                          label: 'Project Name *',
+                          hint: 'E-commerce Platform',
+                          maxLength: 50,
+                          errorText: nameError,
+                          onChanged: () {
+                            if (nameError != null) {
+                              setDialogState(() => nameError = null);
                             }
                           },
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: const Color(0xFFE5E7EB),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Link Field
+                        _buildCompactTextField(
+                          controller: linkController,
+                          label: 'Project Link',
+                          hint: 'e.g https://skillresy.com/',
+                          maxLength: 150,
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Date Fields Row
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildDateField(
+                                label: 'Start',
+                                value: selectedFromDate,
+                                placeholder: 'MM/YYYY',
+                                onTap: () async {
+                                  final picked = await showDatePicker(
+                                    context: context,
+                                    initialDate:
+                                        selectedFromDate ?? DateTime.now(),
+                                    firstDate: DateTime(1950),
+                                    lastDate: DateTime.now(),
+                                  );
+                                  if (picked != null) {
+                                    setDialogState(
+                                      () => selectedFromDate = picked,
+                                    );
+                                  }
+                                },
                               ),
-                              borderRadius: BorderRadius.circular(8),
-                              color: const Color(0xFFF9FAFB),
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Start Date',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        selectedFromDate != null
-                                            ? DateFormat(
-                                                'MMM yyyy',
-                                              ).format(selectedFromDate!)
-                                            : 'Jan 2023',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: selectedFromDate != null
-                                              ? const Color(0xFF1A1A1A)
-                                              : const Color(0xFF9CA3AF),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.calendar_today,
-                                  size: 18,
-                                  color: AppColors.primary,
-                                ),
-                              ],
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _buildDateField(
+                                label: 'End',
+                                value: selectedToDate,
+                                placeholder: 'MM/YYYY',
+                                onTap: () async {
+                                  final picked = await showDatePicker(
+                                    context: context,
+                                    initialDate:
+                                        selectedToDate ?? DateTime.now(),
+                                    firstDate: DateTime(1950),
+                                    lastDate: DateTime.now(),
+                                  );
+                                  if (picked != null) {
+                                    setDialogState(
+                                      () => selectedToDate = picked,
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Description Section - Auto-add pattern
+                        _buildProjectDescriptionSection(
+                          controllers: descriptionControllers,
+                          setDialogState: setDialogState,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF6B7280),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () async {
-                            final DateTime? picked = await showDatePicker(
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: GestureDetector(
+                        onTap: () {
+                          // Validation with inline error
+                          if (nameController.text.trim().isEmpty) {
+                            setDialogState(() {
+                              nameError = 'Project name is required';
+                            });
+                            return;
+                          }
+
+                          // Collect descriptions
+                          final descriptions = descriptionControllers
+                              .map((c) => c.text.trim())
+                              .where((text) => text.isNotEmpty)
+                              .toList();
+
+                          // Create project object
+                          final projectObj = Projects(
+                            name: nameController.text.trim(),
+                            type: project?.type,
+                            fromDate: selectedFromDate != null
+                                ? DateFormat(
+                                    'MMM yyyy',
+                                  ).format(selectedFromDate!)
+                                : null,
+                            toDate: selectedToDate != null
+                                ? DateFormat('MMM yyyy').format(selectedToDate!)
+                                : null,
+                            link: linkController.text.trim().isEmpty
+                                ? null
+                                : linkController.text.trim(),
+                            description: descriptions.isEmpty
+                                ? null
+                                : descriptions,
+                          );
+
+                          // Add or update
+                          if (isEditing) {
+                            _notifier.updateProject(index, projectObj);
+                            showSuccessSnackBar(
                               context: context,
-                              initialDate: selectedToDate ?? DateTime.now(),
-                              firstDate: DateTime(1950),
-                              lastDate: DateTime.now(),
+                              message: 'Project updated',
                             );
-                            if (picked != null) {
-                              setDialogState(() {
-                                selectedToDate = picked;
-                              });
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: const Color(0xFFE5E7EB),
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                              color: const Color(0xFFF9FAFB),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'End Date',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        selectedToDate != null
-                                            ? DateFormat(
-                                                'MMM yyyy',
-                                              ).format(selectedToDate!)
-                                            : 'Mar 2024',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: selectedToDate != null
-                                              ? const Color(0xFF1A1A1A)
-                                              : const Color(0xFF9CA3AF),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.calendar_today,
-                                  size: 18,
-                                  color: AppColors.primary,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                          } else {
+                            _notifier.addProject(projectObj);
+                            showSuccessSnackBar(
+                              context: context,
+                              message: 'Project added',
+                            );
+                          }
 
-                  // Link Field
-                  TextField(
-                    controller: linkController,
-                    keyboardType: TextInputType.url,
-                    decoration: InputDecoration(
-                      labelText: 'Project Link',
-                      hintText: 'e.g., github.com/username/project',
-                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: AppColors.primary),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Description Section
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Project Description',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A1A1A),
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: () {
-                          setDialogState(() {
-                            descriptionControllers.add(TextEditingController());
-                          });
+                          Navigator.of(context).pop();
                         },
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Description Items
-                  ...descriptionControllers.asMap().entries.map((entry) {
-                    final idx = entry.key;
-                    final controller = entry.value;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.only(top: 16),
-                            child: Text('• ', style: TextStyle(fontSize: 16)),
+                        child: Container(
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          Expanded(
-                            child: TextField(
-                              controller: controller,
-                              maxLines: 2,
-                              decoration: InputDecoration(
-                                hintText:
-                                    'Describe project feature or achievement',
-                                hintStyle: const TextStyle(
-                                  color: Color(0xFF9CA3AF),
-                                  fontSize: 13,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFFE5E7EB),
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                                filled: true,
-                                fillColor: const Color(0xFFF9FAFB),
-                                contentPadding: const EdgeInsets.all(12),
-                              ),
+                          child: Center(
+                            child: Text(
+                              isEditing ? 'Save Changes' : 'Add Project',
                               style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF1A1A1A),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
                               ),
                             ),
                           ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.close,
-                              size: 18,
-                              color: Colors.red,
-                            ),
-                            onPressed: () {
-                              setDialogState(() {
-                                descriptionControllers.removeAt(idx);
-                              });
-                            },
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-
-                  if (descriptionControllers.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(8),
-                        color: Colors.grey[50],
-                      ),
-                      child: Center(
-                        child: Text(
-                          'No description added yet. Click "Add" to add one.',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                          ),
-                          textAlign: TextAlign.center,
                         ),
                       ),
                     ),
-
-                  const SizedBox(height: 24),
-
-                  // Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => Navigator.of(context).pop(),
-                          child: Container(
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE5E7EB),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'Cancel',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF6B7280),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            // Validation
-                            if (nameController.text.trim().isEmpty) {
-                              showErrorSnackBar(
-                                context: context,
-                                message: 'Project name is required',
-                              );
-                              return;
-                            }
-
-                            // Collect descriptions
-                            final descriptions = descriptionControllers
-                                .map((c) => c.text.trim())
-                                .where((text) => text.isNotEmpty)
-                                .toList();
-
-                            // Create project object
-                            final projectObj = Projects(
-                              name: nameController.text.trim(),
-                              type: typeController.text.trim().isEmpty
-                                  ? null
-                                  : typeController.text.trim(),
-                              fromDate: selectedFromDate != null
-                                  ? DateFormat(
-                                      'MMM yyyy',
-                                    ).format(selectedFromDate!)
-                                  : null,
-                              toDate: selectedToDate != null
-                                  ? DateFormat(
-                                      'MMM yyyy',
-                                    ).format(selectedToDate!)
-                                  : null,
-                              link: linkController.text.trim().isEmpty
-                                  ? null
-                                  : linkController.text.trim(),
-                              description: descriptions.isEmpty
-                                  ? null
-                                  : descriptions,
-                            );
-
-                            // Add or update
-                            if (isEditing) {
-                              _notifier.updateProject(index, projectObj);
-                              showSuccessSnackBar(
-                                context: context,
-                                message: 'Project updated',
-                              );
-                            } else {
-                              _notifier.addProject(projectObj);
-                              showSuccessSnackBar(
-                                context: context,
-                                message: 'Project added',
-                              );
-                            }
-
-                            Navigator.of(context).pop();
-                          },
-                          child: Container(
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Center(
-                              child: Text(
-                                isEditing ? 'Update' : 'Add',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
@@ -1873,43 +2044,36 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
             Row(
               children: [
                 Container(
-                  width: 24,
-                  height: 24,
+                  width: 20,
+                  height: 20,
                   decoration: const BoxDecoration(
                     color: Color(0xFF4CAF50),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.code, color: Colors.white, size: 14),
+                  child: const Icon(Icons.code, color: Colors.white, size: 11),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 const Text(
                   'Projects',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
                   ),
                 ),
               ],
             ),
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.add_circle, color: AppColors.primary),
-                  onPressed: () => _addProject(),
-                  tooltip: 'Add Project',
-                ),
-                // TODO: Uncomment when regenerate feature is ready
-                // IconButton(
-                //   icon: const Icon(Icons.refresh, color: AppColors.primary),
-                //   onPressed: () => _regenerateSection(['projects']),
-                //   tooltip: 'Regenerate with AI',
-                // ),
-              ],
+            GestureDetector(
+              onTap: () => _addProject(),
+              child: const Icon(
+                Icons.add_circle,
+                color: AppColors.primary,
+                size: 22,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
         if (projects.isNotEmpty)
           ...projects.asMap().entries.map(
@@ -1966,8 +2130,8 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     final isLast = index == projects.length - 1;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey.shade300),
         borderRadius: BorderRadius.circular(8),
@@ -1980,82 +2144,78 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               if (!isFirst)
-                IconButton(
-                  icon: const Icon(
-                    Icons.arrow_upward,
-                    size: 20,
-                    color: AppColors.primary,
+                GestureDetector(
+                  onTap: () => _notifier.moveProjectUp(index),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.arrow_upward,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
                   ),
-                  onPressed: () => _notifier.moveProjectUp(index),
-                  tooltip: 'Move Up',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
                 ),
               if (!isLast)
-                IconButton(
-                  icon: const Icon(
-                    Icons.arrow_downward,
-                    size: 20,
-                    color: AppColors.primary,
+                GestureDetector(
+                  onTap: () => _notifier.moveProjectDown(index),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.arrow_downward,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
                   ),
-                  onPressed: () => _notifier.moveProjectDown(index),
-                  tooltip: 'Move Down',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
                 ),
-              IconButton(
-                icon: const Icon(
-                  Icons.edit,
-                  size: 20,
-                  color: AppColors.primary,
+              GestureDetector(
+                onTap: () => _editProject(project, index),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.edit, size: 18, color: AppColors.primary),
                 ),
-                onPressed: () => _editProject(project, index),
-                tooltip: 'Edit',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
               ),
-              IconButton(
-                icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-                onPressed: () => _deleteProject(index),
-                tooltip: 'Delete',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+              GestureDetector(
+                onTap: () => _deleteProject(index),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.delete, size: 18, color: Colors.red),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             project.name ?? 'Project Name',
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 15,
               fontWeight: FontWeight.w600,
               color: Colors.black,
             ),
           ),
           if (project.type != null && project.type!.isNotEmpty) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               project.type!,
-              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              style: TextStyle(fontSize: 13, color: Colors.grey[700]),
             ),
           ],
           if (project.fromDate != null || project.toDate != null) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               '${project.fromDate ?? ''} - ${project.toDate ?? ''}',
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 color: AppColors.primary,
                 fontWeight: FontWeight.w500,
               ),
             ),
           ],
           if (project.link != null && project.link!.isNotEmpty) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               project.link!,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 color: AppColors.primary,
                 decoration: TextDecoration.underline,
               ),
@@ -2063,21 +2223,21 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
           ],
           if (project.description != null &&
               project.description!.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             ...project.description!.map(
               (desc) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.only(bottom: 3),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('• ', style: TextStyle(fontSize: 14)),
+                    const Text('• ', style: TextStyle(fontSize: 13)),
                     Expanded(
                       child: Text(
                         desc,
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           color: Colors.grey[800],
-                          height: 1.4,
+                          height: 1.35,
                         ),
                       ),
                     ),
@@ -2279,33 +2439,6 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     );
   }
 
-  Widget _buildSuggestionCard(String text) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.add, color: Color(0xFF4285F4), size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _editProfessionalSummary() {
     final controller = TextEditingController(
       text: _editableResumeData.resumeData?.summary ?? '',
@@ -2316,13 +2449,18 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       barrierDismissible: false,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 24),
+        insetPadding: const EdgeInsets.only(
+          left: 10,
+          right: 10,
+          top: 0,
+          bottom: 20,
+        ),
         child: Container(
           width: MediaQuery.of(context).size.width,
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.85,
           ),
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -2336,9 +2474,9 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Title
+              // Title - centered
               const Text(
                 'Edit Professional Summary',
                 style: TextStyle(
@@ -2346,18 +2484,35 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF1A1A1A),
                 ),
+                textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+
+              // Label
+              const Text(
+                'Summary',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF374151),
+                ),
+              ),
+              const SizedBox(height: 6),
 
               // Text Field
               TextField(
                 controller: controller,
-                maxLines: 10,
+                maxLines: 8,
+                maxLength: 1000,
                 decoration: InputDecoration(
                   hintText: 'Enter your professional summary...',
-                  hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                  hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
                   border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
                   ),
@@ -2367,12 +2522,12 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                   ),
                   filled: true,
                   fillColor: const Color(0xFFF9FAFB),
-                  contentPadding: const EdgeInsets.all(16),
+                  contentPadding: const EdgeInsets.all(12),
                 ),
                 style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 16),
 
               // Buttons
               Row(
@@ -2382,7 +2537,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                     child: GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
                       child: Container(
-                        height: 48,
+                        height: 44,
                         decoration: BoxDecoration(
                           color: const Color(0xFFE5E7EB),
                           borderRadius: BorderRadius.circular(8),
@@ -2391,7 +2546,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                           child: Text(
                             'Cancel',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF6B7280),
                             ),
@@ -2401,26 +2556,31 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                     ),
                   ),
 
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
 
                   // Save button
                   Expanded(
+                    flex: 2,
                     child: GestureDetector(
                       onTap: () {
                         _notifier.updateSummary(controller.text);
                         Navigator.of(context).pop();
+                        showSuccessSnackBar(
+                          context: context,
+                          message: 'Professional summary updated',
+                        );
                       },
                       child: Container(
-                        height: 48,
+                        height: 44,
                         decoration: BoxDecoration(
                           color: AppColors.primary,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Center(
                           child: Text(
-                            'Save',
+                            'Save Changes',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: Colors.white,
                             ),
@@ -2454,131 +2614,132 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       }
     }
 
+    // Get category-specific hint
+    String getHintForCategory(String cat) {
+      switch (cat) {
+        case 'soft':
+          return 'e.g., Leadership, Communication';
+        case 'tools':
+          return 'e.g., Flutter, JavaScript, Figma';
+        case 'hard':
+        default:
+          return 'e.g., Data Analysis, Project Management';
+      }
+    }
+
+    // Error state for inline validation
+    String? skillError;
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 24),
-        child: Container(
-          width: MediaQuery.of(context).size.width,
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.85,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.only(
+            left: 10,
+            right: 10,
+            top: 0,
+            bottom: 20,
           ),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Icon
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4285F4),
-                  borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: MediaQuery.of(context).size.width,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
                 ),
-                child: const Icon(
-                  Icons.add_circle,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Title
-              const Text(
-                'Add New Skill',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A1A),
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 8),
-
-              // Category label
-              Text(
-                'Adding to ${getCategoryDisplayName(category)}',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 24),
-
-              // Text Field
-              TextField(
-                controller: controller,
-                maxLines: 1,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'Enter skill name (e.g., Flutter, JavaScript)',
-                  hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Title - centered
+                const Text(
+                  'Add New Skill',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A1A),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFF4285F4)),
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFFF9FAFB),
-                  contentPadding: const EdgeInsets.all(16),
+                  textAlign: TextAlign.center,
                 ),
-                style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
-                textCapitalization: TextCapitalization.words,
-              ),
 
-              const SizedBox(height: 32),
+                const SizedBox(height: 8),
 
-              // Buttons
-              Row(
-                children: [
-                  // Cancel button
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Container(
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE5E7EB),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'Cancel',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF6B7280),
+                // Category label - centered
+                Text(
+                  'Adding to ${getCategoryDisplayName(category)}',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 16),
+
+                // Skill Name Field
+                _buildCompactTextField(
+                  controller: controller,
+                  label: 'Skill Name *',
+                  maxLength: 50,
+                  hint: getHintForCategory(category),
+                  errorText: skillError,
+                  onChanged: () {
+                    if (skillError != null) {
+                      setDialogState(() => skillError = null);
+                    }
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // Buttons
+                Row(
+                  children: [
+                    // Cancel button
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE5E7EB),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF6B7280),
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(width: 16),
+                    const SizedBox(width: 12),
 
-                  // Add button
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        final skillName = controller.text.trim();
-                        if (skillName.isNotEmpty) {
+                    // Add button
+                    Expanded(
+                      flex: 2,
+                      child: GestureDetector(
+                        onTap: () {
+                          final skillName = controller.text.trim();
+                          if (skillName.isEmpty) {
+                            setDialogState(() {
+                              skillError = 'Skill name is required';
+                            });
+                            return;
+                          }
+
                           _notifier.addSkill(skillName, category: category);
                           Navigator.of(context).pop();
 
@@ -2587,30 +2748,30 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                             message:
                                 'Added "$skillName" to ${getCategoryDisplayName(category)}',
                           );
-                        }
-                      },
-                      child: Container(
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4285F4),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'Add Skill',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                        },
+                        child: Container(
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Add Skill',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -2634,35 +2795,42 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       text: personal?.personalWebsite ?? '',
     );
 
+    // Error state for inline validation
+    String? nameError;
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 24),
-        child: Container(
-          width: MediaQuery.of(context).size.width,
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.85,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.only(
+            left: 10,
+            right: 10,
+            top: 0,
+            bottom: 20,
           ),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: SingleChildScrollView(
+          child: Container(
+            width: MediaQuery.of(context).size.width,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.9,
+            ),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title
+                // Title - centered
                 const Text(
                   'Edit Personal Details',
                   style: TextStyle(
@@ -2671,187 +2839,87 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                     color: Color(0xFF1A1A1A),
                   ),
                 ),
-
-                const SizedBox(height: 24),
-
-                // Name Field
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Full Name *',
-                    hintText: 'Enter your full name',
-                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                    prefixIcon: const Icon(
-                      Icons.person_outline,
-                      color: AppColors.primary,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.primary),
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFF9FAFB),
-                    contentPadding: const EdgeInsets.all(16),
-                  ),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                  textCapitalization: TextCapitalization.words,
-                ),
-
                 const SizedBox(height: 16),
 
-                // Email Field
-                TextField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    hintText: 'your.email@example.com',
-                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                    prefixIcon: const Icon(
-                      Icons.email_outlined,
-                      color: AppColors.primary,
+                // Scrollable content
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Name Field
+                        _buildCompactTextField(
+                          controller: nameController,
+                          label: 'Full Name *',
+                          hint: 'John Doe',
+                          errorText: nameError,
+                          onChanged: () {
+                            if (nameError != null) {
+                              setDialogState(() => nameError = null);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Email Field
+                        _buildCompactTextField(
+                          controller: emailController,
+                          label: 'Email',
+                          hint: 'your.email@example.com',
+                          keyboardType: TextInputType.emailAddress,
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Phone Field
+                        _buildCompactTextField(
+                          controller: phoneController,
+                          label: 'Phone',
+                          hint: '+1 (123) 456-7890',
+                          keyboardType: TextInputType.phone,
+                        ),
+                        const SizedBox(height: 12),
+
+                        // LinkedIn Field
+                        _buildCompactTextField(
+                          controller: linkedinController,
+                          label: 'LinkedIn',
+                          hint: 'linkedin.com/in/yourprofile',
+                          keyboardType: TextInputType.url,
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Website Field
+                        _buildCompactTextField(
+                          controller: websiteController,
+                          label: 'Website / Portfolio',
+                          hint: 'www.yourwebsite.com',
+                          keyboardType: TextInputType.url,
+                        ),
+                      ],
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.primary),
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFF9FAFB),
-                    contentPadding: const EdgeInsets.all(16),
-                  ),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF1A1A1A),
                   ),
                 ),
 
                 const SizedBox(height: 16),
-
-                // Phone Field
-                TextField(
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: 'Phone',
-                    hintText: '+1 (123) 456-7890',
-                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                    prefixIcon: const Icon(
-                      Icons.phone_outlined,
-                      color: AppColors.primary,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.primary),
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFF9FAFB),
-                    contentPadding: const EdgeInsets.all(16),
-                  ),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // LinkedIn Field
-                TextField(
-                  controller: linkedinController,
-                  keyboardType: TextInputType.url,
-                  decoration: InputDecoration(
-                    labelText: 'LinkedIn',
-                    hintText: 'linkedin.com/in/yourprofile',
-                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                    prefixIcon: const Icon(
-                      Icons.link,
-                      color: AppColors.primary,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.primary),
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFF9FAFB),
-                    contentPadding: const EdgeInsets.all(16),
-                  ),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Website Field
-                TextField(
-                  controller: websiteController,
-                  keyboardType: TextInputType.url,
-                  decoration: InputDecoration(
-                    labelText: 'Personal Website / Portfolio',
-                    hintText: 'www.yourwebsite.com',
-                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                    prefixIcon: const Icon(
-                      Icons.language,
-                      color: AppColors.primary,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.primary),
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFF9FAFB),
-                    contentPadding: const EdgeInsets.all(16),
-                  ),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                ),
-
-                const SizedBox(height: 32),
 
                 // Buttons
                 Row(
                   children: [
-                    // Cancel button
                     Expanded(
                       child: GestureDetector(
                         onTap: () => Navigator.of(context).pop(),
                         child: Container(
-                          height: 48,
+                          height: 44,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE5E7EB),
+                            color: const Color(0xFFF3F4F6),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Center(
                             child: Text(
                               'Cancel',
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF6B7280),
                               ),
@@ -2860,18 +2928,16 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                         ),
                       ),
                     ),
-
-                    const SizedBox(width: 16),
-
-                    // Save button
+                    const SizedBox(width: 12),
                     Expanded(
+                      flex: 2,
                       child: GestureDetector(
                         onTap: () {
+                          // Validation with inline error
                           if (nameController.text.trim().isEmpty) {
-                            showErrorSnackBar(
-                              context: context,
-                              message: 'Name is required',
-                            );
+                            setDialogState(() {
+                              nameError = 'Name is required';
+                            });
                             return;
                           }
 
@@ -2901,16 +2967,16 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                           );
                         },
                         child: Container(
-                          height: 48,
+                          height: 44,
                           decoration: BoxDecoration(
                             color: AppColors.primary,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Center(
                             child: Text(
-                              'Save',
+                              'Save Changes',
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
                               ),
@@ -2929,128 +2995,6 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     );
   }
 
-  /// Regenerate specific sections using AI
-  Future<void> _regenerateSection(List<String> sections) async {
-    // Show confirmation dialog first
-    final sectionName = sections.first.replaceAll('_', ' ').toUpperCase();
-    final confirmed = await showConfirmationDialog(
-      context: context,
-      title: 'Regenerate $sectionName?',
-      subtitle:
-          'AI will generate new content for this section using your job context. You can review and choose to accept or dismiss the suggestion.',
-      icon: Icons.auto_awesome,
-      iconBackgroundColor: AppColors.primary,
-      confirmText: 'Regenerate',
-      cancelText: 'Cancel',
-      confirmButtonColor: AppColors.primary,
-    );
-
-    // If user cancelled, don't proceed
-    if (confirmed != true) return;
-
-    // Show AI suggestions panel immediately with loading state
-    _notifier.showAISuggestionsLoading(sections.first);
-
-    try {
-      final result = await ref
-          .read(resumeProvider.notifier)
-          .regenerateSections(
-            currentResumeData: _editableResumeData,
-            sectionsToRegenerate: sections,
-            jobUrl: widget.jobUrl,
-            jobDescription: widget.jobDescription,
-            template: widget.template,
-          );
-
-      if (result != null) {
-        // Check if there are regenerated sections in the response
-        final regeneratedSections = result.regeneratedSections ?? [];
-
-        if (regeneratedSections.isNotEmpty) {
-          // Get the regenerated content based on the section
-          String? suggestedContent;
-          String? sectionName;
-
-          if (regeneratedSections.contains('summary')) {
-            suggestedContent = result.resumeData?.summary;
-            sectionName = 'summary';
-          } else if (regeneratedSections.contains('work_experience')) {
-            // For work experience, convert the list to a formatted string
-            if (result.resumeData?.workExperience != null) {
-              final workExpList = result.resumeData!.workExperience!;
-              suggestedContent = workExpList
-                  .map(
-                    (exp) =>
-                        '${exp.role ?? ''} at ${exp.company ?? ''}\n'
-                        '${exp.fromDate ?? ''} - ${exp.toDate ?? 'Present'}\n'
-                        '${exp.description?.join('\n• ') ?? ''}',
-                  )
-                  .join('\n\n');
-              sectionName = 'work_experience';
-            }
-          } else if (regeneratedSections.contains('projects')) {
-            // For projects, convert the list to a formatted string
-            if (result.resumeData?.projects != null) {
-              final projectsList = result.resumeData!.projects!;
-              suggestedContent = projectsList
-                  .map(
-                    (project) =>
-                        '${project.name ?? ''} (${project.type ?? ''})\n'
-                        '${project.fromDate ?? ''} - ${project.toDate ?? ''}\n'
-                        '${project.description?.join('\n• ') ?? ''}',
-                  )
-                  .join('\n\n');
-              sectionName = 'projects';
-            }
-          } else if (regeneratedSections.contains('education')) {
-            // For education, convert the list to a formatted string
-            if (result.resumeData?.education != null) {
-              final educationList = result.resumeData!.education!;
-              suggestedContent = educationList
-                  .map(
-                    (edu) =>
-                        '${edu.degree ?? ''}\n'
-                        '${edu.university ?? ''}\n'
-                        '${edu.fromDate ?? ''} - ${edu.toDate ?? ''}\n'
-                        '${edu.courses != null && edu.courses!.isNotEmpty ? 'Courses: ${edu.courses!.join(', ')}' : ''}',
-                  )
-                  .join('\n\n');
-              sectionName = 'education';
-            }
-          }
-
-          if (suggestedContent != null && sectionName != null) {
-            // Show AI suggestions panel with the new content
-            _notifier.setAISuggestions(
-              content: suggestedContent,
-              section: sectionName,
-              resumeData: result,
-            );
-          } else {
-            // CRITICAL: DO NOT overwrite entire data if no specific content found
-            // Instead, hide the suggestions panel and show error
-            _notifier.hideAISuggestions();
-          }
-        } else {
-          // CRITICAL: DO NOT overwrite entire data if no regenerated sections
-          // Instead, hide the suggestions panel and show error
-          _notifier.hideAISuggestions();
-
-          showErrorSnackBar(
-            context: context,
-            message: 'No sections were regenerated. Please try again.',
-          );
-        }
-      }
-    } catch (e) {
-      _notifier.hideAISuggestions();
-      showErrorSnackBar(
-        context: context,
-        message: 'Failed to regenerate: ${e.toString()}.',
-      );
-    }
-  }
-
   /// Accept the AI suggestion and update the resume
   void _acceptSuggestion() {
     _notifier.acceptSuggestion();
@@ -3062,6 +3006,33 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     _notifier.hideAISuggestions();
   }
 
+  /// Handle close button tap - show confirmation if there are unsaved changes
+  Future<void> _handleCloseButton() async {
+    if (!_hasChanges) {
+      // No changes, just close
+      Navigator.of(context).pop();
+      return;
+    }
+
+    // Show confirmation dialog for unsaved changes
+    final result = await showConfirmationDialog(
+      context: context,
+      title: 'Discard Changes?',
+      subtitle:
+          'You have unsaved changes. Are you sure you want to discard them?',
+      icon: Icons.warning_amber_rounded,
+      iconBackgroundColor: Colors.orange,
+      confirmText: 'Discard',
+      cancelText: 'Keep Editing',
+      confirmButtonColor: AppColors.error,
+      confirmTextColor: Colors.white,
+    );
+
+    if (result == true && mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   Future<void> _saveChanges() async {
     // Prevent multiple simultaneous saves
     if (_isSavingChanges) return;
@@ -3069,19 +3040,17 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     _notifier.setSavingChanges(true);
 
     try {
-      // Only regenerate PDF if there are changes
+      // If no changes, just close the modal silently
       if (!_hasChanges) {
-        print('📄 No changes detected, skipping PDF regeneration');
-        // Still pass the data back to parent and close modal
-        widget.onResumeUpdated(_editableResumeData);
+        debugPrint('📄 No changes detected, closing modal');
         if (mounted) {
           Navigator.of(context).pop();
         }
         return;
       }
 
-      print('📄 Changes detected, regenerating PDF...');
-      print(
+      debugPrint('📄 Changes detected, regenerating PDF...');
+      debugPrint(
         '📋 Current editable data PDF length: ${_editableResumeData.pdfBase64?.length ?? 0}',
       );
 
@@ -3093,16 +3062,16 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
             template: widget.template,
           );
 
-      if (pdfBase64 != null) {
-        print('📑 Setting new PDF Base64 length: ${pdfBase64.length}');
+      if (pdfBase64 != null && pdfBase64.isNotEmpty) {
+        debugPrint('📑 Setting new PDF Base64 length: ${pdfBase64.length}');
         // Update only the PDF base64, keep all current resume data intact
         _notifier.updatePdfBase64(pdfBase64);
-        print(
+        debugPrint(
           '📋 Updated editable data PDF length: ${_editableResumeData.pdfBase64?.length ?? 0}',
         );
 
         // Pass the updated data back to parent
-        print('🔄 Calling onResumeUpdated with updated data');
+        debugPrint('🔄 Calling onResumeUpdated with updated data');
         widget.onResumeUpdated(_editableResumeData);
 
         // Close the modal
@@ -3110,26 +3079,18 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
           Navigator.of(context).pop();
         }
       } else {
-        // Failed to generate PDF, but still save the data changes
-        widget.onResumeUpdated(_editableResumeData);
-
+        // PDF generation failed - close modal silently
+        // Don't update parent - keep existing PDF intact
+        debugPrint('❌ PDF generation returned null/empty');
         if (mounted) {
-          // showErrorSnackBar(
-          //   context: context,
-          //   message: 'Changes saved, but PDF update failed. Please try again.',
-          // );
           Navigator.of(context).pop();
         }
       }
     } catch (e) {
-      // Error occurred, but still save the data changes
-      widget.onResumeUpdated(_editableResumeData);
-
+      debugPrint('❌ Error during save: $e');
+      // PDF generation failed - close modal silently
+      // Don't update parent - keep existing PDF intact
       if (mounted) {
-        showErrorSnackBar(
-          context: context,
-          message: 'Changes saved, but PDF update failed: ${e.toString()}',
-        );
         Navigator.of(context).pop();
       }
     } finally {
@@ -3151,8 +3112,8 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
             Row(
               children: [
                 Container(
-                  width: 24,
-                  height: 24,
+                  width: 20,
+                  height: 20,
                   decoration: const BoxDecoration(
                     color: Color(0xFF9C27B0),
                     shape: BoxShape.circle,
@@ -3160,38 +3121,31 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                   child: const Icon(
                     Icons.school,
                     color: Colors.white,
-                    size: 14,
+                    size: 11,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 const Text(
                   'Education',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
                   ),
                 ),
               ],
             ),
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.add_circle, color: AppColors.primary),
-                  onPressed: () => _addEducation(),
-                  tooltip: 'Add Education',
-                ),
-                // TODO: Uncomment when regenerate feature is ready
-                // IconButton(
-                //   icon: const Icon(Icons.refresh, color: AppColors.primary),
-                //   onPressed: () => _regenerateSection(['education']),
-                //   tooltip: 'Regenerate with AI',
-                // ),
-              ],
+            GestureDetector(
+              onTap: () => _addEducation(),
+              child: const Icon(
+                Icons.add_circle,
+                color: AppColors.primary,
+                size: 22,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
         if (education.isNotEmpty)
           ...education.asMap().entries.map(
@@ -3248,8 +3202,8 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     final isLast = index == educationList.length - 1;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey.shade300),
         borderRadius: BorderRadius.circular(8),
@@ -3262,99 +3216,95 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               if (!isFirst)
-                IconButton(
-                  icon: const Icon(
-                    Icons.arrow_upward,
-                    size: 20,
-                    color: AppColors.primary,
+                GestureDetector(
+                  onTap: () => _notifier.moveEducationUp(index),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.arrow_upward,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
                   ),
-                  onPressed: () => _notifier.moveEducationUp(index),
-                  tooltip: 'Move Up',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
                 ),
               if (!isLast)
-                IconButton(
-                  icon: const Icon(
-                    Icons.arrow_downward,
-                    size: 20,
-                    color: AppColors.primary,
+                GestureDetector(
+                  onTap: () => _notifier.moveEducationDown(index),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.arrow_downward,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
                   ),
-                  onPressed: () => _notifier.moveEducationDown(index),
-                  tooltip: 'Move Down',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
                 ),
-              IconButton(
-                icon: const Icon(
-                  Icons.edit,
-                  size: 20,
-                  color: AppColors.primary,
+              GestureDetector(
+                onTap: () => _editEducation(education, index),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.edit, size: 18, color: AppColors.primary),
                 ),
-                onPressed: () => _editEducation(education, index),
-                tooltip: 'Edit',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
               ),
-              IconButton(
-                icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-                onPressed: () => _deleteEducation(index),
-                tooltip: 'Delete',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+              GestureDetector(
+                onTap: () => _deleteEducation(index),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.delete, size: 18, color: Colors.red),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             education.degree ?? 'Degree',
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 15,
               fontWeight: FontWeight.w600,
               color: Colors.black,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             education.university ?? 'University',
-            style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+            style: TextStyle(fontSize: 14, color: Colors.grey[700]),
           ),
           if (education.fromDate != null || education.toDate != null) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               '${education.fromDate ?? ''} - ${education.toDate ?? ''}',
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 color: AppColors.primary,
                 fontWeight: FontWeight.w500,
               ),
             ),
           ],
           if (education.courses != null && education.courses!.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             const Text(
               'Relevant Courses:',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             ...education.courses!.map(
               (course) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.only(bottom: 3),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('• ', style: TextStyle(fontSize: 14)),
+                    const Text('• ', style: TextStyle(fontSize: 13)),
                     Expanded(
                       child: Text(
                         course,
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           color: Colors.grey[800],
-                          height: 1.4,
+                          height: 1.35,
                         ),
                       ),
                     ),
@@ -3408,10 +3358,17 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       }
     }
 
+    // Create controllers list for courses (auto-add pattern)
+    // Always include one empty field at the end for easy adding
     final coursesList = List<String>.from(education?.courses ?? []);
-    final coursesControllers = coursesList
-        .map((course) => TextEditingController(text: course))
-        .toList();
+    final coursesControllers = [
+      ...coursesList.map((course) => TextEditingController(text: course)),
+      TextEditingController(), // Always show one empty field for adding
+    ];
+
+    // Validation error states
+    String? degreeError;
+    String? universityError;
 
     showDialog(
       context: context,
@@ -3419,16 +3376,18 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 24,
+          insetPadding: const EdgeInsets.only(
+            left: 10,
+            right: 10,
+            top: 0,
+            bottom: 20,
           ),
           child: Container(
             width: MediaQuery.of(context).size.width,
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.85,
             ),
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -3443,9 +3402,9 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Title
+                  // Title - centered
                   Text(
                     isEditing ? 'Edit Education' : 'Add Education',
                     style: const TextStyle(
@@ -3453,68 +3412,46 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF1A1A1A),
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
                   // Degree Field
-                  TextField(
+                  _buildCompactTextField(
                     controller: degreeController,
-                    decoration: InputDecoration(
-                      labelText: 'Degree *',
-                      hintText: 'e.g., Bachelor of Science in Computer Science',
-                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: AppColors.primary),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                    textCapitalization: TextCapitalization.words,
+                    label: 'Degree *',
+                    hint: 'e.g., Bachelor of Science',
+                    errorText: degreeError,
+                    onChanged: () {
+                      if (degreeError != null) {
+                        setDialogState(() => degreeError = null);
+                      }
+                    },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
                   // University Field
-                  TextField(
+                  _buildCompactTextField(
                     controller: universityController,
-                    decoration: InputDecoration(
-                      labelText: 'University / Institution *',
-                      hintText: 'e.g., Stanford University',
-                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: AppColors.primary),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                    textCapitalization: TextCapitalization.words,
+                    label: 'University / Institution *',
+                    hint: 'e.g., Stanford University',
+                    errorText: universityError,
+                    onChanged: () {
+                      if (universityError != null) {
+                        setDialogState(() => universityError = null);
+                      }
+                    },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
                   // Date Fields Row
                   Row(
                     children: [
                       Expanded(
-                        child: GestureDetector(
+                        child: _buildDateField(
+                          label: 'Start Year',
+                          value: selectedFromDate,
+                          placeholder: 'Select year',
                           onTap: () async {
                             final DateTime? picked = await showDatePicker(
                               context: context,
@@ -3528,60 +3465,14 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                               });
                             }
                           },
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: const Color(0xFFE5E7EB),
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                              color: const Color(0xFFF9FAFB),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Start Date',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        selectedFromDate != null
-                                            ? DateFormat(
-                                                'MMM dd, yyyy',
-                                              ).format(selectedFromDate!)
-                                            : 'Jan 01, 2018',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: selectedFromDate != null
-                                              ? const Color(0xFF1A1A1A)
-                                              : const Color(0xFF9CA3AF),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.calendar_today,
-                                  size: 18,
-                                  color: AppColors.primary,
-                                ),
-                              ],
-                            ),
-                          ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 12),
                       Expanded(
-                        child: GestureDetector(
+                        child: _buildDateField(
+                          label: 'End Year',
+                          value: selectedToDate,
+                          placeholder: 'Select year',
                           onTap: () async {
                             final DateTime? picked = await showDatePicker(
                               context: context,
@@ -3595,174 +3486,19 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                               });
                             }
                           },
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: const Color(0xFFE5E7EB),
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                              color: const Color(0xFFF9FAFB),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'End Date',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        selectedToDate != null
-                                            ? DateFormat(
-                                                'MMM dd, yyyy',
-                                              ).format(selectedToDate!)
-                                            : 'Jun 01, 2022',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: selectedToDate != null
-                                              ? const Color(0xFF1A1A1A)
-                                              : const Color(0xFF9CA3AF),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.calendar_today,
-                                  size: 18,
-                                  color: AppColors.primary,
-                                ),
-                              ],
-                            ),
-                          ),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+
+                  // Courses Section - Auto-add pattern
+                  _buildCoursesSection(
+                    controllers: coursesControllers,
+                    setDialogState: setDialogState,
+                  ),
+
                   const SizedBox(height: 16),
-
-                  // Courses Section
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Relevant Courses',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A1A1A),
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: () {
-                          setDialogState(() {
-                            coursesControllers.add(TextEditingController());
-                          });
-                        },
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Courses Items
-                  ...coursesControllers.asMap().entries.map((entry) {
-                    final idx = entry.key;
-                    final controller = entry.value;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.only(top: 16),
-                            child: Text('• ', style: TextStyle(fontSize: 16)),
-                          ),
-                          Expanded(
-                            child: TextField(
-                              controller: controller,
-                              maxLines: 2,
-                              decoration: InputDecoration(
-                                hintText: 'Course name',
-                                hintStyle: const TextStyle(
-                                  color: Color(0xFF9CA3AF),
-                                  fontSize: 13,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFFE5E7EB),
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                                filled: true,
-                                fillColor: const Color(0xFFF9FAFB),
-                                contentPadding: const EdgeInsets.all(12),
-                              ),
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF1A1A1A),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.close,
-                              size: 18,
-                              color: Colors.red,
-                            ),
-                            onPressed: () {
-                              setDialogState(() {
-                                coursesControllers.removeAt(idx);
-                              });
-                            },
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-
-                  if (coursesControllers.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(8),
-                        color: Colors.grey[50],
-                      ),
-                      child: Center(
-                        child: Text(
-                          'No courses added yet. Click "Add" to add one.',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-
-                  const SizedBox(height: 24),
 
                   // Buttons
                   Row(
@@ -3771,7 +3507,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                         child: GestureDetector(
                           onTap: () => Navigator.of(context).pop(),
                           child: Container(
-                            height: 48,
+                            height: 44,
                             decoration: BoxDecoration(
                               color: const Color(0xFFE5E7EB),
                               borderRadius: BorderRadius.circular(8),
@@ -3780,7 +3516,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                               child: Text(
                                 'Cancel',
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF6B7280),
                                 ),
@@ -3789,25 +3525,28 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 12),
                       Expanded(
+                        flex: 2,
                         child: GestureDetector(
                           onTap: () {
-                            // Validation
+                            // Validation with inline errors
+                            bool hasError = false;
+
                             if (degreeController.text.trim().isEmpty) {
-                              showErrorSnackBar(
-                                context: context,
-                                message: 'Degree is required',
-                              );
-                              return;
+                              setDialogState(() {
+                                degreeError = 'Degree is required';
+                              });
+                              hasError = true;
                             }
                             if (universityController.text.trim().isEmpty) {
-                              showErrorSnackBar(
-                                context: context,
-                                message: 'University is required',
-                              );
-                              return;
+                              setDialogState(() {
+                                universityError = 'University is required';
+                              });
+                              hasError = true;
                             }
+
+                            if (hasError) return;
 
                             // Collect courses
                             final courses = coursesControllers
@@ -3846,16 +3585,16 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                             Navigator.of(context).pop();
                           },
                           child: Container(
-                            height: 48,
+                            height: 44,
                             decoration: BoxDecoration(
                               color: AppColors.primary,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Center(
                               child: Text(
-                                isEditing ? 'Update' : 'Add',
+                                isEditing ? 'Save Changes' : 'Add Education',
                                 style: const TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
                                 ),

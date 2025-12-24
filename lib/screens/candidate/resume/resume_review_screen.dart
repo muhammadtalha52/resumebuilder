@@ -10,6 +10,7 @@ import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:skillresy/screens/candidate/resume/resume_generation_loading_screen.dart';
 
 import '../../../constants/app_colors.dart';
@@ -101,7 +102,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
   final _longTermGoalsController = TextEditingController();
   List<String> _jobTitles = [];
   List<String> _industries = [];
-  String? _locationPreference;
+  List<String> _locationPreferences = [];
   String? _desiredSalaryRange;
 
   // Work experience
@@ -290,12 +291,10 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
       // Extract location preferences from LocationPreference objects
       if (user.locationPreferences != null &&
           user.locationPreferences!.isNotEmpty) {
-        // Join location names
-        final locations = user.locationPreferences!
+        _locationPreferences = user.locationPreferences!
             .map((loc) => loc.location ?? '')
             .where((loc) => loc.isNotEmpty)
             .toList();
-        _locationPreference = locations.join(', ');
       }
 
       // Load long term goals from CareerGoal objects
@@ -1118,9 +1117,16 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
 
   Future<void> _downloadResume() async {
     final resumeState = ref.read(resumeProvider);
+
+    // Prevent duplicate taps (with null-safe check for hot reload edge case)
+    if (resumeState.isDownloading == true) return;
+
     final generatedResumeData = resumeState.generatedResumeData;
 
     if (generatedResumeData != null && generatedResumeData.pdfBase64 != null) {
+      // Set downloading state
+      ref.read(resumeProvider.notifier).setDownloading(true);
+
       try {
         // Decode base64 PDF
         final pdfBytes = base64Decode(generatedResumeData.pdfBase64!);
@@ -1149,8 +1155,6 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
 
         // Platform-specific handling
         if (kIsWeb) {
-          // For web, we'll need to use a different approach
-          // This is a placeholder - web download would need html library
           if (mounted) {
             showErrorSnackBar(
               context: context,
@@ -1158,42 +1162,25 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
             );
           }
         } else if (Platform.isIOS || Platform.isAndroid) {
-          // For mobile platforms, save to temp directory and share
-          final tempDir = await getTemporaryDirectory();
-          final file = File('${tempDir.path}/$fileName');
+          // For mobile platforms, save to app documents directory
+          final appDir = await getApplicationDocumentsDirectory();
+          final resumesDir = Directory('${appDir.path}/Resumes');
+
+          // Create Resumes folder if it doesn't exist
+          if (!await resumesDir.exists()) {
+            await resumesDir.create(recursive: true);
+          }
+
+          final file = File('${resumesDir.path}/$fileName');
           await file.writeAsBytes(pdfBytes);
 
-          // Use share_plus to let user save or share the file
-          final result = await Share.shareXFiles(
-            [XFile(file.path)],
-            subject: 'Resume - ${_getTemplateName()}',
-            text: jobTitle.isNotEmpty
-                ? 'Resume for $jobTitle position${companyName.isNotEmpty ? " at $companyName" : ""}'
-                : 'My Resume',
-            sharePositionOrigin: context.mounted
-                ? Rect.fromLTWH(
-                    0,
-                    0,
-                    MediaQuery.of(context).size.width,
-                    MediaQuery.of(context).size.height / 2,
-                  )
-                : null,
-          );
+          // Store the path for opening later
+          ref.read(resumeProvider.notifier).setLastSavedFilePath(file.path);
 
-          if (mounted) {
-            if (result.status == ShareResultStatus.success) {
-              showSuccessSnackBar(
-                context: context,
-                message: 'Resume shared successfully!',
-              );
-            } else if (result.status == ShareResultStatus.dismissed) {
-              // User dismissed the share sheet - this is not an error
-              debugPrint('Share sheet dismissed');
-            }
-          }
+          // Auto-open after download
+          await _openSavedFile(file.path);
         } else {
           // For desktop platforms (macOS, Windows, Linux)
-          // Try to save to Downloads folder
           Directory? downloadsDir;
 
           if (Platform.isMacOS || Platform.isLinux) {
@@ -1216,12 +1203,10 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           );
           await file.writeAsBytes(pdfBytes);
 
-          if (mounted) {
-            showSuccessSnackBar(
-              context: context,
-              message: 'Resume saved to: ${file.path}',
-            );
-          }
+          ref.read(resumeProvider.notifier).setLastSavedFilePath(file.path);
+
+          // Auto-open after download
+          await _openSavedFile(file.path);
         }
       } catch (e) {
         debugPrint('Download error: $e');
@@ -1231,6 +1216,9 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
             message: 'Failed to download resume: ${e.toString()}',
           );
         }
+      } finally {
+        // Reset downloading state
+        ref.read(resumeProvider.notifier).setDownloading(false);
       }
     } else {
       if (mounted) {
@@ -1238,6 +1226,47 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           context: context,
           message: 'No resume data available',
         );
+      }
+    }
+  }
+
+  /// Open saved PDF file with device's default PDF viewer
+  /// Falls back to share if opening fails
+  Future<void> _openSavedFile(String filePath) async {
+    try {
+      final result = await OpenFilex.open(filePath);
+      if (result.type != ResultType.done) {
+        debugPrint('Failed to open file: ${result.message}');
+        // Fallback to share if open fails
+        await _shareFile(filePath);
+      }
+    } catch (e) {
+      debugPrint('Error opening file: $e');
+      // Fallback to share if open fails
+      await _shareFile(filePath);
+    }
+  }
+
+  /// Share the saved PDF file (fallback when open fails)
+  Future<void> _shareFile(String filePath) async {
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(filePath)],
+          sharePositionOrigin: mounted
+              ? Rect.fromLTWH(
+                  0,
+                  0,
+                  MediaQuery.of(context).size.width,
+                  MediaQuery.of(context).size.height / 2,
+                )
+              : const Rect.fromLTWH(0, 0, 100, 100),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error sharing file: $e');
+      if (mounted) {
+        showErrorSnackBar(context: context, message: 'Failed to share file');
       }
     }
   }
@@ -1434,16 +1463,17 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
         ),
         const SizedBox(height: 16),
         CustomPickerField(
-          labelText: 'Location Preference',
+          labelText: 'Preferred Work Arrangement',
           isRequired: false,
-          value: _locationPreference,
+          selectedValues: _locationPreferences,
           items: const ['On-site', 'Remote', 'Hybrid'],
           hintText: 'Select Options',
           enableSearch: false,
-          pickerTitle: 'Select Location Preference',
-          onChanged: (value) {
+          pickerTitle: 'Select Preferred Work Arrangement',
+          isMultiSelect: true,
+          onMultiChanged: (values) {
             setState(() {
-              _locationPreference = value;
+              _locationPreferences = values;
             });
           },
         ),

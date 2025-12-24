@@ -67,22 +67,24 @@ class _EditWorkExperienceScreenState
           );
         }
 
-        // Set dates
-        if (userWorkExp.workStartDate != null) {
-          try {
-            workExp.startDate = DateTime.parse(userWorkExp.workStartDate!);
-          } catch (e) {
-            // Handle parse error
-          }
+        // Set dates using DateHelpers for better format handling
+        if (userWorkExp.workStartDate != null &&
+            userWorkExp.workStartDate!.isNotEmpty) {
+          workExp.startDate = DateHelpers.parseApiDate(
+            userWorkExp.workStartDate,
+          );
+          debugPrint(
+            '📅 Start date: ${userWorkExp.workStartDate} -> ${workExp.startDate}',
+          );
         }
 
-        if (userWorkExp.workEndDate != null) {
-          try {
-            workExp.endDate = DateTime.parse(userWorkExp.workEndDate!);
-            workExp.currentJob = false;
-          } catch (e) {
-            // Handle parse error
-          }
+        if (userWorkExp.workEndDate != null &&
+            userWorkExp.workEndDate!.isNotEmpty) {
+          workExp.endDate = DateHelpers.parseApiDate(userWorkExp.workEndDate);
+          workExp.currentJob = false;
+          debugPrint(
+            '📅 End date: ${userWorkExp.workEndDate} -> ${workExp.endDate}',
+          );
         } else if (userWorkExp.isCurrentJob == true) {
           workExp.currentJob = true;
           workExp.endDate = null;

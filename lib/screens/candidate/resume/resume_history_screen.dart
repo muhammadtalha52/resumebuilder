@@ -1,9 +1,11 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -26,6 +28,9 @@ class ResumeHistoryScreen extends ConsumerStatefulWidget {
 }
 
 class _ResumeHistoryScreenState extends ConsumerState<ResumeHistoryScreen> {
+  // Track which resume IDs are currently downloading
+  final Set<int> _downloadingIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -200,15 +205,26 @@ class _ResumeHistoryScreenState extends ConsumerState<ResumeHistoryScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (resume.resumeUrl.isNotEmpty)
-                  IconButton(
-                    onPressed: () => _downloadResume(resume, context),
-                    icon: const Icon(
-                      Icons.download,
-                      color: AppColors.textSecondary,
-                      size: 20,
-                    ),
-                    tooltip: 'Download Resume',
-                  ),
+                  _downloadingIds.contains(resume.id)
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.primary,
+                            ),
+                          ),
+                        )
+                      : IconButton(
+                          onPressed: () => _downloadResume(resume, context),
+                          icon: const Icon(
+                            Icons.download,
+                            color: AppColors.textSecondary,
+                            size: 20,
+                          ),
+                          tooltip: 'Download Resume',
+                        ),
               ],
             ),
           ],
@@ -230,21 +246,21 @@ class _ResumeHistoryScreenState extends ConsumerState<ResumeHistoryScreen> {
     ResumeHistory resume,
     BuildContext context,
   ) async {
-    try {
-      // Show loading indicator
-      if (context.mounted) {
-        showInfoSnackBar(context: context, message: 'Downloading resume...');
-      }
+    // Prevent duplicate taps
+    if (_downloadingIds.contains(resume.id)) return;
 
+    setState(() {
+      _downloadingIds.add(resume.id);
+    });
+
+    try {
       // Construct the full URL
       String urlString = resume.resumeUrl;
       if (!urlString.startsWith('http')) {
         urlString = S3Utils.constructAssetUrl(resume.resumeUrl);
       }
 
-      // Debug: Print the URL and token
-      print('📱 Download URL: $urlString');
-      print('🔑 Token: ${appLogic.accessToken.substring(0, 20)}...');
+      debugPrint('📱 Download URL: $urlString');
 
       // Download with authentication using apiClient with bytes response type
       final response = await apiClient.dio.get(
@@ -267,89 +283,127 @@ class _ResumeHistoryScreenState extends ConsumerState<ResumeHistoryScreen> {
           RegExp(r'[^a-zA-Z0-9]'),
           '_',
         );
+        final dateStr = DateTime.now().toString().split(' ')[0];
         final timestamp = DateTime.now().millisecondsSinceEpoch;
 
-        String fileName = '';
+        String fileName;
         if (companyName.isNotEmpty && jobTitle.isNotEmpty) {
-          fileName = '${companyName}_${jobTitle}_Resume_$timestamp.pdf';
+          fileName =
+              'resume_${companyName}_${jobTitle}_${dateStr}_$timestamp.pdf';
         } else if (jobTitle.isNotEmpty) {
-          fileName = '${jobTitle}_Resume_$timestamp.pdf';
+          fileName = 'resume_${jobTitle}_${dateStr}_$timestamp.pdf';
         } else {
-          fileName = 'Resume_$timestamp.pdf';
+          fileName = 'resume_${dateStr}_$timestamp.pdf';
         }
 
-        // Save to permanent storage
-        Directory? permanentDir;
+        // Platform-specific handling
+        if (kIsWeb) {
+          if (mounted) {
+            showErrorSnackBar(
+              context: context,
+              message: 'Web download not yet implemented',
+            );
+          }
+        } else if (Platform.isIOS || Platform.isAndroid) {
+          // For mobile platforms, save to app documents directory
+          final appDir = await getApplicationDocumentsDirectory();
+          final resumesDir = Directory('${appDir.path}/Resumes');
 
-        if (Platform.isAndroid) {
-          // On Android, use app-specific external storage (no permissions needed)
-          // This will save to /storage/emulated/0/Android/data/com.skillresy.app/files/Download
-          final dirs = await getExternalStorageDirectories(
-            type: StorageDirectory.downloads,
-          );
-          if (dirs != null && dirs.isNotEmpty) {
-            permanentDir = dirs.first;
-          } else {
-            // Fallback to external storage directory
-            permanentDir = await getExternalStorageDirectory();
-            if (permanentDir != null) {
-              // Create a Download subfolder in app's external storage
-              permanentDir = Directory('${permanentDir.path}/Download');
-              if (!await permanentDir.exists()) {
-                await permanentDir.create(recursive: true);
-              }
-            } else {
-              // Last resort: use app documents directory
-              permanentDir = await getApplicationDocumentsDirectory();
+          // Create Resumes folder if it doesn't exist
+          if (!await resumesDir.exists()) {
+            await resumesDir.create(recursive: true);
+          }
+
+          final file = File('${resumesDir.path}/$fileName');
+          await file.writeAsBytes(bytes);
+
+          // Auto-open after download
+          await _openSavedFile(file.path);
+        } else {
+          // For desktop platforms (macOS, Windows, Linux)
+          Directory? downloadsDir;
+
+          if (Platform.isMacOS || Platform.isLinux) {
+            final home = Platform.environment['HOME'];
+            if (home != null) {
+              downloadsDir = Directory('$home/Downloads');
+            }
+          } else if (Platform.isWindows) {
+            final userProfile = Platform.environment['USERPROFILE'];
+            if (userProfile != null) {
+              downloadsDir = Directory('$userProfile\\Downloads');
             }
           }
-        } else if (Platform.isIOS) {
-          // On iOS, save to Documents directory (accessible via Files app)
-          permanentDir = await getApplicationDocumentsDirectory();
-        } else {
-          // For other platforms, use temporary directory
-          permanentDir = await getTemporaryDirectory();
-        }
 
-        // Save the file permanently
-        final permanentFile = File('${permanentDir!.path}/$fileName');
-        await permanentFile.writeAsBytes(bytes);
+          // Fallback to documents directory if Downloads not found
+          downloadsDir ??= await getApplicationDocumentsDirectory();
 
-        // Also create a temporary file for sharing
-        final tempDir = await getTemporaryDirectory();
-        final tempFile = File('${tempDir.path}/$fileName');
-        await tempFile.writeAsBytes(bytes);
-
-        // Share the file using latest SharePlus v12.0.0 API
-        await SharePlus.instance.share(
-          ShareParams(
-            files: [XFile(tempFile.path)],
-            text: 'Resume - ${resume.title}',
-            sharePositionOrigin: context.mounted
-                ? Rect.fromLTWH(
-                    0,
-                    0,
-                    MediaQuery.of(context).size.width,
-                    MediaQuery.of(context).size.height / 2,
-                  )
-                : const Rect.fromLTWH(0, 0, 100, 100),
-          ),
-        );
-
-        if (context.mounted) {
-          showSuccessSnackBar(
-            context: context,
-            message: Platform.isIOS
-                ? 'Resume saved to Files app and ready to share!'
-                : 'Resume saved to Downloads folder!',
+          final file = File(
+            '${downloadsDir.path}${Platform.pathSeparator}$fileName',
           );
+          await file.writeAsBytes(bytes);
+
+          // Auto-open after download
+          await _openSavedFile(file.path);
         }
       } else {
         throw Exception('Failed to download resume');
       }
     } catch (e) {
-      if (context.mounted) {
-        showErrorSnackBar(context: context, message: e.toString());
+      debugPrint('Download error: $e');
+      if (mounted) {
+        showErrorSnackBar(
+          context: context,
+          message: 'Failed to download resume: ${e.toString()}',
+        );
+      }
+    } finally {
+      // Reset downloading state
+      if (mounted) {
+        setState(() {
+          _downloadingIds.remove(resume.id);
+        });
+      }
+    }
+  }
+
+  /// Open saved PDF file with device's default PDF viewer
+  /// Falls back to share if opening fails
+  Future<void> _openSavedFile(String filePath) async {
+    try {
+      final result = await OpenFilex.open(filePath);
+      if (result.type != ResultType.done) {
+        debugPrint('Failed to open file: ${result.message}');
+        // Fallback to share if open fails
+        await _shareFile(filePath);
+      }
+    } catch (e) {
+      debugPrint('Error opening file: $e');
+      // Fallback to share if open fails
+      await _shareFile(filePath);
+    }
+  }
+
+  /// Share the saved PDF file (fallback when open fails)
+  Future<void> _shareFile(String filePath) async {
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(filePath)],
+          sharePositionOrigin: mounted
+              ? Rect.fromLTWH(
+                  0,
+                  0,
+                  MediaQuery.of(context).size.width,
+                  MediaQuery.of(context).size.height / 2,
+                )
+              : const Rect.fromLTWH(0, 0, 100, 100),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error sharing file: $e');
+      if (mounted) {
+        showErrorSnackBar(context: context, message: 'Failed to share file');
       }
     }
   }

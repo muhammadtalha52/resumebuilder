@@ -126,6 +126,20 @@ class ProfileScreen extends ConsumerWidget {
             _extractJobTitles(user?.desiredJobTitles),
             showDivider: true,
           ),
+          _buildDetailRowWithDivider(
+            'assets/icons/work.png',
+            'Years of Experience in Desired Job',
+            user?.yearsOfExperience != null
+                ? '${user!.yearsOfExperience! % 1 == 0 ? user.yearsOfExperience!.toInt() : user.yearsOfExperience} years'
+                : '',
+            showDivider: true,
+          ),
+          _buildDetailRowWithDivider(
+            'assets/icons/work.png',
+            'Placement Type',
+            (user?.placementType ?? '').replaceAll('_', ' '),
+            showDivider: true,
+          ),
           _buildCareerDetailRow(
             'assets/icons/industry.png',
             'Industry Preferences',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:get_storage/get_storage.dart';
@@ -12,6 +13,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await GetStorage.init();
   // Enable wakelock to keep screen on while app is open
   WakelockPlus.enable();
@@ -26,6 +28,12 @@ Future<void> main() async {
     print('⚠️ .env file not found - using fallback configuration');
     // Continue without .env file - secure_keys.dart will handle key retrieval
   }
+
+  // Lock app to portrait mode only
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
   runApp(
     UncontrolledProviderScope(
       container: container,

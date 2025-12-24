@@ -29,12 +29,15 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
   final TextEditingController _hometownController = TextEditingController();
   final TextEditingController _longTermGoalsController =
       TextEditingController();
+  final TextEditingController _yearsOfExperienceController =
+      TextEditingController();
 
   // Store objects to preserve IDs and metadata
   List<DesiredJobTitle> _jobTitleObjects = [];
   List<IndustryPreference> _industryObjects = [];
   List<CareerGoal> _longTermGoalObjects = [];
   List<String> _locationPreferences = [];
+  String? _selectedPlacementType;
 
   String? _jobTitlesError;
   String? _industriesError;
@@ -49,6 +52,32 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
   List<CareerGoal> _originalLongTermGoalObjects = [];
   List<String> _originalLocationPreferences = [];
   String _originalHometown = '';
+  double? _originalYearsOfExperience;
+  String? _originalPlacementType;
+
+  // Mapping between display values and API values
+  static const Map<String, String> _placementTypeToApi = {
+    'Full-time': 'full_time',
+    'Part-time': 'part_time',
+    'Seasonal': 'seasonal',
+  };
+
+  static const Map<String, String> _placementTypeFromApi = {
+    'full_time': 'Full-time',
+    'part_time': 'Part-time',
+    'seasonal': 'Seasonal',
+  };
+
+  String? _toApiPlacementType(String? displayValue) {
+    if (displayValue == null) return null;
+    return _placementTypeToApi[displayValue] ??
+        displayValue.toLowerCase().replaceAll('-', '_');
+  }
+
+  String? _fromApiPlacementType(String? apiValue) {
+    if (apiValue == null) return null;
+    return _placementTypeFromApi[apiValue] ?? apiValue;
+  }
 
   @override
   void initState() {
@@ -96,6 +125,19 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
       _hometownController.text = user.homeTown ?? '';
       _originalHometown = user.homeTown ?? '';
 
+      // Load years of experience
+      if (user.yearsOfExperience != null) {
+        // Show without .0 for whole numbers
+        _yearsOfExperienceController.text = user.yearsOfExperience! % 1 == 0
+            ? user.yearsOfExperience!.toInt().toString()
+            : user.yearsOfExperience.toString();
+      }
+      _originalYearsOfExperience = user.yearsOfExperience;
+
+      // Load placement type (convert from API format to display format)
+      _selectedPlacementType = _fromApiPlacementType(user.placementType);
+      _originalPlacementType = _selectedPlacementType;
+
       setState(() {});
     }
   }
@@ -128,6 +170,7 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
     _industriesController.dispose();
     _hometownController.dispose();
     _longTermGoalsController.dispose();
+    _yearsOfExperienceController.dispose();
     super.dispose();
   }
 
@@ -220,11 +263,24 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
     final hometownChanged =
         _hometownController.text.trim() != _originalHometown;
 
+    // Check years of experience change
+    final currentYearsOfExperience = double.tryParse(
+      _yearsOfExperienceController.text.trim(),
+    );
+    final yearsOfExperienceChanged =
+        currentYearsOfExperience != _originalYearsOfExperience;
+
+    // Check placement type change
+    final placementTypeChanged =
+        _selectedPlacementType != _originalPlacementType;
+
     return jobTitlesChanged ||
         industriesChanged ||
         longTermGoalsChanged ||
         locationChanged ||
-        hometownChanged;
+        hometownChanged ||
+        yearsOfExperienceChanged ||
+        placementTypeChanged;
   }
 
   bool _listEquals(List<String> list1, List<String> list2) {
@@ -349,6 +405,21 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
         updateData['home_town'] = _hometownController.text.trim();
       }
 
+      // Add years of experience if changed
+      final currentYearsOfExperience = double.tryParse(
+        _yearsOfExperienceController.text.trim(),
+      );
+      if (currentYearsOfExperience != _originalYearsOfExperience) {
+        updateData['years_of_experience'] = currentYearsOfExperience;
+      }
+
+      // Add placement type if changed (convert to API format)
+      if (_selectedPlacementType != _originalPlacementType) {
+        updateData['placement_type'] = _toApiPlacementType(
+          _selectedPlacementType,
+        );
+      }
+
       // Use profile provider to update
       final profileNotifier = ref.read(profileProvider.notifier);
       final success = await profileNotifier.updateProfileFields(updateData);
@@ -424,6 +495,42 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
                                 errorText: _jobTitlesError,
                                 onClearError: () =>
                                     setState(() => _jobTitlesError = null),
+                              ),
+                              const SizedBox(height: 24),
+
+                              // Years of Experience
+                              CustomTextField(
+                                controller: _yearsOfExperienceController,
+                                labelText: 'Years of Experience in Desired Job',
+                                hintText: 'e.g., 5 or 2.5',
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                textInputAction: TextInputAction.next,
+                                isRequired: false,
+                              ),
+                              const SizedBox(height: 24),
+
+                              // Placement Type
+                              CustomPickerField(
+                                labelText: 'Placement Type',
+                                isRequired: false,
+                                value: _selectedPlacementType,
+                                items: const [
+                                  'Full-time',
+                                  'Part-time',
+                                  'Seasonal',
+                                ],
+                                hintText: 'Select placement type',
+                                enableSearch: false,
+                                pickerTitle: 'Select Placement Type',
+                                isMultiSelect: false,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedPlacementType = value;
+                                  });
+                                },
                               ),
                               const SizedBox(height: 24),
 

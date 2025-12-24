@@ -19,6 +19,7 @@ class ResumeState {
   final bool isParsing;
   final bool isLoadingEducationData;
   final bool isGeneratingResume;
+  final bool isDownloading;
   final String? error;
   final List<Resume> resumes;
   final Resume? selectedResume;
@@ -29,12 +30,14 @@ class ResumeState {
   final GenerateResumeResponse?
   generatedResumeData; // Store generated resume data
   final int resumeVersion; // Track resume updates for UI refresh
+  final String? lastSavedFilePath; // Path to last downloaded/saved resume
 
   ResumeState({
     this.isLoading = false,
     this.isParsing = false,
     this.isLoadingEducationData = false,
     this.isGeneratingResume = false,
+    this.isDownloading = false,
     this.error,
     this.resumes = const [],
     this.selectedResume,
@@ -44,6 +47,7 @@ class ResumeState {
     this.educationData,
     this.generatedResumeData,
     this.resumeVersion = 0,
+    this.lastSavedFilePath,
   });
 
   ResumeState copyWith({
@@ -51,6 +55,7 @@ class ResumeState {
     bool? isParsing,
     bool? isLoadingEducationData,
     bool? isGeneratingResume,
+    bool? isDownloading,
     String? error,
     List<Resume>? resumes,
     Resume? selectedResume,
@@ -60,6 +65,7 @@ class ResumeState {
     EducationModel? educationData,
     GenerateResumeResponse? generatedResumeData,
     int? resumeVersion,
+    String? lastSavedFilePath,
   }) {
     return ResumeState(
       isLoading: isLoading ?? this.isLoading,
@@ -67,6 +73,7 @@ class ResumeState {
       isLoadingEducationData:
           isLoadingEducationData ?? this.isLoadingEducationData,
       isGeneratingResume: isGeneratingResume ?? this.isGeneratingResume,
+      isDownloading: isDownloading ?? this.isDownloading,
       error: error,
       resumes: resumes ?? this.resumes,
       selectedResume: selectedResume ?? this.selectedResume,
@@ -76,6 +83,7 @@ class ResumeState {
       educationData: educationData ?? this.educationData,
       generatedResumeData: generatedResumeData ?? this.generatedResumeData,
       resumeVersion: resumeVersion ?? this.resumeVersion,
+      lastSavedFilePath: lastSavedFilePath ?? this.lastSavedFilePath,
     );
   }
 }
@@ -427,6 +435,16 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
   /// Clear generated resume data
   void clearGeneratedResumeData() {
     state = state.copyWith(generatedResumeData: null);
+  }
+
+  /// Set downloading state
+  void setDownloading(bool isDownloading) {
+    state = state.copyWith(isDownloading: isDownloading);
+  }
+
+  /// Set last saved file path
+  void setLastSavedFilePath(String? path) {
+    state = state.copyWith(lastSavedFilePath: path);
   }
 
   /// Update the generated resume data with edited content

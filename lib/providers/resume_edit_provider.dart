@@ -4,6 +4,7 @@ import '../models/generate_resume_response.dart';
 /// State class for resume editing
 class ResumeEditState {
   final GenerateResumeResponse editableResumeData;
+  final GenerateResumeResponse originalResumeData;
   final bool showAISuggestions;
   final String? suggestedContent;
   final String? suggestedSection;
@@ -14,6 +15,7 @@ class ResumeEditState {
 
   ResumeEditState({
     required this.editableResumeData,
+    required this.originalResumeData,
     this.showAISuggestions = false,
     this.suggestedContent,
     this.suggestedSection,
@@ -25,6 +27,7 @@ class ResumeEditState {
 
   ResumeEditState copyWith({
     GenerateResumeResponse? editableResumeData,
+    GenerateResumeResponse? originalResumeData,
     bool? showAISuggestions,
     String? suggestedContent,
     String? suggestedSection,
@@ -38,6 +41,7 @@ class ResumeEditState {
   }) {
     return ResumeEditState(
       editableResumeData: editableResumeData ?? this.editableResumeData,
+      originalResumeData: originalResumeData ?? this.originalResumeData,
       showAISuggestions: showAISuggestions ?? this.showAISuggestions,
       suggestedContent: clearSuggestedContent
           ? null
@@ -60,7 +64,10 @@ class ResumeEditState {
 class ResumeEditNotifier extends StateNotifier<ResumeEditState> {
   ResumeEditNotifier(GenerateResumeResponse initialResumeData)
     : super(
-        ResumeEditState(editableResumeData: _createDeepCopy(initialResumeData)),
+        ResumeEditState(
+          editableResumeData: _createDeepCopy(initialResumeData),
+          originalResumeData: _createDeepCopy(initialResumeData),
+        ),
       );
 
   /// Create a deep copy of resume data
@@ -74,6 +81,17 @@ class ResumeEditNotifier extends StateNotifier<ResumeEditState> {
       return original;
     }
   }
+
+  /// Reset to original data (discard all changes)
+  void resetToOriginal() {
+    state = state.copyWith(
+      editableResumeData: _createDeepCopy(state.originalResumeData),
+      hasChanges: false,
+    );
+  }
+
+  /// Get the original resume data (for rollback scenarios)
+  GenerateResumeResponse get originalResumeData => state.originalResumeData;
 
   /// Update professional summary
   void updateSummary(String summary) {

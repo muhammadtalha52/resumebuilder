@@ -69,6 +69,8 @@ class SignUpRequest {
   final String? resumeFileName;
   final int? desiredPayRange;
   final List<String>? locationPreferences;
+  final int? yearsOfExperience;
+  final String? placementType;
 
   SignUpRequest({
     required this.email,
@@ -109,6 +111,8 @@ class SignUpRequest {
     this.resumeFileName,
     this.desiredPayRange,
     this.locationPreferences,
+    this.yearsOfExperience,
+    this.placementType,
   });
 
   factory SignUpRequest.fromOnboardingState(OnboardingState state) {
