@@ -49,7 +49,7 @@ class SignUpRequest {
   final String? linkedinUrl;
   final String? githubUrl;
   final String? portfolioUrl;
-  final List<String>? desiredJobTitles;
+  final List<Map<String, dynamic>>? desiredJobTitles;
   final List<String>? industryPreferences;
   final List<String>? longTermCareerGoals;
   final int? degreeType;
@@ -123,9 +123,17 @@ class SignUpRequest {
 
     // Extract career goals data
     final careerGoals = state.careerGoals;
-    final desiredJobTitles = careerGoals?['jobTitles'] != null
-        ? (careerGoals!['jobTitles'] as List<dynamic>).cast<String>()
-        : null;
+    // Convert job titles to objects with title and years_of_experience
+    List<Map<String, dynamic>>? desiredJobTitles;
+    if (careerGoals?['jobTitles'] != null) {
+      final jobTitlesList = careerGoals!['jobTitles'] as List<dynamic>;
+      desiredJobTitles = jobTitlesList.map((title) {
+        return {
+          'title': title as String,
+          'years_of_experience': 0, // Default to 0 for new signups
+        };
+      }).toList();
+    }
     final industryPreferences = careerGoals?['industries'] != null
         ? (careerGoals!['industries'] as List<dynamic>).cast<String>()
         : null;

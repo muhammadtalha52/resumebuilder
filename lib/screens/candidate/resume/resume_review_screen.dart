@@ -2243,6 +2243,16 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
 
         // Has credits, proceed with resume generation
         await _generateResume();
+
+        // Check if resume was generated successfully with PDF
+        final resumeState = ref.read(resumeProvider);
+        final generatedData = resumeState.generatedResumeData;
+        if (generatedData == null ||
+            generatedData.pdfBase64 == null ||
+            generatedData.pdfBase64!.isEmpty) {
+          // PDF generation failed, don't advance to next step
+          return;
+        }
       } catch (e) {
         // Hide loading state on error
         if (mounted) {
@@ -2593,12 +2603,25 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
         Navigator.of(context).pop();
       }
 
-      if (result != null) {
-        // Success - the resume data is stored in the provider
+      if (result != null &&
+          result.pdfBase64 != null &&
+          result.pdfBase64!.isNotEmpty) {
+        // Success - the resume data with PDF is stored in the provider
         if (mounted) {
           showSuccessSnackBar(
             context: context,
             message: '${_getTemplateName()} resume generated successfully!',
+          );
+        }
+      } else if (result != null &&
+          (result.pdfBase64 == null || result.pdfBase64!.isEmpty)) {
+        // API returned data but no PDF - something went wrong at backend
+        ref.read(resumeProvider.notifier).clearGeneratedResumeData();
+        if (mounted) {
+          showErrorSnackBar(
+            context: context,
+            message:
+                'Something went wrong while generating your resume. Please try again.',
           );
         }
       } else {

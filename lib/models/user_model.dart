@@ -1,20 +1,54 @@
 class DesiredJobTitle {
   final int? id;
   final String? title;
+  final double? yearsOfExperience;
   final String? createdAt;
 
-  DesiredJobTitle({this.id, this.title, this.createdAt});
+  DesiredJobTitle({
+    this.id,
+    this.title,
+    this.yearsOfExperience,
+    this.createdAt,
+  });
 
   factory DesiredJobTitle.fromJson(Map<String, dynamic> json) {
+    // Parse years_of_experience - handles both string and numeric values
+    double? parseYearsOfExperience(dynamic value) {
+      if (value == null) return null;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value);
+      return null;
+    }
+
     return DesiredJobTitle(
       id: json['id'],
       title: json['title'],
+      yearsOfExperience: parseYearsOfExperience(json['years_of_experience']),
       createdAt: json['created_at'],
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'id': id, 'title': title, 'created_at': createdAt};
+    return {
+      'id': id,
+      'title': title,
+      'years_of_experience': yearsOfExperience,
+      'created_at': createdAt,
+    };
+  }
+
+  DesiredJobTitle copyWith({
+    int? id,
+    String? title,
+    double? yearsOfExperience,
+    String? createdAt,
+  }) {
+    return DesiredJobTitle(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      yearsOfExperience: yearsOfExperience ?? this.yearsOfExperience,
+      createdAt: createdAt ?? this.createdAt,
+    );
   }
 }
 
@@ -315,6 +349,26 @@ class LocationPreference {
   }
 }
 
+class PlacementType {
+  final int? id;
+  final String? name;
+  final String? displayName;
+
+  PlacementType({this.id, this.name, this.displayName});
+
+  factory PlacementType.fromJson(Map<String, dynamic> json) {
+    return PlacementType(
+      id: json['id'],
+      name: json['name'],
+      displayName: json['display_name'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'name': name, 'display_name': displayName};
+  }
+}
+
 class CertificationTraining {
   final int? id;
   final String? name;
@@ -442,7 +496,7 @@ class User {
     String? schoolGraduationDate,
     List<IdealJobTitle>? idealJobTitles,
     double? yearsOfExperience,
-    String? placementType,
+    List<PlacementType>? placementTypes,
   }) {
     _id = id;
     _email = email;
@@ -495,7 +549,7 @@ class User {
     _schoolGraduationDate = schoolGraduationDate;
     _idealJobTitles = idealJobTitles;
     _yearsOfExperience = yearsOfExperience;
-    _placementType = placementType;
+    _placementTypes = placementTypes;
   }
 
   User.fromJson(dynamic json) {
@@ -602,7 +656,11 @@ class User {
     _yearsOfExperience = json['years_of_experience'] != null
         ? (json['years_of_experience'] as num).toDouble()
         : null;
-    _placementType = json['placement_type'];
+    _placementTypes = json['placement_types'] != null
+        ? (json['placement_types'] as List)
+              .map((e) => PlacementType.fromJson(e))
+              .toList()
+        : null;
   }
 
   int? _id;
@@ -656,7 +714,7 @@ class User {
   String? _schoolGraduationDate;
   List<IdealJobTitle>? _idealJobTitles;
   double? _yearsOfExperience;
-  String? _placementType;
+  List<PlacementType>? _placementTypes;
 
   int? get id => _id;
 
@@ -761,7 +819,7 @@ class User {
 
   double? get yearsOfExperience => _yearsOfExperience;
 
-  String? get placementType => _placementType;
+  List<PlacementType>? get placementTypes => _placementTypes;
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
@@ -856,7 +914,9 @@ class User {
           .toList();
     }
     map['years_of_experience'] = _yearsOfExperience;
-    map['placement_type'] = _placementType;
+    if (_placementTypes != null) {
+      map['placement_types'] = _placementTypes!.map((e) => e.toJson()).toList();
+    }
     return map;
   }
 
@@ -912,7 +972,7 @@ class User {
     String? schoolGraduationDate,
     List<IdealJobTitle>? idealJobTitles,
     double? yearsOfExperience,
-    String? placementType,
+    List<PlacementType>? placementTypes,
   }) {
     return User(
       id: id ?? _id,
@@ -967,7 +1027,7 @@ class User {
       schoolGraduationDate: schoolGraduationDate ?? _schoolGraduationDate,
       idealJobTitles: idealJobTitles ?? _idealJobTitles,
       yearsOfExperience: yearsOfExperience ?? _yearsOfExperience,
-      placementType: placementType ?? _placementType,
+      placementTypes: placementTypes ?? _placementTypes,
     );
   }
 }

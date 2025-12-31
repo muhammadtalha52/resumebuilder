@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,8 @@ import '../main.dart';
 import '../models/signup_request.dart';
 import '../models/student_signup_request.dart';
 import '../models/user_model.dart';
+import '../services/profile_service.dart';
+import '../services/resume_service.dart';
 import '../utils/keys.dart';
 import 'auth_service_provider.dart';
 import 'continuous_transcription_provider.dart';
@@ -128,6 +131,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> signUpFromOnboarding(SignUpRequest request) async {
     state = state.copyWith(isLoading: true, error: null);
 
+    // Capture resume file BEFORE resetting onboarding state
+    final File? resumeFile = _ref.read(onboardingProvider).resumeFile;
+
     try {
       final authService = _ref.read(authServiceProvider);
       final registerResponse = await authService.register(request);
@@ -154,6 +160,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
             isAuthenticated: true,
             user: user,
           );
+
+          // Upload resume file to S3 in the background (after signup success)
+          if (resumeFile != null && await resumeFile.exists()) {
+            _uploadResumeInBackground(resumeFile);
+          }
         } else {
           throw Exception('Invalid response data');
         }
@@ -166,6 +177,61 @@ class AuthNotifier extends StateNotifier<AuthState> {
         error: e.toString().replaceAll('Exception: ', ''),
       );
       rethrow; // Rethrow to let the UI handle the error
+    }
+  }
+
+  /// Upload resume file to S3 in background and update user profile
+  /// Includes retry mechanism for network failures
+  Future<void> _uploadResumeInBackground(
+    File resumeFile, {
+    int retryCount = 0,
+  }) async {
+    const maxRetries = 2;
+    const retryDelay = Duration(seconds: 3);
+
+    try {
+      print(
+        '[AuthProvider] Starting background resume upload (attempt ${retryCount + 1})...',
+      );
+
+      // Check if file still exists before upload
+      if (!await resumeFile.exists()) {
+        print('[AuthProvider] Resume file no longer exists, skipping upload');
+        return;
+      }
+
+      // Upload resume to S3
+      final resumeService = ResumeService();
+      final saveDocResponse = await resumeService.uploadDocsToS3(resumeFile);
+      final s3FileName = saveDocResponse.s3FileName;
+
+      if (s3FileName != null && s3FileName.isNotEmpty) {
+        print('[AuthProvider] Resume uploaded to S3: $s3FileName');
+
+        // Update user profile with resume_file_name
+        final profileService = ProfileService();
+        final updateResponse = await profileService.updateProfile({
+          'resume_file_name': s3FileName,
+        });
+
+        if (updateResponse.status == 'success' && updateResponse.data != null) {
+          // Update local user data with the new resume_file_name
+          final updatedUser = updateResponse.data!;
+          updateUserData(updatedUser);
+          print('[AuthProvider] Profile updated with resume_file_name');
+        }
+      }
+    } catch (e) {
+      print('[AuthProvider] Background resume upload failed: $e');
+
+      // Retry on failure if we haven't exceeded max retries
+      if (retryCount < maxRetries) {
+        print('[AuthProvider] Retrying in ${retryDelay.inSeconds} seconds...');
+        await Future.delayed(retryDelay);
+        await _uploadResumeInBackground(resumeFile, retryCount: retryCount + 1);
+      } else {
+        print('[AuthProvider] Max retries reached, giving up on resume upload');
+      }
     }
   }
 

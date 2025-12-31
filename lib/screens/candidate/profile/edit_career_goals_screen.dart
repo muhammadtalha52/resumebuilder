@@ -24,12 +24,9 @@ class EditCareerGoalsScreen extends ConsumerStatefulWidget {
 
 class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _jobTitlesController = TextEditingController();
   final TextEditingController _industriesController = TextEditingController();
   final TextEditingController _hometownController = TextEditingController();
   final TextEditingController _longTermGoalsController =
-      TextEditingController();
-  final TextEditingController _yearsOfExperienceController =
       TextEditingController();
 
   // Store objects to preserve IDs and metadata
@@ -37,7 +34,7 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
   List<IndustryPreference> _industryObjects = [];
   List<CareerGoal> _longTermGoalObjects = [];
   List<String> _locationPreferences = [];
-  String? _selectedPlacementType;
+  List<int> _selectedPlacementTypes = [];
 
   String? _jobTitlesError;
   String? _industriesError;
@@ -52,31 +49,45 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
   List<CareerGoal> _originalLongTermGoalObjects = [];
   List<String> _originalLocationPreferences = [];
   String _originalHometown = '';
-  double? _originalYearsOfExperience;
-  String? _originalPlacementType;
+  List<int> _originalPlacementTypes = [];
 
-  // Mapping between display values and API values
-  static const Map<String, String> _placementTypeToApi = {
-    'Full-time': 'full_time',
-    'Part-time': 'part_time',
-    'Seasonal': 'seasonal',
-  };
+  // Hardcoded placement type options with IDs
+  static const List<Map<String, dynamic>> _placementTypeOptions = [
+    {'id': 1, 'name': 'full_time', 'displayName': 'Full-time'},
+    {'id': 2, 'name': 'part_time', 'displayName': 'Part-time'},
+    {'id': 3, 'name': 'seasonal', 'displayName': 'Seasonal'},
+  ];
 
-  static const Map<String, String> _placementTypeFromApi = {
-    'full_time': 'Full-time',
-    'part_time': 'Part-time',
-    'seasonal': 'Seasonal',
-  };
+  // Get display names for multi-select
+  List<String> get _placementTypeDisplayNames =>
+      _placementTypeOptions.map((e) => e['displayName'] as String).toList();
 
-  String? _toApiPlacementType(String? displayValue) {
-    if (displayValue == null) return null;
-    return _placementTypeToApi[displayValue] ??
-        displayValue.toLowerCase().replaceAll('-', '_');
+  // Convert IDs to display names for UI
+  List<String> _getSelectedPlacementTypeNames() {
+    return _selectedPlacementTypes
+        .map((id) {
+          final option = _placementTypeOptions.firstWhere(
+            (e) => e['id'] == id,
+            orElse: () => {'displayName': ''},
+          );
+          return option['displayName'] as String;
+        })
+        .where((s) => s.isNotEmpty)
+        .toList();
   }
 
-  String? _fromApiPlacementType(String? apiValue) {
-    if (apiValue == null) return null;
-    return _placementTypeFromApi[apiValue] ?? apiValue;
+  // Convert display names to IDs for API
+  List<int> _displayNamesToIds(List<String> displayNames) {
+    return displayNames
+        .map((name) {
+          final option = _placementTypeOptions.firstWhere(
+            (e) => e['displayName'] == name,
+            orElse: () => {'id': 0},
+          );
+          return option['id'] as int;
+        })
+        .where((id) => id != 0)
+        .toList();
   }
 
   @override
@@ -125,31 +136,20 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
       _hometownController.text = user.homeTown ?? '';
       _originalHometown = user.homeTown ?? '';
 
-      // Load years of experience
-      if (user.yearsOfExperience != null) {
-        // Show without .0 for whole numbers
-        _yearsOfExperienceController.text = user.yearsOfExperience! % 1 == 0
-            ? user.yearsOfExperience!.toInt().toString()
-            : user.yearsOfExperience.toString();
+      // Load placement types (list of IDs from PlacementType objects)
+      if (user.placementTypes != null && user.placementTypes!.isNotEmpty) {
+        _selectedPlacementTypes = user.placementTypes!
+            .map((e) => e.id ?? 0)
+            .where((id) => id != 0)
+            .toList();
+        _originalPlacementTypes = List.from(_selectedPlacementTypes);
       }
-      _originalYearsOfExperience = user.yearsOfExperience;
-
-      // Load placement type (convert from API format to display format)
-      _selectedPlacementType = _fromApiPlacementType(user.placementType);
-      _originalPlacementType = _selectedPlacementType;
 
       setState(() {});
     }
   }
 
   // Helper methods to convert between objects and strings for display
-  List<String> _jobTitleStrings() {
-    return _jobTitleObjects
-        .map((e) => e.title ?? '')
-        .where((s) => s.isNotEmpty)
-        .toList();
-  }
-
   List<String> _industryStrings() {
     return _industryObjects
         .map((e) => e.industry ?? '')
@@ -166,34 +166,25 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
 
   @override
   void dispose() {
-    _jobTitlesController.dispose();
     _industriesController.dispose();
     _hometownController.dispose();
     _longTermGoalsController.dispose();
-    _yearsOfExperienceController.dispose();
     super.dispose();
-  }
-
-  // Add job title - create new object or preserve existing
-  void _addJobTitle(String tag) {
-    final trimmed = tag.trim();
-    if (trimmed.isEmpty) return;
-
-    // Check if already exists
-    if (_jobTitleObjects.any((obj) => obj.title == trimmed)) return;
-
-    setState(() {
-      // Add new object without ID (backend will assign)
-      _jobTitleObjects.add(DesiredJobTitle(title: trimmed));
-      _jobTitlesError = null;
-    });
-    _jobTitlesController.clear();
   }
 
   // Remove job title object
   void _removeJobTitle(String tag) {
     setState(() {
       _jobTitleObjects.removeWhere((obj) => obj.title == tag);
+    });
+  }
+
+  // Update years of experience for a specific job title
+  void _updateJobTitleYears(int index, double years) {
+    if (index < 0 || index >= _jobTitleObjects.length) return;
+    setState(() {
+      final oldObj = _jobTitleObjects[index];
+      _jobTitleObjects[index] = oldObj.copyWith(yearsOfExperience: years);
     });
   }
 
@@ -243,10 +234,10 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
   }
 
   bool _hasChanges() {
-    // Compare object lists by their string values
-    final jobTitlesChanged = !_listEquals(
-      _jobTitleStrings(),
-      _originalJobTitleObjects.map((e) => e.title ?? '').toList(),
+    // Compare job title objects (title + years of experience)
+    final jobTitlesChanged = !_jobTitleObjectsEqual(
+      _jobTitleObjects,
+      _originalJobTitleObjects,
     );
     final industriesChanged = !_listEquals(
       _industryStrings(),
@@ -263,24 +254,43 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
     final hometownChanged =
         _hometownController.text.trim() != _originalHometown;
 
-    // Check years of experience change
-    final currentYearsOfExperience = double.tryParse(
-      _yearsOfExperienceController.text.trim(),
+    // Check placement types change (compare int lists)
+    final placementTypesChanged = !_listEqualsInt(
+      _selectedPlacementTypes,
+      _originalPlacementTypes,
     );
-    final yearsOfExperienceChanged =
-        currentYearsOfExperience != _originalYearsOfExperience;
-
-    // Check placement type change
-    final placementTypeChanged =
-        _selectedPlacementType != _originalPlacementType;
 
     return jobTitlesChanged ||
         industriesChanged ||
         longTermGoalsChanged ||
         locationChanged ||
         hometownChanged ||
-        yearsOfExperienceChanged ||
-        placementTypeChanged;
+        placementTypesChanged;
+  }
+
+  // Compare job title objects including years of experience
+  bool _jobTitleObjectsEqual(
+    List<DesiredJobTitle> list1,
+    List<DesiredJobTitle> list2,
+  ) {
+    if (list1.length != list2.length) return false;
+    for (int i = 0; i < list1.length; i++) {
+      if (list1[i].title != list2[i].title ||
+          list1[i].yearsOfExperience != list2[i].yearsOfExperience) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _listEqualsInt(List<int> list1, List<int> list2) {
+    if (list1.length != list2.length) return false;
+    final sorted1 = List<int>.from(list1)..sort();
+    final sorted2 = List<int>.from(list2)..sort();
+    for (int i = 0; i < sorted1.length; i++) {
+      if (sorted1[i] != sorted2[i]) return false;
+    }
+    return true;
   }
 
   bool _listEquals(List<String> list1, List<String> list2) {
@@ -334,6 +344,408 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
     }
   }
 
+  // Build job titles section with years of experience per title
+  Widget _buildJobTitlesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Label
+        const Text(
+          'Desired Job Titles',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // Add Job Title button
+        GestureDetector(
+          onTap: _showAddJobTitleDialog,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: _jobTitlesError != null
+                    ? AppColors.error
+                    : AppColors.inputBorder,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.add_circle_outline,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Add Job Title',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Error message
+        if (_jobTitlesError != null) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 4.0),
+            child: Text(
+              _jobTitlesError!,
+              style: const TextStyle(color: AppColors.error, fontSize: 12),
+            ),
+          ),
+        ],
+
+        // Job titles as card list
+        if (_jobTitleObjects.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _jobTitleObjects.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              return _buildJobTitleCard(index, _jobTitleObjects[index]);
+            },
+          ),
+        ],
+      ],
+    );
+  }
+
+  // Show dialog to add a new job title
+  void _showAddJobTitleDialog() {
+    final titleController = TextEditingController();
+    int selectedYears = 0;
+    String? errorText;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title
+                    const Center(
+                      child: Text(
+                        'Add Job Title',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Job Title field
+                    const Text(
+                      'Job Title',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: titleController,
+                      autofocus: true,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Software Engineer',
+                        hintStyle: const TextStyle(
+                          color: AppColors.textHint,
+                          fontSize: 14,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: AppColors.inputBorder,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: errorText != null
+                                ? AppColors.error
+                                : AppColors.inputBorder,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: errorText != null
+                                ? AppColors.error
+                                : AppColors.inputBorderFocused,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                      ),
+                      onChanged: (value) {
+                        if (errorText != null && value.isNotEmpty) {
+                          setDialogState(() => errorText = null);
+                        }
+                      },
+                    ),
+                    if (errorText != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        errorText!,
+                        style: const TextStyle(
+                          color: AppColors.error,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+
+                    // Years of Experience dropdown
+                    const Text(
+                      'Years of Experience',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.inputBorder),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          value: selectedYears,
+                          isExpanded: true,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: AppColors.textPrimary,
+                          ),
+                          icon: Icon(
+                            Icons.keyboard_arrow_down,
+                            color: AppColors.textHint,
+                          ),
+                          items: List.generate(31, (i) => i)
+                              .map(
+                                (y) => DropdownMenuItem<int>(
+                                  value: y,
+                                  child: Text('$y years'),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setDialogState(() {
+                                selectedYears = value;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Buttons
+                    Row(
+                      children: [
+                        // Cancel button
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: const BorderSide(color: Color(0xFFE5E7EB)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Add button
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              final title = titleController.text.trim();
+                              if (title.isEmpty) {
+                                setDialogState(() {
+                                  errorText = 'Please enter a job title';
+                                });
+                                return;
+                              }
+                              if (_jobTitleObjects.any(
+                                (obj) => obj.title == title,
+                              )) {
+                                setDialogState(() {
+                                  errorText = 'This job title already exists';
+                                });
+                                return;
+                              }
+                              // Add the job title
+                              setState(() {
+                                _jobTitleObjects.add(
+                                  DesiredJobTitle(
+                                    title: title,
+                                    yearsOfExperience: selectedYears.toDouble(),
+                                  ),
+                                );
+                                _jobTitlesError = null;
+                              });
+                              Navigator.pop(context);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Add',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Build job title card with two lines
+  Widget _buildJobTitleCard(int index, DesiredJobTitle jobTitle) {
+    final years = jobTitle.yearsOfExperience ?? 0.0;
+    final yearsInt = years.toInt();
+    final yearsText = years == yearsInt.toDouble()
+        ? '$yearsInt ${yearsInt == 1 ? 'year' : 'years'} of experience'
+        : '${years.toStringAsFixed(1)} years of experience';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Row 1: Job title + X button
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  jobTitle.title ?? '',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _removeJobTitle(jobTitle.title ?? ''),
+                child: Icon(Icons.close, size: 18, color: Colors.grey[400]),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          // Row 2: Years of experience (clickable dropdown)
+          PopupMenuButton<double>(
+            onSelected: (value) => _updateJobTitleYears(index, value),
+            offset: const Offset(0, 24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            color: Colors.white,
+            itemBuilder: (context) => List.generate(
+              31,
+              (i) => PopupMenuItem<double>(
+                value: i.toDouble(),
+                height: 40,
+                child: Text(
+                  '$i ${i == 1 ? 'year' : 'years'}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: i.toDouble() == years
+                        ? AppColors.primary
+                        : AppColors.textPrimary,
+                    fontWeight: i.toDouble() == years
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                  ),
+                ),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  yearsText,
+                  style: TextStyle(fontSize: 13, color: AppColors.primary),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.keyboard_arrow_down,
+                  size: 16,
+                  color: AppColors.primary,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _handleSave() async {
     // Validate custom fields
     bool hasCustomErrors = false;
@@ -369,10 +781,10 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
       // Prepare the update data
       final updateData = <String, dynamic>{};
 
-      // Send string arrays for API (backend expects string arrays, not objects)
-      final jobTitlesChanged = !_listEquals(
-        _jobTitleStrings(),
-        _originalJobTitleObjects.map((e) => e.title ?? '').toList(),
+      // Check if job titles changed (including years of experience)
+      final jobTitlesChanged = !_jobTitleObjectsEqual(
+        _jobTitleObjects,
+        _originalJobTitleObjects,
       );
       final industriesChanged = !_listEquals(
         _industryStrings(),
@@ -383,8 +795,16 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
         _originalLongTermGoalObjects.map((e) => e.goal ?? '').toList(),
       );
 
+      // Send job titles as objects with title and years_of_experience
       if (jobTitlesChanged) {
-        updateData['desired_job_titles'] = _jobTitleStrings();
+        updateData['desired_job_titles'] = _jobTitleObjects
+            .map(
+              (e) => {
+                'title': e.title,
+                'years_of_experience': e.yearsOfExperience ?? 0,
+              },
+            )
+            .toList();
       }
 
       if (industriesChanged) {
@@ -405,19 +825,9 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
         updateData['home_town'] = _hometownController.text.trim();
       }
 
-      // Add years of experience if changed
-      final currentYearsOfExperience = double.tryParse(
-        _yearsOfExperienceController.text.trim(),
-      );
-      if (currentYearsOfExperience != _originalYearsOfExperience) {
-        updateData['years_of_experience'] = currentYearsOfExperience;
-      }
-
-      // Add placement type if changed (convert to API format)
-      if (_selectedPlacementType != _originalPlacementType) {
-        updateData['placement_type'] = _toApiPlacementType(
-          _selectedPlacementType,
-        );
+      // Add placement types if changed (send list of IDs)
+      if (!_listEqualsInt(_selectedPlacementTypes, _originalPlacementTypes)) {
+        updateData['placement_types'] = _selectedPlacementTypes;
       }
 
       // Use profile provider to update
@@ -484,51 +894,25 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Desired Job Titles
-                              TagField(
-                                label: 'Desired Job Titles',
-                                isRequired: false,
-                                tags: _jobTitleStrings(),
-                                controller: _jobTitlesController,
-                                onAdd: _addJobTitle,
-                                onRemove: _removeJobTitle,
-                                errorText: _jobTitlesError,
-                                onClearError: () =>
-                                    setState(() => _jobTitlesError = null),
-                              ),
+                              // Desired Job Titles with Years of Experience
+                              _buildJobTitlesSection(),
                               const SizedBox(height: 24),
 
-                              // Years of Experience
-                              CustomTextField(
-                                controller: _yearsOfExperienceController,
-                                labelText: 'Years of Experience in Desired Job',
-                                hintText: 'e.g., 5 or 2.5',
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                    ),
-                                textInputAction: TextInputAction.next,
-                                isRequired: false,
-                              ),
-                              const SizedBox(height: 24),
-
-                              // Placement Type
+                              // Placement Type (Multi-select)
                               CustomPickerField(
                                 labelText: 'Placement Type',
                                 isRequired: false,
-                                value: _selectedPlacementType,
-                                items: const [
-                                  'Full-time',
-                                  'Part-time',
-                                  'Seasonal',
-                                ],
-                                hintText: 'Select placement type',
+                                selectedValues:
+                                    _getSelectedPlacementTypeNames(),
+                                items: _placementTypeDisplayNames,
+                                hintText: 'Select placement types',
                                 enableSearch: false,
-                                pickerTitle: 'Select Placement Type',
-                                isMultiSelect: false,
-                                onChanged: (value) {
+                                pickerTitle: 'Select Placement Types',
+                                isMultiSelect: true,
+                                onMultiChanged: (values) {
                                   setState(() {
-                                    _selectedPlacementType = value;
+                                    _selectedPlacementTypes =
+                                        _displayNamesToIds(values);
                                   });
                                 },
                               ),

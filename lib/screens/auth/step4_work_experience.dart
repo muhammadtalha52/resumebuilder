@@ -148,6 +148,9 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
               .read(onboardingProvider.notifier)
               .storeParsedResumeData(parsedData);
 
+          // Store the actual file for upload after signup
+          ref.read(onboardingProvider.notifier).storeResumeFile(file);
+
           // Populate work experiences from parsed resume
           _populateWorkExperiencesFromResume(parsedData);
 
@@ -682,10 +685,11 @@ class _Step4WorkExperienceState extends ConsumerState<Step4WorkExperience> {
                           _selectedResumeFile = null;
                           _selectedFileName = null;
                         });
-                        // Clear parsed resume data from provider
+                        // Clear parsed resume data and file from provider
                         ref
                             .read(onboardingProvider.notifier)
                             .clearParsedResumeData();
+                        ref.read(onboardingProvider.notifier).clearResumeFile();
                       },
                       icon: const Icon(Icons.close, size: 16),
                       label: const Text('Remove'),

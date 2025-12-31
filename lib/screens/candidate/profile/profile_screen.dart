@@ -123,21 +123,13 @@ class ProfileScreen extends ConsumerWidget {
           _buildCareerDetailRow(
             'assets/icons/goals.png',
             'Desired Job Titles',
-            _extractJobTitles(user?.desiredJobTitles),
-            showDivider: true,
-          ),
-          _buildDetailRowWithDivider(
-            'assets/icons/work.png',
-            'Years of Experience in Desired Job',
-            user?.yearsOfExperience != null
-                ? '${user!.yearsOfExperience! % 1 == 0 ? user.yearsOfExperience!.toInt() : user.yearsOfExperience} years'
-                : '',
+            _extractJobTitlesWithYears(user?.desiredJobTitles),
             showDivider: true,
           ),
           _buildDetailRowWithDivider(
             'assets/icons/work.png',
             'Placement Type',
-            (user?.placementType ?? '').replaceAll('_', ' '),
+            _extractPlacementTypes(user?.placementTypes),
             showDivider: true,
           ),
           _buildCareerDetailRow(
@@ -928,12 +920,20 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   // Helper functions for extracting data from new object structures
-  List<String> _extractJobTitles(List<dynamic>? desiredJobTitles) {
+  List<String> _extractJobTitlesWithYears(List<dynamic>? desiredJobTitles) {
     if (desiredJobTitles == null || desiredJobTitles.isEmpty) {
       return [];
     }
     return desiredJobTitles
-        .map((job) => job.title ?? 'Unknown')
+        .map((job) {
+          final title = job.title ?? 'Unknown';
+          final years = job.yearsOfExperience ?? 0.0;
+          final yearsInt = years.toInt();
+          final yearsStr = years == yearsInt.toDouble()
+              ? '$yearsInt'
+              : years.toStringAsFixed(1);
+          return '$title ($yearsStr ${years == 1 ? 'yr' : 'yrs'})';
+        })
         .cast<String>()
         .toList();
   }
@@ -1040,6 +1040,18 @@ class ProfileScreen extends ConsumerWidget {
         .map((cert) => cert.name ?? 'Unknown')
         .cast<String>()
         .toList();
+  }
+
+  String _extractPlacementTypes(List<dynamic>? placementTypes) {
+    if (placementTypes == null || placementTypes.isEmpty) {
+      return '';
+    }
+    return placementTypes
+        .map(
+          (type) => (type.displayName ?? type.name ?? '').replaceAll('_', ' '),
+        )
+        .where((s) => s.isNotEmpty)
+        .join(', ');
   }
 
   // Helper function to replace "Other" with "Not Specified" for display

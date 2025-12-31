@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/date_helpers.dart';
 import '../models/resume_parse_model.dart';
@@ -19,6 +21,7 @@ class OnboardingState {
   final Map<String, dynamic>? skills;
   final Map<String, dynamic>? optionalInfo;
   final ResumeParse? parsedResume;
+  final File? resumeFile; // Store resume file for upload after signup
 
   OnboardingState({
     this.currentStep = 1,
@@ -37,6 +40,7 @@ class OnboardingState {
     this.skills,
     this.optionalInfo,
     this.parsedResume,
+    this.resumeFile,
   });
 
   OnboardingState copyWith({
@@ -56,6 +60,8 @@ class OnboardingState {
     Map<String, dynamic>? skills,
     Map<String, dynamic>? optionalInfo,
     ResumeParse? parsedResume,
+    File? resumeFile,
+    bool clearResumeFile = false,
   }) {
     return OnboardingState(
       currentStep: currentStep ?? this.currentStep,
@@ -74,6 +80,7 @@ class OnboardingState {
       skills: skills ?? this.skills,
       optionalInfo: optionalInfo ?? this.optionalInfo,
       parsedResume: parsedResume ?? this.parsedResume,
+      resumeFile: clearResumeFile ? null : (resumeFile ?? this.resumeFile),
     );
   }
 }
@@ -315,6 +322,19 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   void clearParsedResumeData() {
     state = state.copyWith(parsedResume: null);
   }
+
+  /// Store resume file for upload after signup completes
+  void storeResumeFile(File file) {
+    state = state.copyWith(resumeFile: file);
+  }
+
+  /// Clear resume file
+  void clearResumeFile() {
+    state = state.copyWith(clearResumeFile: true);
+  }
+
+  /// Get stored resume file
+  File? get resumeFile => state.resumeFile;
 
   Future<void> completeOnboarding() async {
     // TODO: Implement API call to create account

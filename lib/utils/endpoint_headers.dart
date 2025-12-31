@@ -8,17 +8,17 @@ class WAInterceptorHeaders {
 
 class ApiEndpoints {
   ///Dev urls
-  // static const String baseUrl = 'https://api-dev.skillresy.com/api';
-  // static const String resumeModuleBaseUrl = 'https://ai-dev.skillresy.com';
-  // static const String interviewModuleBaseUrl =
-  //     'https://ia-dev.skillresy.com/api/'; //
-  // static const String quizModuleBaseUrl = 'https://quiz-dev.skillresy.com';
+  static const String baseUrl = 'https://api-dev.skillresy.com/api';
+  static const String resumeModuleBaseUrl = 'https://ai-dev.skillresy.com';
+  static const String interviewModuleBaseUrl =
+      'https://ia-dev.skillresy.com/api/'; //
+  static const String quizModuleBaseUrl = 'https://quiz-dev.skillresy.com';
 
   ///Prod Urls
-  static const String baseUrl = 'https://api.skillresy.com/api';
-  static const String resumeModuleBaseUrl = 'https://ai.skillresy.com/';
-  static const String interviewModuleBaseUrl = 'https://ia.skillresy.com/api/';
-  static const String quizModuleBaseUrl = 'https://quiz.skillresy.com/';
+  // static const String baseUrl = 'https://api.skillresy.com/api';
+  // static const String resumeModuleBaseUrl = 'https://ai.skillresy.com/';
+  // static const String interviewModuleBaseUrl = 'https://ia.skillresy.com/api/';
+  // static const String quizModuleBaseUrl = 'https://quiz.skillresy.com/';
 
   static const String register = '/auth/register/';
   static const String login = '/auth/login/';
