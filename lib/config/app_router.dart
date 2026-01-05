@@ -6,6 +6,7 @@ import 'package:skillresy/screens/common/splash_screen.dart';
 
 import '../models/meeting_history_response.dart';
 import '../screens/auth/onboarding_step_screen.dart';
+import '../screens/auth/simple_signup_screen.dart';
 import '../screens/auth/student_onboarding_step_screen.dart';
 import '../screens/auth/user_type_selection_screen.dart';
 import '../screens/candidate/activity/activity_history_screen.dart';
@@ -94,6 +95,13 @@ final GoRouter appRouter = GoRouter(
       path: '/user-type-selection',
       pageBuilder: (context, state) => buildPageWithoutSwipeBack(
         child: const UserTypeSelectionScreen(),
+        key: state.pageKey,
+      ),
+    ),
+    GoRoute(
+      path: '/simple-signup',
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const SimpleSignupScreen(),
         key: state.pageKey,
       ),
     ),

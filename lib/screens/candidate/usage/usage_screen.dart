@@ -197,15 +197,6 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      usage.userFullName,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
                       usage.userEmail,
                       style: const TextStyle(
                         color: AppColors.textSecondary,

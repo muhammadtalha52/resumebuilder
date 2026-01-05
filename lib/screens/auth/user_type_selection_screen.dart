@@ -30,7 +30,7 @@ class _UserTypeSelectionScreenState
       if (_selectedUserType == 'student') {
         context.go('/student-signup');
       } else {
-        context.go('/onboarding');
+        context.go('/simple-signup');
       }
     }
   }

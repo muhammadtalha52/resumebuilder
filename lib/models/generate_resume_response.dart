@@ -1,13 +1,9 @@
 class GenerateResumeResponse {
   GenerateResumeResponse({
-    ResumeData? resumeData,
-    String? pdfBase64,
-    List<String>? regeneratedSections,
-  }) {
-    resumeData = resumeData;
-    pdfBase64 = pdfBase64;
-    regeneratedSections = regeneratedSections;
-  }
+    this.resumeData,
+    this.pdfBase64,
+    this.regeneratedSections,
+  });
 
   GenerateResumeResponse.fromJson(dynamic json) {
     resumeData = json['resume_data'] != null
@@ -41,26 +37,16 @@ class GenerateResumeResponse {
 
 class ResumeData {
   ResumeData({
-    Personal? personal,
-    String? summary,
-    List<WorkExperience>? workExperience,
-    List<Projects>? projects,
-    Skills? skills,
-    List<Education>? education,
-    List<String>? achievements,
-    OptionalInfo? optionalInfo,
-    String? keywords,
-  }) {
-    personal = personal;
-    summary = summary;
-    workExperience = workExperience;
-    projects = projects;
-    skills = skills;
-    education = education;
-    achievements = achievements;
-    optionalInfo = optionalInfo;
-    keywords = keywords;
-  }
+    this.personal,
+    this.summary,
+    this.workExperience,
+    this.projects,
+    this.skills,
+    this.education,
+    this.achievements,
+    this.optionalInfo,
+    this.keywords,
+  });
 
   ResumeData.fromJson(dynamic json) {
     personal = json['personal'] != null
@@ -134,16 +120,11 @@ class ResumeData {
 
 class OptionalInfo {
   OptionalInfo({
-    List<String>? languages,
-    List<dynamic>? volunteerWork,
-    List<String>? hobbiesAndInterests,
-    List<String>? references,
-  }) {
-    languages = languages;
-    volunteerWork = volunteerWork;
-    hobbiesAndInterests = hobbiesAndInterests;
-    references = references;
-  }
+    this.languages,
+    this.volunteerWork,
+    this.hobbiesAndInterests,
+    this.references,
+  });
 
   OptionalInfo.fromJson(dynamic json) {
     languages = json['languages'] != null
@@ -182,18 +163,12 @@ class OptionalInfo {
 
 class Education {
   Education({
-    String? degree,
-    String? university,
-    String? fromDate,
-    String? toDate,
-    List<String>? courses,
-  }) {
-    degree = degree;
-    university = university;
-    fromDate = fromDate;
-    toDate = toDate;
-    courses = courses;
-  }
+    this.degree,
+    this.university,
+    this.fromDate,
+    this.toDate,
+    this.courses,
+  });
 
   Education.fromJson(dynamic json) {
     degree = json['degree'];
@@ -221,15 +196,7 @@ class Education {
 }
 
 class Skills {
-  Skills({
-    List<String>? softSkills,
-    List<String>? hardSkills,
-    List<String>? toolsAndTechnologies,
-  }) {
-    softSkills = softSkills;
-    hardSkills = hardSkills;
-    toolsAndTechnologies = toolsAndTechnologies;
-  }
+  Skills({this.softSkills, this.hardSkills, this.toolsAndTechnologies});
 
   Skills.fromJson(dynamic json) {
     softSkills = json['soft_skills'] != null
@@ -258,22 +225,14 @@ class Skills {
 
 class Projects {
   Projects({
-    String? name,
-    String? type,
-    String? link,
-    dynamic resources,
-    String? fromDate,
-    String? toDate,
-    List<String>? description,
-  }) {
-    name = name;
-    type = type;
-    link = link;
-    resources = resources;
-    fromDate = fromDate;
-    toDate = toDate;
-    description = description;
-  }
+    this.name,
+    this.type,
+    this.link,
+    this.resources,
+    this.fromDate,
+    this.toDate,
+    this.description,
+  });
 
   Projects.fromJson(dynamic json) {
     name = json['name'];
@@ -310,20 +269,13 @@ class Projects {
 
 class WorkExperience {
   WorkExperience({
-    String? role,
-    String? company,
-    String? location,
-    String? fromDate,
-    String? toDate,
-    List<String>? description,
-  }) {
-    role = role;
-    company = company;
-    location = location;
-    fromDate = fromDate;
-    toDate = toDate;
-    description = description;
-  }
+    this.role,
+    this.company,
+    this.location,
+    this.fromDate,
+    this.toDate,
+    this.description,
+  });
 
   WorkExperience.fromJson(dynamic json) {
     role = json['role'];
@@ -357,18 +309,12 @@ class WorkExperience {
 
 class Personal {
   Personal({
-    String? name,
-    String? phone,
-    String? email,
-    String? linkedin,
-    String? personalWebsite,
-  }) {
-    name = name;
-    phone = phone;
-    email = email;
-    linkedin = linkedin;
-    personalWebsite = personalWebsite;
-  }
+    this.name,
+    this.phone,
+    this.email,
+    this.linkedin,
+    this.personalWebsite,
+  });
 
   Personal.fromJson(dynamic json) {
     name = json['name'];

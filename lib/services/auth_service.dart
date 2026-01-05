@@ -342,6 +342,82 @@ class AuthService {
     }
   }
 
+  Future<LoginModel> registerWithEmailAndPassword({
+    required String email,
+    required String password,
+    required int role,
+  }) async {
+    try {
+      final requestData = {'email': email, 'password': password, 'role': role};
+
+      print('Simple Registration Data: $requestData');
+
+      final response = await _apiClient.dio.post(
+        ApiEndpoints.registerSimple,
+        data: requestData,
+      );
+
+      if (response.statusCode == 201 && response.data != null) {
+        return LoginModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data?['error'] ?? 'Registration failed');
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final responseData = e.response!.data;
+        String errorMessage = 'Registration failed';
+
+        if (responseData is Map) {
+          if (responseData.containsKey('error')) {
+            errorMessage = responseData['error'].toString();
+          } else if (responseData.containsKey('message')) {
+            errorMessage = responseData['message'].toString();
+          } else if (responseData.containsKey('errors')) {
+            final errors = responseData['errors'];
+            if (errors is Map) {
+              final errorMessages = <String>[];
+              errors.forEach((field, messages) {
+                if (messages is List) {
+                  errorMessages.addAll(messages.map((m) => m.toString()));
+                } else {
+                  errorMessages.add(messages.toString());
+                }
+              });
+              errorMessage = errorMessages.join('\n');
+            } else if (errors is List) {
+              errorMessage = errors.join('\n');
+            } else {
+              errorMessage = errors.toString();
+            }
+          } else if (responseData.containsKey('detail')) {
+            errorMessage = responseData['detail'].toString();
+          } else {
+            errorMessage = responseData.toString();
+          }
+        } else if (responseData is String) {
+          errorMessage = responseData;
+        }
+
+        if (e.response!.statusCode == 422) {
+          errorMessage = 'Validation Error: $errorMessage';
+        } else if (e.response!.statusCode == 400) {
+          errorMessage = 'Bad Request: $errorMessage';
+        } else if (e.response!.statusCode == 409) {
+          errorMessage = 'Conflict: $errorMessage';
+        }
+
+        throw Exception(errorMessage);
+      } else {
+        throw Exception('Network error: ${e.message}');
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Registration failed: $e');
+    }
+  }
+
   Future<Map<String, dynamic>> forgotPassword({required String email}) async {
     try {
       final response = await _apiClient.dio.post(

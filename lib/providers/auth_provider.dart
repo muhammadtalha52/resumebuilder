@@ -319,6 +319,54 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> signUpWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final authService = _ref.read(authServiceProvider);
+      final registerResponse = await authService.registerWithEmailAndPassword(
+        email: email,
+        password: password,
+        role: 1, // Candidate role
+      );
+
+      if (registerResponse.status == 'success' &&
+          registerResponse.data != null) {
+        final user = registerResponse.data!.user;
+        final token = registerResponse.data!.token;
+
+        if (user != null && token != null) {
+          // Store token and user data in AppLogic
+          appLogic.accessToken = token;
+          appLogic.user = user;
+
+          // Save to local storage
+          await appLogic.box.write(AppKeys.accessToken, token);
+          await appLogic.box.write(AppKeys.user, jsonEncode(user.toJson()));
+
+          state = state.copyWith(
+            isLoading: false,
+            isAuthenticated: true,
+            user: user,
+          );
+        } else {
+          throw Exception('Invalid response data');
+        }
+      } else {
+        throw Exception(registerResponse.message ?? 'Registration failed');
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString().replaceAll('Exception: ', ''),
+      );
+      rethrow;
+    }
+  }
+
   void signOut() {
     print('[LOGOUT] Starting logout - clearing all user data and providers');
 

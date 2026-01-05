@@ -2,7 +2,7 @@ class UsageAllocation {
   final int id;
   final int userId;
   final String userEmail;
-  final String userFullName;
+  final String? userFullName;
   final int remainingResumeCount;
   final int remainingInterviewCount;
   final int remainingQuizCount;
@@ -13,7 +13,7 @@ class UsageAllocation {
     required this.id,
     required this.userId,
     required this.userEmail,
-    required this.userFullName,
+    this.userFullName,
     required this.remainingResumeCount,
     required this.remainingInterviewCount,
     required this.remainingQuizCount,
@@ -25,14 +25,16 @@ class UsageAllocation {
     return UsageAllocation(
       id: json['id'] as int,
       userId: json['user'] as int,
-      userEmail: json['user_email'] as String,
-      userFullName: json['user_full_name'] as String,
-      remainingResumeCount: json['remaining_resume_count'] as int,
-      remainingInterviewCount: json['remaining_interview_count'] as int,
-      remainingQuizCount: json['remaining_quiz_count'] as int,
+      userEmail: json['user_email'] as String? ?? '',
+      userFullName: json['user_full_name'] as String?,
+      remainingResumeCount: json['remaining_resume_count'] as int? ?? 0,
+      remainingInterviewCount: json['remaining_interview_count'] as int? ?? 0,
+      remainingQuizCount: json['remaining_quiz_count'] as int? ?? 0,
       remainingDocumentUploadCount:
-          json['remaining_document_upload_count'] as int,
-      lastUpdated: DateTime.parse(json['last_updated'] as String),
+          json['remaining_document_upload_count'] as int? ?? 0,
+      lastUpdated: json['last_updated'] != null
+          ? DateTime.parse(json['last_updated'] as String)
+          : DateTime.now(),
     );
   }
 

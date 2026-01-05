@@ -21,6 +21,7 @@ class ApiEndpoints {
   // static const String quizModuleBaseUrl = 'https://quiz.skillresy.com/';
 
   static const String register = '/auth/register/';
+  static const String registerSimple = '/auth/registerWithEmailAndPassword/';
   static const String login = '/auth/login/';
   static const String isEmailExists = '/auth/is_email_exists/';
   static const String forgotPassword = '/auth/forgot-password/';
