@@ -75,3 +75,5 @@ figma/
 .env
 **/obfuscation/
 **/debug-info/
+
+sentry.properties

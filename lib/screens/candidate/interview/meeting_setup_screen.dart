@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/continuous_transcription_provider.dart';
+import '../../../providers/history_provider.dart';
 import '../../../providers/interview_session_provider.dart';
+import '../../../providers/resume_provider.dart';
 import '../../../providers/usage_provider.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/custom_button.dart';
@@ -42,6 +46,7 @@ class _State extends ConsumerState<MeetingSetupScreen> {
   String? _jobDescriptionError;
   String? _meetingAgendaError;
   String? _languageError;
+  String? _resumeError;
 
   final List<String> _sessionTypes = ['Interview', 'Meeting'];
 
@@ -51,13 +56,14 @@ class _State extends ConsumerState<MeetingSetupScreen> {
   void initState() {
     super.initState();
 
-    // CLEAN STATE: Invalidate the session provider to ensure fresh start
+    // CLEAN STATE: Invalidate providers to ensure fresh start
     // This is the entry point for starting a NEW session
     // User's intent to start new session is clear when they reach this screen
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.invalidate(continuousTranscriptionProvider);
+      ref.invalidate(interviewSessionProvider);
       print(
-        '[SETUP-SCREEN] ✅ Provider invalidated - fresh start for new session',
+        '[SETUP-SCREEN] ✅ Providers invalidated - fresh start for new session',
       );
     });
   }
@@ -84,6 +90,7 @@ class _State extends ConsumerState<MeetingSetupScreen> {
       _jobDescriptionError = null;
       _meetingAgendaError = null;
       _languageError = null;
+      _resumeError = null;
 
       // Check all required fields and set errors
       if (_selectedSessionType == null || _selectedSessionType!.isEmpty) {
@@ -169,7 +176,7 @@ class _State extends ConsumerState<MeetingSetupScreen> {
       // All validation passed, save data to provider and navigate
       final provider = ref.read(interviewSessionProvider.notifier);
 
-      // Save the setup data to the provider
+      // Save the setup data to the provider (resume data is already in provider)
       provider.updateSetupData(
         positionTitle: _roleIndustryController.text.trim(),
         companyName: _selectedSessionType?.toLowerCase() == 'interview'
@@ -221,6 +228,9 @@ class _State extends ConsumerState<MeetingSetupScreen> {
           break;
         case 'language':
           _languageError = null;
+          break;
+        case 'resume':
+          _resumeError = null;
           break;
       }
     });
@@ -329,23 +339,30 @@ class _State extends ConsumerState<MeetingSetupScreen> {
             onChanged: (value) {
               unFocusAllFields();
               _clearFieldError('sessionType');
-              setState(() {
-                _selectedSessionType = value;
-                // Clear fields when session type changes
-                if (value?.toLowerCase() == 'meeting') {
-                  _companyController.clear();
-                  _jobDescriptionController.clear();
-                  _companyError = null;
-                  _jobDescriptionError = null;
-                } else if (value?.toLowerCase() == 'interview') {
-                  _meetingAgendaController.clear();
-                  _meetingAgendaError = null;
-                }
-              });
+              _selectedSessionType = value;
+              // Clear fields when session type changes
+              if (value?.toLowerCase() == 'meeting') {
+                _companyController.clear();
+                _jobDescriptionController.clear();
+                _companyError = null;
+                _jobDescriptionError = null;
+                _resumeError = null;
+                // Clear resume selection via provider
+                ref
+                    .read(interviewSessionProvider.notifier)
+                    .clearResumeSelection();
+              } else if (value?.toLowerCase() == 'interview') {
+                _meetingAgendaController.clear();
+                _meetingAgendaError = null;
+              }
             },
           ),
         ),
         const SizedBox(height: 10),
+
+        // Resume Selection - Only show for Interview type
+        if (_selectedSessionType?.toLowerCase() == 'interview')
+          ..._buildResumeSelector(),
 
         // Role/Industry
         CustomTextField(
@@ -387,6 +404,200 @@ class _State extends ConsumerState<MeetingSetupScreen> {
         //   ),
         // ),
       ],
+    );
+  }
+
+  List<Widget> _buildResumeSelector() {
+    final historyState = ref.watch(historyProvider);
+    final sessionState = ref.watch(interviewSessionProvider);
+    final resumes = historyState.resumes;
+    final selectedResumeTitle = sessionState.selectedResumeTitle;
+    final isExtractingResume = sessionState.isExtractingResume;
+
+    return [
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Label with info icon
+          Row(
+            children: [
+              const Text(
+                'Choose Resume',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Tooltip(
+                message:
+                    'Choose a resume to help the AI provide more personalized answers based on your experience.',
+                triggerMode: TooltipTriggerMode.tap,
+                showDuration: const Duration(seconds: 4),
+                preferBelow: true,
+                margin: EdgeInsets.symmetric(horizontal: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.textPrimary.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 15,
+                  color: Colors.white,
+                  height: 1.3,
+                ),
+                child: Icon(
+                  Icons.info_outline,
+                  size: 22,
+                  color: AppColors.textSecondary.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Picker Field
+          GestureDetector(
+            onTap: () {
+              unFocusAllFields();
+              HapticFeedback.lightImpact();
+              _showResumePickerBottomSheet(resumes, historyState.isLoading);
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: _resumeError != null
+                      ? AppColors.error
+                      : AppColors.inputBorder,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.white,
+              ),
+              child: Row(
+                children: [
+                  if (isExtractingResume)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  Expanded(
+                    child: Text(
+                      isExtractingResume
+                          ? 'Extracting resume data...'
+                          : selectedResumeTitle ??
+                                (historyState.isLoading
+                                    ? 'Loading resumes...'
+                                    : 'Select or upload a resume'),
+                      style: TextStyle(
+                        color: selectedResumeTitle != null
+                            ? AppColors.textPrimary
+                            : AppColors.textHint,
+                        fontSize: 16,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: AppColors.textSecondary,
+                    size: 24,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Error message (validation error)
+          if (_resumeError != null) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 12.0),
+              child: Text(
+                _resumeError!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      const SizedBox(height: 10),
+    ];
+  }
+
+  void _showResumePickerBottomSheet(
+    List<ResumeHistory> resumes,
+    bool isLoading,
+  ) {
+    // Get user's profile resume filename from auth provider
+    final user = ref.read(authProvider).user;
+    final profileResumeFileName = user?.resumeFileName?.toString();
+    final sessionState = ref.read(interviewSessionProvider);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _ResumePickerBottomSheet(
+        resumes: resumes,
+        selectedResumeTitle: sessionState.selectedResumeTitle,
+        isLoading: isLoading,
+        profileResumeFileName: profileResumeFileName,
+        onResumeSelected: (resumeId, resumeTitle, resumeUrl) {
+          _clearFieldError('resume');
+          final provider = ref.read(interviewSessionProvider.notifier);
+
+          // Update the selected resume in provider
+          provider.updateSetupData(
+            selectedResumeId: resumeId,
+            selectedResumeTitle: resumeTitle,
+          );
+
+          // Trigger extraction based on resume type
+          if (resumeUrl != null && resumeUrl.isNotEmpty) {
+            // History resume - use the resumeUrl directly
+            provider.extractResumeFromUrl(resumeUrl);
+          } else if (resumeTitle != null &&
+              profileResumeFileName == resumeTitle) {
+            // Profile resume - construct URL from S3 filename
+            provider.extractResumeFromS3FileName(resumeTitle);
+          }
+        },
+        onUploadResume: () async {
+          Navigator.pop(context);
+          final resumeNotifier = ref.read(resumeProvider.notifier);
+          final success = await resumeNotifier.pickResumeFile();
+          if (success && mounted) {
+            final file = ref.read(resumeProvider).uploadedFile;
+            if (file != null) {
+              final provider = ref.read(interviewSessionProvider.notifier);
+              final fileName = file.path.split('/').last;
+
+              // Update provider with uploaded file info
+              provider.updateSetupData(
+                selectedResumeId: null,
+                selectedResumeTitle: fileName,
+              );
+
+              // Extract from the uploaded file
+              provider.extractResumeFromFile(file);
+              _clearFieldError('resume');
+            }
+          }
+        },
+      ),
     );
   }
 
@@ -632,10 +843,419 @@ class _State extends ConsumerState<MeetingSetupScreen> {
   }
 
   Widget _buildStartSessionButton() {
+    final isExtractingResume = ref
+        .watch(interviewSessionProvider)
+        .isExtractingResume;
+    final isDisabled = _isCheckingCredits || isExtractingResume;
+
     return CustomButton(
-      text: 'Continue',
-      onPressed: _isCheckingCredits ? null : _validateAndContinue,
+      text: isExtractingResume ? 'Extracting Resume...' : 'Continue',
+      onPressed: isDisabled ? null : _validateAndContinue,
       isLoading: _isCheckingCredits,
+    );
+  }
+}
+
+// Custom bottom sheet for resume picker with upload option
+class _ResumePickerBottomSheet extends StatelessWidget {
+  final List<ResumeHistory> resumes;
+  final String? selectedResumeTitle;
+  final bool isLoading;
+  final String? profileResumeFileName;
+  final Function(int?, String?, String?) onResumeSelected; // (id, title, url)
+  final VoidCallback onUploadResume;
+
+  const _ResumePickerBottomSheet({
+    required this.resumes,
+    required this.selectedResumeTitle,
+    required this.isLoading,
+    required this.onResumeSelected,
+    required this.onUploadResume,
+    this.profileResumeFileName,
+  });
+
+  // Helper to get display name from S3 filename
+  String _getDisplayName(String fileName) {
+    // Remove UUID prefix if present (format: uuid_filename.ext)
+    final parts = fileName.split('_');
+    if (parts.length > 1) {
+      // Check if first part looks like a UUID (36 chars with hyphens)
+      if (parts[0].length == 36 || parts[0].length == 32) {
+        return parts.sublist(1).join('_');
+      }
+    }
+    return fileName;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final hasProfileResume =
+        profileResumeFileName != null && profileResumeFileName!.isNotEmpty;
+
+    // Filter out history resumes that match the profile resume to avoid duplicates
+    final filteredResumes = hasProfileResume
+        ? resumes.where((r) => r.title != profileResumeFileName).toList()
+        : resumes;
+
+    final totalItems = filteredResumes.length + (hasProfileResume ? 1 : 0);
+    final hasItems = totalItems > 0;
+
+    return Container(
+      height: screenHeight * 0.6,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Handle bar
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.grey.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          // Title
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Choose Resume',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.close,
+                        color: AppColors.textSecondary,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                Text(
+                  'Choose a resume to help the AI provide more personalized answers based on your experience.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary.withValues(alpha: 0.7),
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Upload Resume Button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: InkWell(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                onUploadResume();
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.upload_file, color: AppColors.primary, size: 22),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Upload New Resume',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Divider with "Or select from your resumes" text
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Divider(
+                    color: AppColors.textSecondary.withValues(alpha: 0.2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'Or select from your resumes',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Divider(
+                    color: AppColors.textSecondary.withValues(alpha: 0.2),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Resume list
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : !hasItems
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.description_outlined,
+                          size: 48,
+                          color: AppColors.textSecondary.withValues(alpha: 0.4),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No resumes found',
+                          style: TextStyle(
+                            color: AppColors.textSecondary.withValues(
+                              alpha: 0.6,
+                            ),
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Upload a resume to get started',
+                          style: TextStyle(
+                            color: AppColors.textSecondary.withValues(
+                              alpha: 0.5,
+                            ),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: totalItems,
+                    itemBuilder: (context, index) {
+                      // First item: Profile resume (if exists)
+                      if (hasProfileResume && index == 0) {
+                        final displayName = _getDisplayName(
+                          profileResumeFileName!,
+                        );
+                        final isSelected =
+                            selectedResumeTitle == profileResumeFileName;
+
+                        return InkWell(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            // Profile resume - pass null URL, will construct from S3 filename
+                            onResumeSelected(null, profileResumeFileName, null);
+                            Navigator.pop(context);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.primary.withValues(alpha: 0.1)
+                                  : Colors.transparent,
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.person,
+                                    color: Colors.green,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        displayName,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          color: isSelected
+                                              ? AppColors.primary
+                                              : AppColors.textPrimary,
+                                          fontWeight: isSelected
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Profile Resume',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.green.withValues(
+                                            alpha: 0.8,
+                                          ),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: AppColors.primary,
+                                    size: 20,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      // Other items: Regular resumes
+                      final resumeIndex = hasProfileResume ? index - 1 : index;
+                      final resume = filteredResumes[resumeIndex];
+                      final isSelected = resume.title == selectedResumeTitle;
+
+                      return InkWell(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          // History resume - pass the resumeUrl
+                          onResumeSelected(
+                            resume.id,
+                            resume.title,
+                            resume.resumeUrl,
+                          );
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.primary.withValues(alpha: 0.1)
+                                : Colors.transparent,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.description,
+                                  color: AppColors.primary,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      resume.title,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        color: isSelected
+                                            ? AppColors.primary
+                                            : AppColors.textPrimary,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    if (resume.jobTitle.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        resume.jobTitle,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: AppColors.textSecondary
+                                              .withValues(alpha: 0.7),
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              if (isSelected)
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: AppColors.primary,
+                                  size: 20,
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

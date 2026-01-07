@@ -655,7 +655,10 @@ class MeetingSessionScreen extends ConsumerWidget {
                           : 'Software development position',
                       agenda: interviewSession.meetingAgenda,
                       language: "en",
-                      resumeText: user?.toJson().toString(),
+                      // Use extracted resume data if available, fallback to user profile
+                      resumeText:
+                          interviewSession.extractedResumeData ??
+                          user?.toJson().toString(),
                     );
 
                     if (success) {

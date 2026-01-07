@@ -10,6 +10,7 @@ import '../../../utils/date_helpers.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/tag_list.dart';
+import '../../../widgets/common/profile_completion_banner.dart';
 import '../../../widgets/dialogs/confirmation_dialog.dart';
 import '../../../widgets/invite_friends_card.dart';
 import '../../../widgets/profile_card.dart';
@@ -39,7 +40,7 @@ class ProfileScreen extends ConsumerWidget {
             child: Column(
               children: [
                 const SizedBox(height: 10),
-                const InviteFriendsCard(),
+                const ProfileCompletionBanner(isProfileScreen: true),
                 const SizedBox(height: 16),
                 const ProfileHeader(),
                 const SizedBox(height: 16),
@@ -54,7 +55,9 @@ class ProfileScreen extends ConsumerWidget {
                 _buildSkillsCard(context, ref),
                 const SizedBox(height: 16),
                 _buildOthersCard(context, ref),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+                const InviteFriendsCard(),
+                const SizedBox(height: 16),
                 _buildLogoutButton(context, ref),
                 const SizedBox(height: 20),
               ],

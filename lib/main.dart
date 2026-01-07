@@ -10,6 +10,7 @@ import 'package:skillresy/services/api_client.dart';
 import 'package:skillresy/services/app_logic.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,10 +35,24 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  runApp(
-    UncontrolledProviderScope(
-      container: container,
-      child: const SkillResyApp(),
+  await SentryFlutter.init(
+    (options) {
+      options.dsn =
+          'https://8da8c435c5a2649ebf4f34c2075e7068@o4510670412578816.ingest.us.sentry.io/4510670481588224';
+      // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
+      // We recommend adjusting this value in production.
+      options.tracesSampleRate = 1.0;
+      // The sampling rate for profiling is relative to tracesSampleRate
+      // Setting to 1.0 will profile 100% of sampled transactions:
+      options.profilesSampleRate = 1.0;
+    },
+    appRunner: () => runApp(
+      SentryWidget(
+        child: UncontrolledProviderScope(
+          container: container,
+          child: const SkillResyApp(),
+        ),
+      ),
     ),
   );
 }

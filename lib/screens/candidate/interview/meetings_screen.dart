@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_sizes.dart';
 import '../../../widgets/common/custom_app_bar.dart';
+import '../../../widgets/common/profile_completion_banner.dart';
 
 class MeetingScreen extends ConsumerWidget {
   const MeetingScreen({super.key});
@@ -56,10 +57,11 @@ class MeetingScreen extends ConsumerWidget {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           child: Column(
             children: [
-              const SizedBox(height: 20),
+              const ProfileCompletionBanner(),
+              const SizedBox(height: 16),
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -128,7 +130,6 @@ class MeetingScreen extends ConsumerWidget {
   Widget _buildStartButton(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // context.push('/plans');
         context.push('/meeting/setup');
       },
       child: Container(

@@ -11,6 +11,10 @@ class InterviewSessionData {
   String location;
   String notes;
   String meetingAgenda;
+  int? selectedResumeId;
+  String? selectedResumeTitle;
+  String? extractedResumeData; // JSON string of extracted resume data
+  bool isExtractingResume; // Loading state for resume extraction
 
   // ===== SESSION PHASE DATA =====
   String? sessionId; // Generated when session starts
@@ -41,6 +45,10 @@ class InterviewSessionData {
     this.location = '',
     this.notes = '',
     this.meetingAgenda = '',
+    this.selectedResumeId,
+    this.selectedResumeTitle,
+    this.extractedResumeData,
+    this.isExtractingResume = false,
 
     // Session data
     this.sessionId,
@@ -130,6 +138,10 @@ class InterviewSessionData {
     String? location,
     String? notes,
     String? meetingAgenda,
+    int? selectedResumeId,
+    String? selectedResumeTitle,
+    String? extractedResumeData,
+    bool? isExtractingResume,
     String? sessionId,
     DateTime? startTime,
     DateTime? endTime,
@@ -159,6 +171,10 @@ class InterviewSessionData {
       location: location ?? this.location,
       notes: notes ?? this.notes,
       meetingAgenda: meetingAgenda ?? this.meetingAgenda,
+      selectedResumeId: selectedResumeId ?? this.selectedResumeId,
+      selectedResumeTitle: selectedResumeTitle ?? this.selectedResumeTitle,
+      extractedResumeData: extractedResumeData ?? this.extractedResumeData,
+      isExtractingResume: isExtractingResume ?? this.isExtractingResume,
       sessionId: sessionId ?? this.sessionId,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,

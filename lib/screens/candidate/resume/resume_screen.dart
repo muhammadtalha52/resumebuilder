@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../constants/app_colors.dart';
 import '../../../providers/resume_provider.dart';
 import '../../../widgets/common/custom_app_bar.dart';
+import '../../../widgets/common/profile_completion_banner.dart';
 
 class ResumeScreen extends ConsumerWidget {
   const ResumeScreen({super.key});
@@ -78,10 +79,12 @@ class ResumeScreen extends ConsumerWidget {
           ),
         ),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              const ProfileCompletionBanner(),
+              const SizedBox(height: 16),
               const Text(
                 'Ready to Out Fox your Resume?',
                 style: TextStyle(

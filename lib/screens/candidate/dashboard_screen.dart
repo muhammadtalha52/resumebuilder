@@ -6,6 +6,7 @@ import '../../widgets/common/custom_app_bar.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../utils/date_helpers.dart';
+import '../../widgets/common/profile_completion_banner.dart';
 import '../common/main_screen.dart';
 
 final selectedTabProvider = StateProvider<int>((ref) => 1);
@@ -63,9 +64,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 10),
-                          _buildWelcomeSection(ref),
-                          const SizedBox(height: 10),
+                          // const SizedBox(height: 10),
+                          // _buildWelcomeSection(ref),
+                          const SizedBox(height: 16),
+                          const ProfileCompletionBanner(),
+                          const SizedBox(height: 16),
                           _buildProgressAndMetricsSection(ref),
                           const SizedBox(height: 24),
                           _buildRecentActivitySection(ref),

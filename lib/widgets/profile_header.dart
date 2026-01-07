@@ -138,7 +138,7 @@ class _ProfileHeaderState extends ConsumerState<ProfileHeader> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  user?.fullName ?? 'Alex John',
+                  user?.fullName ?? '',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -163,14 +163,14 @@ class _ProfileHeaderState extends ConsumerState<ProfileHeader> {
   }
 
   String _getInitials(String? fullName) {
-    final name = fullName ?? 'Alex John';
+    final name = fullName ?? 'John';
     final parts = name.split(' ');
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     } else if (parts.isNotEmpty) {
       return parts[0][0].toUpperCase();
     }
-    return 'AJ';
+    return '';
   }
 
   bool _hasProfileImage(String? profileImage) {
