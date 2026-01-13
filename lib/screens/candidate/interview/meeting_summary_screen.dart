@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:markdown_widget/markdown_widget.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../providers/interview_summary_provider.dart';
@@ -66,6 +67,20 @@ class _InterviewSummaryScreenState extends ConsumerState<MeetingSummaryScreen> {
     final hour = dateTime.hour > 12 ? dateTime.hour - 12 : dateTime.hour;
     final period = dateTime.hour >= 12 ? 'pm' : 'am';
     return 'Today, $hour:${dateTime.minute.toString().padLeft(2, '0')}$period';
+  }
+
+  /// Returns the appropriate summary content based on session type
+  /// Uses interviewSummary for interview type, meetingSummary for meeting type
+  String? _getSummaryContent(InterviewSummaryState summaryState) {
+    final model = summaryState.meetingSummaryModel;
+    if (model == null) return null;
+
+    // Check if session type is interview
+    if (widget.sessionType.toLowerCase().contains('interview')) {
+      return model.interviewSummary;
+    }
+    // Default to meeting summary
+    return model.meetingSummary;
   }
 
   void _handleBackNavigation() async {
@@ -323,6 +338,18 @@ class _InterviewSummaryScreenState extends ConsumerState<MeetingSummaryScreen> {
                                       ],
                                     ),
                                   ),
+                                  // Meeting/Interview Summary Markdown Section
+                                  // Use interviewSummary for interview type, meetingSummary for meeting type
+                                  if (_getSummaryContent(summaryState) !=
+                                          null &&
+                                      _getSummaryContent(
+                                        summaryState,
+                                      )!.isNotEmpty) ...[
+                                    const SizedBox(height: 24),
+                                    _buildMeetingSummarySection(
+                                      _getSummaryContent(summaryState)!,
+                                    ),
+                                  ],
                                   if (summaryState.meetingSummaryModel !=
                                           null &&
                                       summaryState
@@ -725,6 +752,68 @@ class _InterviewSummaryScreenState extends ConsumerState<MeetingSummaryScreen> {
             );
           }),
       ],
+    );
+  }
+
+  Widget _buildMeetingSummarySection(String meetingSummary) {
+    return MarkdownBlock(
+      data: meetingSummary.replaceAll('\\n', '\n'),
+      config: MarkdownConfig(
+        configs: [
+          HrConfig(height: 0, color: Colors.transparent),
+          PConfig(
+            textStyle: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[800],
+              height: 1.5,
+            ),
+          ),
+          H1Config(
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          H2Config(
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          H3Config(
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+          ListConfig(
+            marker: (isOrdered, depth, index) {
+              return Container(
+                margin: const EdgeInsets.only(right: 8),
+                child: Text(
+                  isOrdered ? '${index + 1}.' : '•',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                ),
+              );
+            },
+          ),
+          BlockquoteConfig(
+            sideColor: Colors.orange.shade300,
+            textColor: Colors.grey[600]!,
+          ),
+          CodeConfig(
+            style: TextStyle(
+              fontSize: 13,
+              backgroundColor: Colors.grey[200],
+              color: Colors.grey[800],
+            ),
+          ),
+          PreConfig(decoration: const BoxDecoration(color: Colors.transparent)),
+        ],
+      ),
     );
   }
 

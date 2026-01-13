@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown_widget/markdown_widget.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -1180,27 +1180,52 @@ class _ConversationContainerState extends State<_ConversationContainer> {
                       ),
                     ],
                   )
-                : MarkdownBody(
+                : MarkdownBlock(
                     data: message.content.replaceAll('\\n', '\n'),
-                    styleSheet: MarkdownStyleSheet(
-                      p: const TextStyle(
-                        fontSize: 16,
-                        color: AppColors.textPrimary,
-                        height: 1.4,
-                      ),
-                      strong: const TextStyle(
-                        fontSize: 16,
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        height: 1.4,
-                      ),
-                      listBullet: const TextStyle(
-                        fontSize: 16,
-                        color: AppColors.textPrimary,
-                        height: 1.4,
-                      ),
+                    config: MarkdownConfig(
+                      configs: [
+                        HrConfig(height: 0, color: Colors.transparent),
+                        PConfig(
+                          textStyle: const TextStyle(
+                            fontSize: 16,
+                            color: AppColors.textPrimary,
+                            height: 1.4,
+                          ),
+                        ),
+                        H1Config(
+                          style: const TextStyle(
+                            fontSize: 20,
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                            height: 1.4,
+                          ),
+                        ),
+                        H2Config(
+                          style: const TextStyle(
+                            fontSize: 18,
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                            height: 1.4,
+                          ),
+                        ),
+                        ListConfig(
+                          marker: (isOrdered, depth, index) {
+                            return Text(
+                              isOrdered ? '${index + 1}.' : '•',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: AppColors.textPrimary,
+                              ),
+                            );
+                          },
+                        ),
+                        PreConfig(
+                          decoration: const BoxDecoration(
+                            color: Colors.transparent,
+                          ),
+                        ),
+                      ],
                     ),
-                    softLineBreak: true,
                   ),
           ],
         ),

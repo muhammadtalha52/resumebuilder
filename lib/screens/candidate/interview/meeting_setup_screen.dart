@@ -410,9 +410,21 @@ class _State extends ConsumerState<MeetingSetupScreen> {
   List<Widget> _buildResumeSelector() {
     final historyState = ref.watch(historyProvider);
     final sessionState = ref.watch(interviewSessionProvider);
-    final resumes = historyState.resumes;
     final selectedResumeTitle = sessionState.selectedResumeTitle;
     final isExtractingResume = sessionState.isExtractingResume;
+
+    // Check if selected resume is the profile resume
+    final user = ref.watch(authProvider).user;
+    final profileResumeFileName = user?.resumeFileName?.toString();
+    final isProfileResumeSelected =
+        selectedResumeTitle != null &&
+        profileResumeFileName != null &&
+        selectedResumeTitle == profileResumeFileName;
+
+    // Display "Profile Resume" if profile resume is selected, otherwise show the title
+    final displayTitle = isProfileResumeSelected
+        ? 'Profile Resume'
+        : selectedResumeTitle;
 
     return [
       Column(
@@ -465,7 +477,7 @@ class _State extends ConsumerState<MeetingSetupScreen> {
             onTap: () {
               unFocusAllFields();
               HapticFeedback.lightImpact();
-              _showResumePickerBottomSheet(resumes, historyState.isLoading);
+              _showResumePickerBottomSheet();
             },
             child: Container(
               width: double.infinity,
@@ -494,7 +506,7 @@ class _State extends ConsumerState<MeetingSetupScreen> {
                     child: Text(
                       isExtractingResume
                           ? 'Extracting resume data...'
-                          : selectedResumeTitle ??
+                          : displayTitle ??
                                 (historyState.isLoading
                                     ? 'Loading resumes...'
                                     : 'Select or upload a resume'),
@@ -537,10 +549,10 @@ class _State extends ConsumerState<MeetingSetupScreen> {
     ];
   }
 
-  void _showResumePickerBottomSheet(
-    List<ResumeHistory> resumes,
-    bool isLoading,
-  ) {
+  void _showResumePickerBottomSheet() {
+    // Refresh history to get latest resumes
+    ref.read(historyProvider.notifier).refreshHistory();
+
     // Get user's profile resume filename from auth provider
     final user = ref.read(authProvider).user;
     final profileResumeFileName = user?.resumeFileName?.toString();
@@ -551,9 +563,7 @@ class _State extends ConsumerState<MeetingSetupScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _ResumePickerBottomSheet(
-        resumes: resumes,
         selectedResumeTitle: sessionState.selectedResumeTitle,
-        isLoading: isLoading,
         profileResumeFileName: profileResumeFileName,
         onResumeSelected: (resumeId, resumeTitle, resumeUrl) {
           _clearFieldError('resume');
@@ -857,38 +867,26 @@ class _State extends ConsumerState<MeetingSetupScreen> {
 }
 
 // Custom bottom sheet for resume picker with upload option
-class _ResumePickerBottomSheet extends StatelessWidget {
-  final List<ResumeHistory> resumes;
+class _ResumePickerBottomSheet extends ConsumerWidget {
   final String? selectedResumeTitle;
-  final bool isLoading;
   final String? profileResumeFileName;
   final Function(int?, String?, String?) onResumeSelected; // (id, title, url)
   final VoidCallback onUploadResume;
 
   const _ResumePickerBottomSheet({
-    required this.resumes,
     required this.selectedResumeTitle,
-    required this.isLoading,
     required this.onResumeSelected,
     required this.onUploadResume,
     this.profileResumeFileName,
   });
 
-  // Helper to get display name from S3 filename
-  String _getDisplayName(String fileName) {
-    // Remove UUID prefix if present (format: uuid_filename.ext)
-    final parts = fileName.split('_');
-    if (parts.length > 1) {
-      // Check if first part looks like a UUID (36 chars with hyphens)
-      if (parts[0].length == 36 || parts[0].length == 32) {
-        return parts.sublist(1).join('_');
-      }
-    }
-    return fileName;
-  }
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch history provider to get latest data and rebuild on changes
+    final historyState = ref.watch(historyProvider);
+    final resumes = historyState.resumes;
+    final isLoading = historyState.isLoading;
+
     final screenHeight = MediaQuery.of(context).size.height;
     final hasProfileResume =
         profileResumeFileName != null && profileResumeFileName!.isNotEmpty;
@@ -1079,9 +1077,6 @@ class _ResumePickerBottomSheet extends StatelessWidget {
                     itemBuilder: (context, index) {
                       // First item: Profile resume (if exists)
                       if (hasProfileResume && index == 0) {
-                        final displayName = _getDisplayName(
-                          profileResumeFileName!,
-                        );
                         final isSelected =
                             selectedResumeTitle == profileResumeFileName;
 
@@ -1119,36 +1114,19 @@ class _ResumePickerBottomSheet extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        displayName,
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          color: isSelected
-                                              ? AppColors.primary
-                                              : AppColors.textPrimary,
-                                          fontWeight: isSelected
-                                              ? FontWeight.w600
-                                              : FontWeight.normal,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'Profile Resume',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.green.withValues(
-                                            alpha: 0.8,
-                                          ),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
+                                  child: Text(
+                                    'Profile Resume',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: isSelected
+                                          ? AppColors.primary
+                                          : AppColors.textPrimary,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 if (isSelected)

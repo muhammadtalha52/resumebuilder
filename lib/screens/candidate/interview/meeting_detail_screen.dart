@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:markdown_widget/markdown_widget.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../models/conversation_models.dart';
@@ -189,6 +190,13 @@ class _MeetingDetailScreenState extends ConsumerState<MeetingDetailScreen> {
                               ],
                             ),
                           ),
+
+                          // AI Meeting Summary (from notes field)
+                          if (widget.meeting.notes != null &&
+                              widget.meeting.notes!.isNotEmpty) ...[
+                            const SizedBox(height: 24),
+                            _buildMeetingSummarySection(widget.meeting.notes!),
+                          ],
 
                           // Key Topics
                           if (widget.meeting.keyTopics != null &&
@@ -529,6 +537,68 @@ class _MeetingDetailScreenState extends ConsumerState<MeetingDetailScreen> {
             );
           }),
       ],
+    );
+  }
+
+  Widget _buildMeetingSummarySection(String meetingSummary) {
+    return MarkdownBlock(
+      data: meetingSummary.replaceAll('\\n', '\n'),
+      config: MarkdownConfig(
+        configs: [
+          HrConfig(height: 0, color: Colors.transparent),
+          PConfig(
+            textStyle: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[800],
+              height: 1.5,
+            ),
+          ),
+          H1Config(
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          H2Config(
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          H3Config(
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+          ListConfig(
+            marker: (isOrdered, depth, index) {
+              return Container(
+                margin: const EdgeInsets.only(right: 8),
+                child: Text(
+                  isOrdered ? '${index + 1}.' : '•',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                ),
+              );
+            },
+          ),
+          BlockquoteConfig(
+            sideColor: Colors.orange.shade300,
+            textColor: Colors.grey[600]!,
+          ),
+          CodeConfig(
+            style: TextStyle(
+              fontSize: 13,
+              backgroundColor: Colors.grey[200],
+              color: Colors.grey[800],
+            ),
+          ),
+          PreConfig(decoration: const BoxDecoration(color: Colors.transparent)),
+        ],
+      ),
     );
   }
 

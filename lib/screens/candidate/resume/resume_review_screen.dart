@@ -14,7 +14,6 @@ import 'package:open_filex/open_filex.dart';
 import 'package:skillresy/screens/candidate/resume/resume_generation_loading_screen.dart';
 
 import '../../../constants/app_colors.dart';
-import '../../../constants/salary_ranges.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/resume_provider.dart';
 import '../../../providers/usage_provider.dart';
@@ -22,7 +21,6 @@ import '../../../utils/phone_utils.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/custom_button.dart' as button;
-import '../../../widgets/common/custom_picker_field.dart';
 import '../../../widgets/common/custom_text_field.dart';
 import '../../../widgets/common/tag_field.dart';
 import '../../../widgets/dialogs/confirmation_dialog.dart';
@@ -85,7 +83,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
   bool _isUploadedResumeFlow = false;
 
   // Existing state
-  final List<bool> _expandedSections = List.generate(6, (_) => false);
+  final List<bool> _expandedSections = List.generate(5, (_) => true);
 
   // Controllers for form fields
   final _fullNameController = TextEditingController();
@@ -95,15 +93,6 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
   final _websiteController = TextEditingController();
   String _completePhoneNumber = '';
   String _selectedCountryCode = 'US';
-
-  // Career goals
-  final _jobTitlesController = TextEditingController();
-  final _industriesController = TextEditingController();
-  final _longTermGoalsController = TextEditingController();
-  List<String> _jobTitles = [];
-  List<String> _industries = [];
-  List<String> _locationPreferences = [];
-  String? _desiredSalaryRange;
 
   // Work experience
   List<WorkExperienceEntry> _workExperiences = [WorkExperienceEntry()];
@@ -261,52 +250,6 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     _linkedInController.text = user.linkedinUrl ?? '';
     _websiteController.text = user.portfolioUrl ?? '';
 
-    // Load career goals from user object
-    if (user.desiredJobTitles != null || user.industryPreferences != null) {
-      // Extract titles from DesiredJobTitle objects
-      if (user.desiredJobTitles != null) {
-        _jobTitles = user.desiredJobTitles!
-            .map((job) => job.title ?? '')
-            .where((title) => title.isNotEmpty)
-            .toList();
-      }
-
-      // Extract industries from IndustryPreference objects
-      if (user.industryPreferences != null) {
-        _industries = user.industryPreferences!
-            .map((industry) => industry.industry ?? '')
-            .where((industry) => industry.isNotEmpty)
-            .toList();
-      }
-
-      // Map salary range from user's desiredPayRange
-      if (user.desiredPayRange != null) {
-        // Convert int ID to salary range string if needed
-        _desiredSalaryRange = SalaryRanges.ranges.firstWhere(
-          (range) => range.contains(user.desiredPayRange.toString()),
-          orElse: () => '',
-        );
-      }
-
-      // Extract location preferences from LocationPreference objects
-      if (user.locationPreferences != null &&
-          user.locationPreferences!.isNotEmpty) {
-        _locationPreferences = user.locationPreferences!
-            .map((loc) => loc.location ?? '')
-            .where((loc) => loc.isNotEmpty)
-            .toList();
-      }
-
-      // Load long term goals from CareerGoal objects
-      if (user.careerGoals != null && user.careerGoals!.isNotEmpty) {
-        final goals = user.careerGoals!
-            .map((goal) => goal.goal ?? '')
-            .where((goal) => goal.isNotEmpty)
-            .toList();
-        _longTermGoalsController.text = goals.join(', ');
-      }
-    }
-
     // Load education from user object using resume provider education resolution
     debugPrint(
       '🔍 User education IDs: institution=${user.institution}, degreeType=${user.degreeType}, major=${user.major}',
@@ -453,9 +396,6 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     _phoneController.dispose();
     _linkedInController.dispose();
     _websiteController.dispose();
-    _jobTitlesController.dispose();
-    _industriesController.dispose();
-    _longTermGoalsController.dispose();
     // Dispose work experience entries
     for (final experience in _workExperiences) {
       experience.dispose();
@@ -713,32 +653,25 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
         ),
         _buildExpandableSection(
           index: 1,
-          icon: Icons.flag,
-          iconColor: Colors.red,
-          title: 'Career Goals',
-          content: _buildCareerGoalsContent(),
-        ),
-        _buildExpandableSection(
-          index: 2,
           icon: Icons.school,
           title: 'Education',
           content: _buildEducationContent(),
         ),
         _buildExpandableSection(
-          index: 3,
+          index: 2,
           icon: Icons.work,
           iconColor: Colors.amber,
           title: 'Work Experience',
           content: _buildWorkExperienceContent(),
         ),
         _buildExpandableSection(
-          index: 4,
+          index: 3,
           icon: Icons.build,
           title: 'Skills & Tools',
           content: _buildSkillsContent(),
         ),
         _buildExpandableSection(
-          index: 5,
+          index: 4,
           icon: Icons.info_outline,
           iconColor: Colors.blue,
           title: 'Optional Info',
@@ -1440,71 +1373,6 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     );
   }
 
-  Widget _buildCareerGoalsContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TagField(
-          label: 'Desired Job Titles',
-          isRequired: false,
-          tags: _jobTitles,
-          controller: _jobTitlesController,
-          onAdd: (tag) => _addTag(tag, _jobTitles, _jobTitlesController),
-          onRemove: (tag) => _removeTag(tag, _jobTitles),
-        ),
-        const SizedBox(height: 16),
-        TagField(
-          label: 'Preferred Industries',
-          isRequired: false,
-          tags: _industries,
-          controller: _industriesController,
-          onAdd: (tag) => _addTag(tag, _industries, _industriesController),
-          onRemove: (tag) => _removeTag(tag, _industries),
-        ),
-        const SizedBox(height: 16),
-        CustomPickerField(
-          labelText: 'Preferred Work Arrangement',
-          isRequired: false,
-          selectedValues: _locationPreferences,
-          items: const ['On-site', 'Remote', 'Hybrid'],
-          hintText: 'Select Options',
-          enableSearch: false,
-          pickerTitle: 'Select Preferred Work Arrangement',
-          isMultiSelect: true,
-          onMultiChanged: (values) {
-            setState(() {
-              _locationPreferences = values;
-            });
-          },
-        ),
-        const SizedBox(height: 16),
-        CustomPickerField(
-          labelText: 'Desired Salary Range',
-          isRequired: false,
-          value: _desiredSalaryRange,
-          items: SalaryRanges.ranges,
-          hintText: 'Select salary range',
-          enableSearch: true,
-          searchHint: 'Search salary ranges...',
-          pickerTitle: 'Select Desired Salary Range',
-          onChanged: (value) {
-            setState(() {
-              _desiredSalaryRange = value;
-            });
-          },
-        ),
-        const SizedBox(height: 16),
-        CustomTextField(
-          controller: _longTermGoalsController,
-          labelText: 'Long-term Goals',
-          hintText:
-              'e.g., Become a technical lead and mentor junior developers',
-          maxLines: 5,
-        ),
-      ],
-    );
-  }
-
   Widget _buildEducationContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2045,13 +1913,6 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           hintText: 'e.g., Reading, Coding, Gaming',
           maxLines: 2,
         ),
-        const SizedBox(height: 16),
-        CustomTextField(
-          controller: TextEditingController(),
-          labelText: 'References',
-          hintText: 'Available upon request',
-          maxLines: 2,
-        ),
       ],
     );
   }
@@ -2135,6 +1996,48 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
     }
   }
 
+  bool _validateStep1() {
+    List<String> missingFields = [];
+
+    // Check required personal details
+    if (_fullNameController.text.trim().isEmpty) {
+      missingFields.add('Full Name');
+    }
+    if (_emailController.text.trim().isEmpty) {
+      missingFields.add('Email');
+    }
+    if (_completePhoneNumber.isEmpty) {
+      missingFields.add('Phone Number');
+    }
+
+    // Check if there's any meaningful content for the resume
+    final hasWorkExperience = _workExperiences.any(
+      (exp) =>
+          exp.jobTitle.text.trim().isNotEmpty ||
+          exp.company.text.trim().isNotEmpty,
+    );
+    final hasEducation =
+        _universityController.text.trim().isNotEmpty ||
+        _degreeController.text.trim().isNotEmpty;
+    final hasSkills =
+        _hardSkills.isNotEmpty || _softSkills.isNotEmpty || _tools.isNotEmpty;
+
+    // If no content at all, show error
+    if (!hasWorkExperience && !hasEducation && !hasSkills) {
+      missingFields.add('Work Experience, Education, or Skills');
+    }
+
+    if (missingFields.isNotEmpty) {
+      showErrorSnackBar(
+        context: context,
+        message: 'Please provide: ${missingFields.join(', ')}',
+      );
+      return false;
+    }
+
+    return true;
+  }
+
   bool _validateStep2() {
     setState(() {
       _jobTitleError = null;
@@ -2167,6 +2070,13 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
   }
 
   void _handleContinue() async {
+    // Validate Profile Review step (Step 1 in scratch flow)
+    if (!_isUploadedResumeFlow && _currentStep == 1) {
+      if (!_validateStep1()) {
+        return;
+      }
+    }
+
     // Validate Job Targeting step before proceeding
     bool needsJobTargetingValidation = false;
     if (_isUploadedResumeFlow && _currentStep == 1) {
@@ -2492,11 +2402,6 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
       if (hobbiesArray.isNotEmpty) {
         optionalInfo['hobbies_and_interests'] = hobbiesArray;
       }
-    }
-
-    // References - only include if user has references (don't add default)
-    if (user.references != null && user.references!.isNotEmpty) {
-      optionalInfo['references'] = [user.references!];
     }
 
     // Only include optional_info if it has any data

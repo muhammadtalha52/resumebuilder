@@ -59,9 +59,30 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final response = await _interviewService.endSession(sessionId);
+      // Get the full transcript from transcription provider
+      final transcriptionData = _ref.read(continuousTranscriptionProvider);
+      final fullTranscript = transcriptionData.fullTranscript;
+
+      print(
+        '[END-SESSION] Sending transcript to backend: ${fullTranscript.length} chars',
+      );
+
+      // Pass transcript to endSession so backend can generate summary
+      final response = await _interviewService.endSession(
+        sessionId,
+        transcription: fullTranscript,
+      );
 
       if (response['status'] == 'success') {
+        // Debug: Print all keys in response
+        print('[END-SESSION] Response keys: ${response.keys.toList()}');
+        print(
+          '[END-SESSION] Raw meetingSummary value: ${response['meetingSummary']}',
+        );
+        print(
+          '[END-SESSION] Raw meeting_summary value: ${response['meeting_summary']}',
+        );
+
         // Parse response and add session metadata
         final meetingSummaryModel = MeetingSummaryModel.fromJson(response)
             .copyWith(
@@ -71,7 +92,20 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
               duration: duration,
             );
 
-        if (meetingSummaryModel.summary != null) {
+        final summaryPreview = meetingSummaryModel.meetingSummary != null
+            ? meetingSummaryModel.meetingSummary!.substring(
+                0,
+                meetingSummaryModel.meetingSummary!.length > 100
+                    ? 100
+                    : meetingSummaryModel.meetingSummary!.length,
+              )
+            : 'null';
+        print('[END-SESSION] meetingSummary: $summaryPreview...');
+
+        // Check if we have either summary object or meetingSummary markdown
+        if (meetingSummaryModel.summary != null ||
+            (meetingSummaryModel.meetingSummary != null &&
+                meetingSummaryModel.meetingSummary!.isNotEmpty)) {
           state = state.copyWith(
             isLoading: false,
             summary: meetingSummaryModel,
@@ -158,20 +192,22 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
           "interview_date": nowDateTime,
           "duration_minutes": durationMinutes,
           "transcript": transcriptToSave,
-          "key_topics": summary.keyDiscussionPoints,
-          "strength_highlight": summary.strengthsHighlighted,
-          "weakness_highlight": summary.potentialWeaknessOrStrengths,
-          "action_items": summary.actionItems,
-          "decisions_made": summary.decisionsMade,
-          "top_moments_in_interview": summary.topMomentsInInterview,
-          "ai_driven_interview_analytics": summary.aiDrivenInterviewAnalytics,
-          "areas_of_improvement": summary.areasOfImprovement,
+          // "key_topics": summary.keyDiscussionPoints,
+          // "strength_highlight": summary.strengthsHighlighted,
+          // "weakness_highlight": summary.potentialWeaknessOrStrengths,
+          // "action_items": summary.actionItems,
+          // "decisions_made": summary.decisionsMade,
+          // "top_moments_in_interview": summary.topMomentsInInterview,
+          // "ai_driven_interview_analytics": summary.aiDrivenInterviewAnalytics,
+          // "areas_of_improvement": summary.areasOfImprovement,
           "language_selector": "English",
           "status": "scheduled",
           "location": "https://meet.google.com/abc-defg-hij",
           "interviewer_name": "",
           "interviewer_email": "",
-          "notes": "",
+          "notes": sessionData.interviewType.toLowerCase().contains('interview')
+              ? summary.interviewSummary
+              : summary.meetingSummary,
         };
 
         // Save to database

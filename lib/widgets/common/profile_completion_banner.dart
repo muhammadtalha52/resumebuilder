@@ -445,26 +445,68 @@ class ProfileCompletionBanner extends ConsumerWidget {
       }
     } catch (_) {}
 
-    // Education - institution
-    try {
-      if (parsedData.education.isNotEmpty) {
-        final edu = parsedData.education.first;
-        if (edu.university != null && edu.university!.trim().isNotEmpty) {
-          updateData['institution'] = edu.university!.trim();
-        }
-      }
-    } catch (_) {}
+    // NOTE: Education data is skipped because education fields use dropdown IDs
+    // (degree type, major, institution) and resume parsing returns text strings,
+    // not the IDs that the backend expects.
 
-    // Education - graduation date
+    // Desired Job Titles - extracted from work experience with smart year calculation
     try {
-      if (parsedData.education.isNotEmpty) {
-        final edu = parsedData.education.first;
-        if (edu.toDate != null && edu.toDate!.isNotEmpty) {
-          final gradDate = _parseDateString(edu.toDate!);
-          if (gradDate != null) {
-            updateData['graduation_date'] = DateHelpers.formatToApiDate(
-              gradDate,
-            );
+      if (parsedData.workExperience.isNotEmpty) {
+        // Group work experiences by job title (case-insensitive matching)
+        final Map<String, List<_DateRange>> titleDateRanges = {};
+
+        for (final exp in parsedData.workExperience) {
+          if (exp.role == null || exp.role!.trim().isEmpty) continue;
+
+          final title = exp.role!.trim();
+          final normalizedTitle = title.toLowerCase();
+
+          // Get date range (use today for current jobs)
+          final startDate = exp.parsedFromDate;
+          final endDate = exp.parsedToDate ?? DateTime.now();
+
+          if (startDate == null) continue; // Skip if no start date
+
+          // Find existing title (case-insensitive) or use original
+          String matchedTitle = title;
+          for (final existingTitle in titleDateRanges.keys) {
+            if (existingTitle.toLowerCase() == normalizedTitle) {
+              matchedTitle = existingTitle;
+              break;
+            }
+          }
+
+          titleDateRanges.putIfAbsent(matchedTitle, () => []);
+          titleDateRanges[matchedTitle]!.add(_DateRange(startDate, endDate));
+        }
+
+        if (titleDateRanges.isNotEmpty) {
+          // Calculate years for each title (merging overlapping ranges)
+          final List<Map<String, dynamic>> desiredJobTitles = [];
+
+          for (final entry in titleDateRanges.entries) {
+            final mergedRanges = _mergeOverlappingRanges(entry.value);
+            final totalYears = _calculateTotalYears(mergedRanges);
+
+            if (totalYears > 0) {
+              desiredJobTitles.add({
+                'title': entry.key,
+                'years_of_experience': totalYears,
+              });
+            }
+          }
+
+          // Sort by years of experience (descending) and limit to top 5
+          desiredJobTitles.sort(
+            (a, b) => (b['years_of_experience'] as double).compareTo(
+              a['years_of_experience'] as double,
+            ),
+          );
+
+          final limitedTitles = desiredJobTitles.take(5).toList();
+
+          if (limitedTitles.isNotEmpty) {
+            updateData['desired_job_titles'] = limitedTitles;
           }
         }
       }
@@ -763,4 +805,61 @@ class ProfileCompletionBanner extends ConsumerWidget {
       ),
     );
   }
+
+  /// Merge overlapping date ranges to avoid double-counting experience
+  /// Example: [(2020-2022), (2021-2023)] -> [(2020-2023)]
+  List<_DateRange> _mergeOverlappingRanges(List<_DateRange> ranges) {
+    if (ranges.isEmpty) return [];
+    if (ranges.length == 1) return ranges;
+
+    // Sort by start date
+    final sorted = List<_DateRange>.from(ranges)
+      ..sort((a, b) => a.start.compareTo(b.start));
+
+    final merged = <_DateRange>[];
+    var current = sorted.first;
+
+    for (int i = 1; i < sorted.length; i++) {
+      final next = sorted[i];
+
+      // Check if ranges overlap or are adjacent (within 1 day)
+      if (next.start.isBefore(current.end) ||
+          next.start.difference(current.end).inDays <= 1) {
+        // Merge: extend current range if next ends later
+        if (next.end.isAfter(current.end)) {
+          current = _DateRange(current.start, next.end);
+        }
+      } else {
+        // No overlap: add current to result and move to next
+        merged.add(current);
+        current = next;
+      }
+    }
+    merged.add(current);
+
+    return merged;
+  }
+
+  /// Calculate total years from a list of date ranges
+  /// Rounds to nearest whole number
+  double _calculateTotalYears(List<_DateRange> ranges) {
+    if (ranges.isEmpty) return 0;
+
+    double totalDays = 0;
+    for (final range in ranges) {
+      totalDays += range.end.difference(range.start).inDays;
+    }
+
+    // Convert days to years and round to nearest whole number
+    final years = totalDays / 365;
+    return years.round().toDouble();
+  }
+}
+
+/// Helper class to represent a date range for experience calculation
+class _DateRange {
+  final DateTime start;
+  final DateTime end;
+
+  _DateRange(this.start, this.end);
 }

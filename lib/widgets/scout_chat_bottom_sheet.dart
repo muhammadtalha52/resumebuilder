@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown_widget/markdown_widget.dart';
 
 import '../constants/app_colors.dart';
 import '../models/meeting_history_response.dart';
@@ -261,30 +261,58 @@ class _ScoutChatBottomSheetState extends ConsumerState<ScoutChatBottomSheet> {
                         height: 1.4,
                       ),
                     )
-                  : MarkdownBody(
+                  : MarkdownBlock(
                       data: message.message.replaceAll('\\n', '\n'),
-                      styleSheet: MarkdownStyleSheet(
-                        p: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textPrimary,
-                          height: 1.4,
-                        ),
-                        strong: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          height: 1.4,
-                        ),
-                        listBullet: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textPrimary,
-                          height: 1.4,
-                        ),
-                        code: TextStyle(
-                          fontSize: 12,
-                          backgroundColor: Colors.grey.shade100,
-                          color: AppColors.textPrimary,
-                        ),
+                      config: MarkdownConfig(
+                        configs: [
+                          HrConfig(height: 0, color: Colors.transparent),
+                          PConfig(
+                            textStyle: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textPrimary,
+                              height: 1.4,
+                            ),
+                          ),
+                          H1Config(
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.bold,
+                              height: 1.4,
+                            ),
+                          ),
+                          H2Config(
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.bold,
+                              height: 1.4,
+                            ),
+                          ),
+                          ListConfig(
+                            marker: (isOrdered, depth, index) {
+                              return Text(
+                                isOrdered ? '${index + 1}.' : '•',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textPrimary,
+                                ),
+                              );
+                            },
+                          ),
+                          CodeConfig(
+                            style: TextStyle(
+                              fontSize: 12,
+                              backgroundColor: Colors.grey.shade200,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          PreConfig(
+                            decoration: const BoxDecoration(
+                              color: Colors.transparent,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
             ),
@@ -368,7 +396,7 @@ class _ScoutChatBottomSheetState extends ConsumerState<ScoutChatBottomSheet> {
               width: 8,
               height: 8,
               decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(value),
+                color: Colors.grey.withValues(alpha: value),
                 shape: BoxShape.circle,
               ),
             );
