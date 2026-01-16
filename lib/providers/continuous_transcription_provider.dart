@@ -87,8 +87,12 @@ class InterviewSessionData {
   final bool sessionWarning5Min; // Warning at 55 minutes
   final bool sessionAutoEnd; // Auto-end at 60 minutes
 
-  // Transcript-answer pairs for saving (tracks transcript segment + Scout response)
-  final List<TranscriptAnswerPair> transcriptAnswerPairs;
+  // Unified conversation entries for saving (continuous flow of speakers + scout)
+  final List<ConversationEntry> conversationEntries;
+
+  // Speaker diarization data (from transcriber - accumulated during session)
+  final List<SpeakerSegment> speakerSegments;
+  final int speakerCount;
 
   InterviewSessionData({
     this.state = InterviewSessionState.idle,
@@ -116,7 +120,9 @@ class InterviewSessionData {
     this.helpTimestamp,
     this.sessionWarning5Min = false,
     this.sessionAutoEnd = false,
-    this.transcriptAnswerPairs = const [],
+    this.conversationEntries = const [],
+    this.speakerSegments = const [],
+    this.speakerCount = 0,
   }) : conversation = conversation ?? ConversationData();
 
   InterviewSessionData copyWith({
@@ -145,7 +151,9 @@ class InterviewSessionData {
     DateTime? helpTimestamp,
     bool? sessionWarning5Min,
     bool? sessionAutoEnd,
-    List<TranscriptAnswerPair>? transcriptAnswerPairs,
+    List<ConversationEntry>? conversationEntries,
+    List<SpeakerSegment>? speakerSegments,
+    int? speakerCount,
   }) {
     return InterviewSessionData(
       state: state ?? this.state,
@@ -173,8 +181,9 @@ class InterviewSessionData {
       helpTimestamp: helpTimestamp ?? this.helpTimestamp,
       sessionWarning5Min: sessionWarning5Min ?? this.sessionWarning5Min,
       sessionAutoEnd: sessionAutoEnd ?? this.sessionAutoEnd,
-      transcriptAnswerPairs:
-          transcriptAnswerPairs ?? this.transcriptAnswerPairs,
+      conversationEntries: conversationEntries ?? this.conversationEntries,
+      speakerSegments: speakerSegments ?? this.speakerSegments,
+      speakerCount: speakerCount ?? this.speakerCount,
     );
   }
 }
@@ -192,6 +201,8 @@ class ContinuousTranscriptionNotifier
   DateTime? _sessionStartTime;
   int _lastHelpTranscriptLength =
       0; // Track transcript position for delta sending
+  int _lastSavedSpeakerSegmentCount =
+      0; // Track which speaker segments have been saved
 
   ContinuousTranscriptionNotifier(this._ref) : super(InterviewSessionData()) {
     // Initialize subscription service
@@ -218,6 +229,9 @@ class ContinuousTranscriptionNotifier
       transcriptionState: _audioTranscriber!.state,
       chunkCount: _audioTranscriber!.chunkCount,
       pendingChunks: _audioTranscriber!.pendingChunks,
+      // Sync speaker diarization data
+      speakerSegments: _audioTranscriber!.speakerSegments,
+      speakerCount: _audioTranscriber!.speakerCount,
     );
 
     // Update conversation message with new transcript
@@ -252,6 +266,7 @@ class ContinuousTranscriptionNotifier
 
     // Reset delta tracking for new session
     _lastHelpTranscriptLength = 0;
+    _lastSavedSpeakerSegmentCount = 0;
 
     try {
       // Request microphone permission on Android (iOS handles it automatically)
@@ -347,11 +362,16 @@ class ContinuousTranscriptionNotifier
     final currentHelpResponse = state.helpResponse;
     final currentHelpTimestamp = state.helpTimestamp;
     final currentSessionDuration = state.sessionDuration;
-    final currentTranscriptAnswerPairs = state.transcriptAnswerPairs;
+    final currentConversationEntries = state.conversationEntries;
+    final currentSpeakerSegments = state.speakerSegments;
+    final currentSpeakerCount = state.speakerCount;
 
     print('[SESSION-STOP] Preserved data:');
     print(
-      '[SESSION-STOP] Transcript-Answer pairs: ${currentTranscriptAnswerPairs.length}',
+      '[SESSION-STOP] Conversation entries: ${currentConversationEntries.length}',
+    );
+    print(
+      '[SESSION-STOP] Speaker segments: ${currentSpeakerSegments.length}, Speaker count: $currentSpeakerCount',
     );
 
     // Stop audio recording and timer
@@ -389,8 +409,11 @@ class ContinuousTranscriptionNotifier
       transcriptionState: null,
       chunkCount: 0,
       pendingChunks: 0,
-      // PRESERVE TRANSCRIPT-ANSWER PAIRS
-      transcriptAnswerPairs: currentTranscriptAnswerPairs,
+      // PRESERVE CONVERSATION ENTRIES
+      conversationEntries: currentConversationEntries,
+      // PRESERVE SPEAKER DIARIZATION DATA
+      speakerSegments: currentSpeakerSegments,
+      speakerCount: currentSpeakerCount,
     );
 
     print('[SESSION-STOP] ✅ Session stopped - all data preserved for summary');
@@ -764,23 +787,57 @@ class ContinuousTranscriptionNotifier
         '[MEETING-NEXT] Streaming completed. Final response length: ${accumulatedResponse.length} chars',
       );
 
-      // Add transcript-answer pair for saving
-      final transcriptUsed = state.fullTranscript.trim();
+      // Add conversation entries for saving (only NEW speaker segments + scout response)
       if (accumulatedResponse.isNotEmpty &&
-          !accumulatedResponse.startsWith('Error:') &&
-          transcriptUsed.isNotEmpty) {
-        final pair = TranscriptAnswerPair(
-          transcript: transcriptUsed,
-          answer: accumulatedResponse,
-          answerType: 'help',
+          !accumulatedResponse.startsWith('Error:')) {
+        final List<ConversationEntry> newEntries = [];
+
+        // LOG: Raw Scout response for MEETING
+        print(
+          '[MEETING-SCOUT-RAW] ======== RAW SCOUT RESPONSE (MEETING) ========',
         );
-        final updatedPairs = [...state.transcriptAnswerPairs, pair];
-        state = state.copyWith(
-          isGettingHelp: false,
-          transcriptAnswerPairs: updatedPairs,
+        print('[MEETING-SCOUT-RAW] Length: ${accumulatedResponse.length}');
+        print(
+          '[MEETING-SCOUT-RAW] First 200 chars: ${accumulatedResponse.substring(0, accumulatedResponse.length > 200 ? 200 : accumulatedResponse.length)}',
         );
         print(
-          '[MEETING-NEXT] Added transcript-answer pair. Total pairs: ${updatedPairs.length}',
+          '[MEETING-SCOUT-RAW] Contains literal \\n: ${accumulatedResponse.contains('\\n')}',
+        );
+        print(
+          '[MEETING-SCOUT-RAW] Contains newline char: ${accumulatedResponse.contains('\n')}',
+        );
+        print(
+          '[MEETING-SCOUT-RAW] Starts with "markdown": ${accumulatedResponse.startsWith('markdown')}',
+        );
+        print(
+          '[MEETING-SCOUT-RAW] ============================================',
+        );
+
+        // Add only NEW speaker segments (not already saved)
+        final currentSegments = state.speakerSegments;
+        if (currentSegments.length > _lastSavedSpeakerSegmentCount) {
+          for (
+            int i = _lastSavedSpeakerSegmentCount;
+            i < currentSegments.length;
+            i++
+          ) {
+            newEntries.add(
+              ConversationEntry.fromSpeakerSegment(currentSegments[i]),
+            );
+          }
+          _lastSavedSpeakerSegmentCount = currentSegments.length;
+        }
+
+        // Add scout response
+        newEntries.add(ConversationEntry.scout(text: accumulatedResponse));
+
+        final updatedEntries = [...state.conversationEntries, ...newEntries];
+        state = state.copyWith(
+          isGettingHelp: false,
+          conversationEntries: updatedEntries,
+        );
+        print(
+          '[MEETING-NEXT] Added ${newEntries.length} conversation entries. Total entries: ${updatedEntries.length}',
         );
       } else {
         state = state.copyWith(isGettingHelp: false);
@@ -991,21 +1048,57 @@ class ContinuousTranscriptionNotifier
       _updateScoutResponse(scoutMessageId, accumulatedResponse);
       _pendingScoutContent = '';
 
-      // Add transcript-answer pair for saving
+      // Add conversation entries for saving (only NEW speaker segments + scout response)
       if (accumulatedResponse.isNotEmpty &&
           !accumulatedResponse.startsWith('Error:')) {
-        final pair = TranscriptAnswerPair(
-          transcript: deltaTranscript,
-          answer: accumulatedResponse,
-          answerType: 'help',
+        final List<ConversationEntry> newEntries = [];
+
+        // LOG: Raw Scout response for INTERVIEW
+        print(
+          '[INTERVIEW-SCOUT-RAW] ======== RAW SCOUT RESPONSE (INTERVIEW) ========',
         );
-        final updatedPairs = [...state.transcriptAnswerPairs, pair];
-        state = state.copyWith(
-          isGettingHelp: false,
-          transcriptAnswerPairs: updatedPairs,
+        print('[INTERVIEW-SCOUT-RAW] Length: ${accumulatedResponse.length}');
+        print(
+          '[INTERVIEW-SCOUT-RAW] First 200 chars: ${accumulatedResponse.substring(0, accumulatedResponse.length > 200 ? 200 : accumulatedResponse.length)}',
         );
         print(
-          '[HELP] Added transcript-answer pair. Total pairs: ${updatedPairs.length}',
+          '[INTERVIEW-SCOUT-RAW] Contains literal \\n: ${accumulatedResponse.contains('\\n')}',
+        );
+        print(
+          '[INTERVIEW-SCOUT-RAW] Contains newline char: ${accumulatedResponse.contains('\n')}',
+        );
+        print(
+          '[INTERVIEW-SCOUT-RAW] Starts with "markdown": ${accumulatedResponse.startsWith('markdown')}',
+        );
+        print(
+          '[INTERVIEW-SCOUT-RAW] ============================================',
+        );
+
+        // Add only NEW speaker segments (not already saved)
+        final currentSegments = state.speakerSegments;
+        if (currentSegments.length > _lastSavedSpeakerSegmentCount) {
+          for (
+            int i = _lastSavedSpeakerSegmentCount;
+            i < currentSegments.length;
+            i++
+          ) {
+            newEntries.add(
+              ConversationEntry.fromSpeakerSegment(currentSegments[i]),
+            );
+          }
+          _lastSavedSpeakerSegmentCount = currentSegments.length;
+        }
+
+        // Add scout response
+        newEntries.add(ConversationEntry.scout(text: accumulatedResponse));
+
+        final updatedEntries = [...state.conversationEntries, ...newEntries];
+        state = state.copyWith(
+          isGettingHelp: false,
+          conversationEntries: updatedEntries,
+        );
+        print(
+          '[HELP] Added ${newEntries.length} conversation entries. Total entries: ${updatedEntries.length}',
         );
       } else {
         state = state.copyWith(isGettingHelp: false);

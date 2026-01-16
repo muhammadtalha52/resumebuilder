@@ -16,11 +16,30 @@ import '../../../widgets/invite_friends_card.dart';
 import '../../../widgets/profile_card.dart';
 import '../../../widgets/profile_header.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Silently refresh user data in background to get latest profile completion percentage
+    Future.microtask(() {
+      ref.read(authProvider.notifier).refreshUser();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final completionPercentage =
+        authState.user?.profileCompletionPercentage ?? 0;
+    final isProfileComplete = completionPercentage >= 100;
+
     return Scaffold(
       backgroundColor: AppColors.scaffold,
       appBar: CustomAppBar(
@@ -40,7 +59,11 @@ class ProfileScreen extends ConsumerWidget {
             child: Column(
               children: [
                 const SizedBox(height: 10),
-                const ProfileCompletionBanner(isProfileScreen: true),
+                // Show Banner if profile incomplete, otherwise show InviteFriendsCard at top
+                if (isProfileComplete)
+                  const InviteFriendsCard()
+                else
+                  const ProfileCompletionBanner(isProfileScreen: true),
                 const SizedBox(height: 16),
                 const ProfileHeader(),
                 const SizedBox(height: 16),
@@ -55,8 +78,6 @@ class ProfileScreen extends ConsumerWidget {
                 _buildSkillsCard(context, ref),
                 const SizedBox(height: 16),
                 _buildOthersCard(context, ref),
-                const SizedBox(height: 16),
-                const InviteFriendsCard(),
                 const SizedBox(height: 16),
                 _buildLogoutButton(context, ref),
                 const SizedBox(height: 20),
@@ -268,8 +289,14 @@ class ProfileScreen extends ConsumerWidget {
         children: [
           _buildCareerDetailRow(
             'assets/icons/hard-soft-skills.png',
-            'Hard Skills, Soft Skills',
-            _extractAndCombineSkills(user?.hardSkills, user?.softSkills),
+            'Hard Skills',
+            _extractHardSkills(user?.hardSkills),
+            showDivider: true,
+          ),
+          _buildCareerDetailRow(
+            'assets/icons/hard-soft-skills.png',
+            'Soft Skills',
+            _extractSoftSkills(user?.softSkills),
             showDivider: true,
           ),
           _buildCareerDetailRow(
@@ -961,25 +988,24 @@ class ProfileScreen extends ConsumerWidget {
         .toList();
   }
 
-  List<String> _extractAndCombineSkills(
-    List<dynamic>? hardSkills,
-    List<dynamic>? softSkills,
-  ) {
-    final List<String> combined = [];
-
-    if (hardSkills != null) {
-      combined.addAll(
-        hardSkills.map((skill) => skill.skill ?? 'Unknown').cast<String>(),
-      );
+  List<String> _extractHardSkills(List<dynamic>? hardSkills) {
+    if (hardSkills == null || hardSkills.isEmpty) {
+      return [];
     }
+    return hardSkills
+        .map((skill) => skill.skill ?? 'Unknown')
+        .cast<String>()
+        .toList();
+  }
 
-    if (softSkills != null) {
-      combined.addAll(
-        softSkills.map((skill) => skill.skill ?? 'Unknown').cast<String>(),
-      );
+  List<String> _extractSoftSkills(List<dynamic>? softSkills) {
+    if (softSkills == null || softSkills.isEmpty) {
+      return [];
     }
-
-    return combined.isEmpty ? [] : combined;
+    return softSkills
+        .map((skill) => skill.skill ?? 'Unknown')
+        .cast<String>()
+        .toList();
   }
 
   List<String> _extractToolsTechnologies(List<dynamic>? toolsTechnologies) {

@@ -8,6 +8,7 @@ import '../../../models/conversation_models.dart';
 import '../../../models/meeting_history_response.dart';
 import '../../../utils/date_helpers.dart';
 import '../../../widgets/common/custom_app_bar.dart';
+import '../../../widgets/common/scout_markdown_widget.dart';
 import '../../../widgets/scout_chat_bottom_sheet.dart';
 
 class MeetingDetailScreen extends ConsumerStatefulWidget {
@@ -603,22 +604,38 @@ class _MeetingDetailScreenState extends ConsumerState<MeetingDetailScreen> {
   }
 
   Widget _buildTranscriptSection() {
-    // Try to parse as JSON pairs
-    final pairs = TranscriptAnswerPair.decodeList(widget.meeting.transcript);
+    // Try to parse as new ConversationEntry format first
+    final entries = ConversationEntry.decodeList(widget.meeting.transcript);
 
-    if (pairs != null && pairs.isNotEmpty) {
-      // New format: Button to open bottom sheet with all pairs
-      return _buildTranscriptButton(pairs);
-    } else {
-      // Legacy format: Display as plain text
-      return _buildLegacyTranscriptSection();
+    if (entries != null && entries.isNotEmpty) {
+      // New format: Button to open bottom sheet with all entries
+      return _buildTranscriptButton(entries);
     }
+
+    // Try legacy TranscriptAnswerPair format and convert to ConversationEntry
+    final pairs = TranscriptAnswerPair.decodeList(widget.meeting.transcript);
+    if (pairs != null && pairs.isNotEmpty) {
+      // Convert legacy pairs to ConversationEntry list
+      final legacyEntries = <ConversationEntry>[];
+      for (final pair in pairs) {
+        if (pair.hasSegments && pair.segments != null) {
+          for (final segment in pair.segments!) {
+            legacyEntries.add(ConversationEntry.fromSpeakerSegment(segment));
+          }
+        }
+        legacyEntries.add(ConversationEntry.scout(text: pair.answer));
+      }
+      return _buildTranscriptButton(legacyEntries);
+    }
+
+    // Legacy format: Display as plain text
+    return _buildLegacyTranscriptSection();
   }
 
   /// Builds a button that opens the transcript bottom sheet
-  Widget _buildTranscriptButton(List<TranscriptAnswerPair> pairs) {
+  Widget _buildTranscriptButton(List<ConversationEntry> entries) {
     return GestureDetector(
-      onTap: () => _openTranscriptBottomSheet(pairs),
+      onTap: () => _openTranscriptBottomSheet(entries),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -679,13 +696,13 @@ class _MeetingDetailScreenState extends ConsumerState<MeetingDetailScreen> {
     );
   }
 
-  /// Opens the bottom sheet with all transcript-answer pairs
-  void _openTranscriptBottomSheet(List<TranscriptAnswerPair> pairs) {
+  /// Opens the bottom sheet with all conversation entries
+  void _openTranscriptBottomSheet(List<ConversationEntry> entries) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _TranscriptBottomSheet(pairs: pairs),
+      builder: (context) => _TranscriptBottomSheet(entries: entries),
     );
   }
 
@@ -768,11 +785,19 @@ class _MeetingDetailScreenState extends ConsumerState<MeetingDetailScreen> {
   }
 }
 
-/// Bottom sheet displaying all transcript-answer pairs in a scrollable list
+/// Bottom sheet displaying all conversation entries as one continuous flow
 class _TranscriptBottomSheet extends StatelessWidget {
-  final List<TranscriptAnswerPair> pairs;
+  final List<ConversationEntry> entries;
 
-  const _TranscriptBottomSheet({required this.pairs});
+  const _TranscriptBottomSheet({required this.entries});
+
+  // Speaker colors - cycle through for different speakers
+  static final speakerColors = [
+    Colors.blue.shade700,
+    Colors.green.shade700,
+    Colors.purple.shade700,
+    Colors.teal.shade700,
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -846,16 +871,15 @@ class _TranscriptBottomSheet extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Divider(color: Colors.grey[200], height: 1),
-              // Scrollable list of pairs
+              // Single continuous flowing conversation
               Expanded(
-                child: ListView.builder(
+                child: SingleChildScrollView(
                   controller: scrollController,
                   padding: const EdgeInsets.all(16),
-                  itemCount: pairs.length,
-                  itemBuilder: (context, index) {
-                    final pair = pairs[index];
-                    return _buildPairItem(context, pair, index + 1);
-                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: _buildConversationWidgets(),
+                  ),
                 ),
               ),
             ],
@@ -865,110 +889,74 @@ class _TranscriptBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildPairItem(
-    BuildContext context,
-    TranscriptAnswerPair pair,
-    int index,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Transcript section
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
+  /// Build conversation widgets - Text for speakers, Markdown for Scout
+  List<Widget> _buildConversationWidgets() {
+    final List<Widget> widgets = [];
+
+    for (final entry in entries) {
+      final label = entry.getDisplayLabel();
+      final colorIndex = entry.isSpeaker
+          ? (entry.speakerId ?? 0) % speakerColors.length
+          : -1;
+      final labelColor = entry.isScout
+          ? Colors.orange.shade700
+          : speakerColors[colorIndex];
+
+      if (entry.isScout) {
+        // Scout response - use common ScoutMarkdownWidget
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.mic, size: 16, color: Colors.grey[600]),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Transcript/Question',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                SelectableText(
-                  pair.transcript,
+                Text(
+                  '$label:',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[800],
-                    height: 1.5,
+                    fontWeight: FontWeight.w600,
+                    color: labelColor,
                   ),
                 ),
+                const SizedBox(height: 4),
+                ScoutMarkdownWidget(data: entry.text),
               ],
             ),
           ),
-          const SizedBox(height: 10),
-          // Scout response section
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.2),
+        );
+      } else {
+        // Speaker segment - use SelectableText.rich
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: SelectableText.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$label: ',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: labelColor,
+                      height: 1.6,
+                    ),
+                  ),
+                  TextSpan(
+                    text: entry.text,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[800],
+                      height: 1.6,
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: Image.asset(
-                        'assets/icons/fox-mascot.png',
-                        width: 20,
-                        height: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Scout\'s Response',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                SelectableText(
-                  pair.answer,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[800],
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
           ),
-          // Divider between pairs (except last one)
-          if (index < pairs.length) ...[
-            const SizedBox(height: 16),
-            Divider(color: Colors.grey[200], height: 1),
-          ],
-        ],
-      ),
-    );
+        );
+      }
+    }
+
+    return widgets;
   }
 }

@@ -4,10 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../models/conversation_models.dart';
+import '../../../providers/continuous_transcription_provider.dart';
 import '../../../providers/interview_summary_provider.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/custom_button.dart';
+import '../../../widgets/common/scout_markdown_widget.dart';
 import '../../../widgets/dialogs/confirmation_dialog.dart';
 
 class MeetingSummaryScreen extends ConsumerStatefulWidget {
@@ -498,117 +501,9 @@ class _InterviewSummaryScreenState extends ConsumerState<MeetingSummaryScreen> {
                                         ],
                                       ];
                                     }(),
+                                  // Transcript Section
+                                  _buildTranscriptSection(),
                                   const SizedBox(height: 24),
-                                  // Container(
-                                  //   padding: const EdgeInsets.all(16),
-                                  //   decoration: BoxDecoration(
-                                  //     color: Colors.grey[50],
-                                  //     borderRadius: BorderRadius.circular(12),
-                                  //     border: Border.all(
-                                  //       color: Colors.grey[300]!,
-                                  //     ),
-                                  //   ),
-                                  //   child: Column(
-                                  //     crossAxisAlignment:
-                                  //         CrossAxisAlignment.start,
-                                  //     children: [
-                                  //       Row(
-                                  //         children: [
-                                  //           Image.asset(
-                                  //             'assets/icons/scout_avatar.png',
-                                  //             height: 32,
-                                  //             width: 32,
-                                  //             errorBuilder:
-                                  //                 (context, error, stackTrace) {
-                                  //                   return Container(
-                                  //                     height: 32,
-                                  //                     width: 32,
-                                  //                     decoration:
-                                  //                         const BoxDecoration(
-                                  //                           color: Colors.orange,
-                                  //                           shape:
-                                  //                               BoxShape.circle,
-                                  //                         ),
-                                  //                     child: const Icon(
-                                  //                       Icons.smart_toy,
-                                  //                       size: 20,
-                                  //                       color: Colors.white,
-                                  //                     ),
-                                  //                   );
-                                  //                 },
-                                  //           ),
-                                  //           const SizedBox(width: 8),
-                                  //           const Text(
-                                  //             'Ask Scout the fox',
-                                  //             style: TextStyle(
-                                  //               fontSize: 16,
-                                  //               fontWeight: FontWeight.bold,
-                                  //               color: Colors.black87,
-                                  //             ),
-                                  //           ),
-                                  //         ],
-                                  //       ),
-                                  //       const SizedBox(height: 12),
-                                  //       TextField(
-                                  //         controller: _questionController,
-                                  //         decoration: InputDecoration(
-                                  //           hintText:
-                                  //               'Ask me anything about session...',
-                                  //           hintStyle: TextStyle(
-                                  //             color: Colors.grey[400],
-                                  //             fontSize: 14,
-                                  //           ),
-                                  //           filled: true,
-                                  //           fillColor: Colors.white,
-                                  //           border: OutlineInputBorder(
-                                  //             borderRadius: BorderRadius.circular(
-                                  //               8,
-                                  //             ),
-                                  //             borderSide: BorderSide(
-                                  //               color: Colors.grey[300]!,
-                                  //             ),
-                                  //           ),
-                                  //           enabledBorder: OutlineInputBorder(
-                                  //             borderRadius: BorderRadius.circular(
-                                  //               8,
-                                  //             ),
-                                  //             borderSide: BorderSide(
-                                  //               color: Colors.grey[300]!,
-                                  //             ),
-                                  //           ),
-                                  //           focusedBorder: OutlineInputBorder(
-                                  //             borderRadius: BorderRadius.circular(
-                                  //               8,
-                                  //             ),
-                                  //             borderSide: const BorderSide(
-                                  //               color: Colors.orange,
-                                  //               width: 2,
-                                  //             ),
-                                  //           ),
-                                  //           suffixIcon: Container(
-                                  //             margin: const EdgeInsets.all(4),
-                                  //             decoration: BoxDecoration(
-                                  //               color: Colors.orange,
-                                  //               borderRadius:
-                                  //                   BorderRadius.circular(6),
-                                  //             ),
-                                  //             child: IconButton(
-                                  //               onPressed: () {
-                                  //                 // TODO: Implement Scout chat functionality
-                                  //               },
-                                  //               icon: const Icon(
-                                  //                 Icons.send,
-                                  //                 color: Colors.white,
-                                  //                 size: 20,
-                                  //               ),
-                                  //             ),
-                                  //           ),
-                                  //         ),
-                                  //       ),
-                                  //     ],
-                                  //   ),
-                                  // ),
-                                  // const SizedBox(height: 24),
                                   // Save Button
                                   _buildSaveButton(summaryState),
                                   const SizedBox(height: 32),
@@ -872,5 +767,264 @@ class _InterviewSummaryScreenState extends ConsumerState<MeetingSummaryScreen> {
         }
       },
     );
+  }
+
+  /// Builds the transcript section with button to open bottom sheet
+  Widget _buildTranscriptSection() {
+    final transcriptionData = ref.watch(continuousTranscriptionProvider);
+    final entries = transcriptionData.conversationEntries;
+
+    // Don't show if no conversation entries
+    if (entries.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        GestureDetector(
+          onTap: () => _openTranscriptBottomSheet(entries),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade100,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.description_outlined,
+                    color: Colors.blue.shade700,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Transcript & Scout Responses',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade700,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Opens the bottom sheet with all conversation entries
+  void _openTranscriptBottomSheet(List<ConversationEntry> entries) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _SummaryTranscriptBottomSheet(entries: entries),
+    );
+  }
+}
+
+/// Bottom sheet displaying all conversation entries as one continuous flow
+class _SummaryTranscriptBottomSheet extends StatelessWidget {
+  final List<ConversationEntry> entries;
+
+  const _SummaryTranscriptBottomSheet({required this.entries});
+
+  // Speaker colors - cycle through for different speakers
+  static final speakerColors = [
+    Colors.blue.shade700,
+    Colors.green.shade700,
+    Colors.purple.shade700,
+    Colors.teal.shade700,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.9,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.description_outlined,
+                        color: Colors.blue.shade700,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Transcript & Scout Responses',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          size: 20,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Divider(color: Colors.grey[200], height: 1),
+              // Single continuous flowing conversation
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: _buildConversationWidgets(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Build conversation widgets - Text for speakers, Markdown for Scout
+  List<Widget> _buildConversationWidgets() {
+    final List<Widget> widgets = [];
+
+    for (final entry in entries) {
+      final label = entry.getDisplayLabel();
+      final colorIndex = entry.isSpeaker
+          ? (entry.speakerId ?? 0) % speakerColors.length
+          : -1;
+      final labelColor = entry.isScout
+          ? Colors.orange.shade700
+          : speakerColors[colorIndex];
+
+      if (entry.isScout) {
+        // Scout response - use common ScoutMarkdownWidget
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$label:',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: labelColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                ScoutMarkdownWidget(data: entry.text),
+              ],
+            ),
+          ),
+        );
+      } else {
+        // Speaker segment - use SelectableText.rich
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: SelectableText.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$label: ',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: labelColor,
+                      height: 1.6,
+                    ),
+                  ),
+                  TextSpan(
+                    text: entry.text,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[800],
+                      height: 1.6,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
+    return widgets;
   }
 }

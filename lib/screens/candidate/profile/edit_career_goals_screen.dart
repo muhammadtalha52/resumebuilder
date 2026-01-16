@@ -747,31 +747,15 @@ class _EditCareerGoalsScreenState extends ConsumerState<EditCareerGoalsScreen> {
   }
 
   void _handleSave() async {
-    // Validate custom fields
-    bool hasCustomErrors = false;
+    // Clear any previous errors
     setState(() {
       _jobTitlesError = null;
       _industriesError = null;
       _locationError = null;
       _autovalidateMode = AutovalidateMode.onUserInteraction;
-
-      if (_jobTitleObjects.isEmpty) {
-        _jobTitlesError = 'Please add at least one job title';
-        hasCustomErrors = true;
-      }
-
-      if (_industryObjects.isEmpty) {
-        _industriesError = 'Please add at least one industry';
-        hasCustomErrors = true;
-      }
-
-      if (_locationPreferences.isEmpty) {
-        _locationError = 'Please select at least one location preference';
-        hasCustomErrors = true;
-      }
     });
 
-    if (!hasCustomErrors) {
+    {
       // Check if there are any changes
       if (!_hasChanges()) {
         showErrorSnackBar(context: context, message: 'No changes to save');

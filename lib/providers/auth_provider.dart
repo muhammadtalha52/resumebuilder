@@ -367,6 +367,59 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Refreshes user data from the server
+  /// Call this when entering screens that need fresh user data (e.g., profile screen)
+  Future<void> refreshUser() async {
+    // Don't refresh if not authenticated or no current user
+    if (!state.isAuthenticated || state.user == null) return;
+
+    try {
+      final profileService = ProfileService();
+      final response = await profileService.getProfile();
+
+      if (response.status == 'success' && response.data != null) {
+        final freshUser = response.data!;
+
+        // Validate the response data before updating
+        if (!_isValidUserData(freshUser, state.user!)) {
+          print('[AuthProvider] Refresh rejected: invalid user data');
+          return;
+        }
+
+        updateUserData(freshUser);
+        print('[AuthProvider] User data refreshed successfully');
+      }
+    } catch (e) {
+      // Silently fail - don't disrupt user experience for refresh failures
+      print('[AuthProvider] Failed to refresh user data: $e');
+    }
+  }
+
+  /// Validates that the refreshed user data is legitimate
+  /// Returns false if data appears to be garbage or belongs to a different user
+  bool _isValidUserData(User freshUser, User currentUser) {
+    // Must have same user ID (prevent wrong user data)
+    if (freshUser.id != currentUser.id) {
+      print('[AuthProvider] Validation failed: user ID mismatch');
+      return false;
+    }
+
+    // Must have same email (additional identity check)
+    if (freshUser.email != currentUser.email) {
+      print('[AuthProvider] Validation failed: email mismatch');
+      return false;
+    }
+
+    // Profile completion percentage must be valid (0-100)
+    final percentage = freshUser.profileCompletionPercentage;
+    if (percentage != null && (percentage < 0 || percentage > 100)) {
+      print('[AuthProvider] Validation failed: invalid profile percentage');
+      return false;
+    }
+
+    return true;
+  }
+
   void signOut() {
     print('[LOGOUT] Starting logout - clearing all user data and providers');
 

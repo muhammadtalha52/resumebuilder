@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:skillresy/utils/secure_keys.dart';
 
+import '../../models/conversation_models.dart';
 import 'transcriber_interface.dart';
 import 'transcription_config.dart';
 
@@ -36,6 +37,13 @@ class DeepgramAudioTranscriber extends AudioTranscriber {
   String _latestWord = '';
   bool _isDisposed = false;
   int _wordCount = 0;
+
+  // Speaker diarization
+  final List<SpeakerSegment> _speakerSegments = [];
+  final Set<int> _uniqueSpeakers = {};
+  int? _currentSpeakerId;
+  String _currentSpeakerText = '';
+  double? _currentSegmentStartTime;
 
   // Timers and control
   Timer? _keepAliveTimer;
@@ -107,6 +115,25 @@ class DeepgramAudioTranscriber extends AudioTranscriber {
 
   @override
   int get pendingChunks => 0;
+
+  @override
+  List<SpeakerSegment> get speakerSegments {
+    // Return finalized segments plus any current in-progress segment
+    final segments = List<SpeakerSegment>.from(_speakerSegments);
+    if (_currentSpeakerText.isNotEmpty && _currentSpeakerId != null) {
+      segments.add(
+        SpeakerSegment(
+          speakerId: _currentSpeakerId!,
+          text: _currentSpeakerText.trim(),
+          startTime: _currentSegmentStartTime,
+        ),
+      );
+    }
+    return segments;
+  }
+
+  @override
+  int get speakerCount => _uniqueSpeakers.length;
 
   // ==================== INITIALIZATION ====================
 
@@ -321,6 +348,11 @@ class DeepgramAudioTranscriber extends AudioTranscriber {
       if (words != null && words.isNotEmpty) {
         final lastWord = words.last as Map<String, dynamic>;
         _latestWord = lastWord['word'] as String? ?? '';
+
+        // Process speaker diarization for final results
+        if (isFinal || speechFinal) {
+          _processWordsForSpeakerSegments(words);
+        }
       }
 
       if (isFinal || speechFinal) {
@@ -337,6 +369,53 @@ class DeepgramAudioTranscriber extends AudioTranscriber {
       notifyListeners();
     } catch (e) {
       _logError('Error parsing transcript: $e');
+    }
+  }
+
+  /// Process words array to build speaker segments
+  /// Groups consecutive words by speaker ID
+  void _processWordsForSpeakerSegments(List<dynamic> words) {
+    for (final wordData in words) {
+      final word = wordData as Map<String, dynamic>;
+      final wordText = word['word'] as String? ?? '';
+      final speakerId = word['speaker'] as int? ?? 0;
+      final startTime = (word['start'] as num?)?.toDouble();
+      final endTime = (word['end'] as num?)?.toDouble();
+
+      // Track unique speakers
+      _uniqueSpeakers.add(speakerId);
+
+      // Check if speaker changed
+      if (_currentSpeakerId == null) {
+        // First word - start new segment
+        _currentSpeakerId = speakerId;
+        _currentSpeakerText = wordText;
+        _currentSegmentStartTime = startTime;
+      } else if (speakerId != _currentSpeakerId) {
+        // Speaker changed - finalize current segment and start new one
+        _finalizeCurrentSegment(endTime);
+        _currentSpeakerId = speakerId;
+        _currentSpeakerText = wordText;
+        _currentSegmentStartTime = startTime;
+      } else {
+        // Same speaker - append to current segment
+        _currentSpeakerText += ' $wordText';
+      }
+    }
+  }
+
+  /// Finalize the current speaker segment and add to list
+  void _finalizeCurrentSegment(double? endTime) {
+    if (_currentSpeakerText.isNotEmpty && _currentSpeakerId != null) {
+      _speakerSegments.add(
+        SpeakerSegment(
+          speakerId: _currentSpeakerId!,
+          text: _currentSpeakerText.trim(),
+          startTime: _currentSegmentStartTime,
+          endTime: endTime,
+        ),
+      );
+      _currentSpeakerText = '';
     }
   }
 
@@ -422,6 +501,13 @@ class DeepgramAudioTranscriber extends AudioTranscriber {
     _latestWord = '';
     _wordCount = 0;
     _reconnectAttempts = 0;
+
+    // Reset speaker diarization state
+    _speakerSegments.clear();
+    _uniqueSpeakers.clear();
+    _currentSpeakerId = null;
+    _currentSpeakerText = '';
+    _currentSegmentStartTime = null;
   }
 
   Future<void> _cleanup() async {

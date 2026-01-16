@@ -707,34 +707,10 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
         ),
         const SizedBox(height: 20),
         CustomTextField(
-          controller: _linkedInJobLinkController,
-          labelText: 'Paste LinkedIn job link',
-          hintText: 'Paste here',
-          suffixIcon: const Icon(Icons.link, color: AppColors.textSecondary),
-          onChanged: (value) {
-            if (_jobTargetingError != null) {
-              setState(() {
-                _jobTargetingError = null;
-              });
-            }
-          },
-        ),
-        const SizedBox(height: 10),
-        Center(
-          child: Text(
-            'OR',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary.withValues(alpha: 0.7),
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        CustomTextField(
           controller: _jobDescriptionController,
           labelText: 'Paste Job Description',
           hintText: 'Enter a description...',
+          isRequired: true,
           maxLines: 7,
           maxLength: 5000,
           showCharacterCount: true,
@@ -753,6 +729,32 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
             style: const TextStyle(fontSize: 12, color: AppColors.error),
           ),
         ],
+
+        Center(
+          child: Text(
+            'OR',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary.withValues(alpha: 0.7),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        CustomTextField(
+          controller: _linkedInJobLinkController,
+          labelText: 'Paste LinkedIn job link',
+          hintText: 'Paste here',
+          suffixIcon: const Icon(Icons.link, color: AppColors.textSecondary),
+          onChanged: (value) {
+            if (_jobTargetingError != null) {
+              setState(() {
+                _jobTargetingError = null;
+              });
+            }
+          },
+        ),
+
         const SizedBox(height: 20),
       ],
     );

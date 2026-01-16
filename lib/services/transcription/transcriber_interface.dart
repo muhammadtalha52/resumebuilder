@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../../models/conversation_models.dart';
+
 /// Transcription state enum
 enum TranscriptionState {
   idle,
@@ -17,6 +19,7 @@ enum TranscriptionState {
 /// - Word-by-word transcription (~200-300ms latency)
 /// - Continuous streaming (no commit/wait needed)
 /// - PCM16 audio streaming @ 16kHz
+/// - Speaker diarization (identifies different speakers)
 abstract class AudioTranscriber extends ChangeNotifier {
   // ==================== STATE GETTERS ====================
 
@@ -40,6 +43,13 @@ abstract class AudioTranscriber extends ChangeNotifier {
 
   /// Number of pending chunks (always 0 for Deepgram - real-time streaming)
   int get pendingChunks;
+
+  /// Speaker-segmented transcript (for dialog view)
+  /// Groups consecutive words by speaker ID
+  List<SpeakerSegment> get speakerSegments;
+
+  /// Number of unique speakers detected
+  int get speakerCount;
 
   // ==================== LIFECYCLE METHODS ====================
 

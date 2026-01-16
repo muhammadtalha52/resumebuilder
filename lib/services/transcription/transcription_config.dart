@@ -39,8 +39,8 @@ class TranscriptionConfig {
     'profanityFilter': false,
 
     /// Enable diarization (speaker identification)
-    /// Useful if multiple speakers, but adds latency
-    'diarize': false,
+    /// Identifies different speakers and assigns IDs (0, 1, 2, etc.)
+    'diarize': true,
 
     /// End of speech detection sensitivity (ms of silence before finalizing)
     /// Lower = faster response, Higher = waits longer for speaker to continue

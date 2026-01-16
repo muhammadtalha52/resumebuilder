@@ -145,18 +145,18 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
       try {
         final summary = state.meetingSummaryModel!.summary!;
 
-        // NEW: Use JSON format for transcript-answer pairs
+        // NEW: Use JSON format for conversation entries (unified structure)
         String transcriptToSave;
-        if (transcriptionData.transcriptAnswerPairs.isNotEmpty) {
-          // Encode pairs as JSON for structured display
-          transcriptToSave = TranscriptAnswerPair.encodeList(
-            transcriptionData.transcriptAnswerPairs,
+        if (transcriptionData.conversationEntries.isNotEmpty) {
+          // Encode entries as JSON for structured display
+          transcriptToSave = ConversationEntry.encodeList(
+            transcriptionData.conversationEntries,
           );
           print(
-            '[SAVE] Using JSON format with ${transcriptionData.transcriptAnswerPairs.length} pairs',
+            '[SAVE] Using JSON format with ${transcriptionData.conversationEntries.length} entries',
           );
         } else {
-          // Fallback to old format if no pairs captured
+          // Fallback to old format if no entries captured
           transcriptToSave = transcriptionData.fullTranscript;
           if (transcriptionData.conversation.messages.isNotEmpty) {
             if (transcriptToSave.isNotEmpty) {
@@ -168,7 +168,7 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
               }
             }
           }
-          print('[SAVE] Using legacy format (no pairs captured)');
+          print('[SAVE] Using legacy format (no entries captured)');
         }
 
         final nowDateTime = DateTime.now().toUtc().toIso8601String();

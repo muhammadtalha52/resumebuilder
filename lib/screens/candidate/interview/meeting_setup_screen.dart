@@ -505,7 +505,7 @@ class _State extends ConsumerState<MeetingSetupScreen> {
                   Expanded(
                     child: Text(
                       isExtractingResume
-                          ? 'Extracting resume data...'
+                          ? 'Analyzing your resume for personalized answers...'
                           : displayTitle ??
                                 (historyState.isLoading
                                     ? 'Loading resumes...'
@@ -859,7 +859,7 @@ class _State extends ConsumerState<MeetingSetupScreen> {
     final isDisabled = _isCheckingCredits || isExtractingResume;
 
     return CustomButton(
-      text: isExtractingResume ? 'Extracting Resume...' : 'Continue',
+      text: isExtractingResume ? 'Analyzing resume...' : 'Continue',
       onPressed: isDisabled ? null : _validateAndContinue,
       isLoading: _isCheckingCredits,
     );

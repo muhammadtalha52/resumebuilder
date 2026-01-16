@@ -2,7 +2,7 @@ name: skillresy
 description: "SkillResy - Professional Resume Builder"
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # The following defines the version and build number for your application.
-version: 1.0.2+1
+version: 1.0.3+1
 
 environment:
   sdk: ^3.9.0-268.0.dev
@@ -35,7 +35,6 @@ dependencies:
   permission_handler: ^12.0.1
   geolocator: ^14.0.2
   geocoding: ^4.0.0
-  path_provider: ^2.1.5
   share_plus: ^12.0.1
   speech_to_text: ^7.3.0
   flutter_sound: ^9.30.0
@@ -52,6 +51,7 @@ dependencies:
   open_filex: ^4.7.0
   sentry_flutter: ^9.9.2
   flutter_markdown: ^0.7.7+1
+  path_provider: ^2.1.5
 
 
 

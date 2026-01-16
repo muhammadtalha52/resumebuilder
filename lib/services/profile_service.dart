@@ -6,6 +6,52 @@ import 'api_client.dart';
 class ProfileService {
   final APIClient _apiClient = APIClient();
 
+  /// Fetches fresh user profile data from the server
+  Future<UpdateProfileModel> getProfile() async {
+    try {
+      final response = await _apiClient.dio.get(
+        ApiEndpoints.profileUpdate,
+        options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return UpdateProfileModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data?['error'] ?? 'Failed to fetch profile');
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final responseData = e.response!.data;
+        String errorMessage = 'Failed to fetch profile';
+
+        if (responseData is Map) {
+          if (responseData.containsKey('error')) {
+            errorMessage = responseData['error'].toString();
+          } else if (responseData.containsKey('message')) {
+            errorMessage = responseData['message'].toString();
+          } else if (responseData.containsKey('detail')) {
+            errorMessage = responseData['detail'].toString();
+          }
+        } else if (responseData is String) {
+          errorMessage = responseData;
+        }
+
+        if (e.response!.statusCode == 401) {
+          errorMessage = 'Unauthorized: $errorMessage';
+        }
+
+        throw Exception(errorMessage);
+      } else {
+        throw Exception('Network error: ${e.message}');
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Failed to fetch profile: $e');
+    }
+  }
+
   /// Updates profile image with S3 filename
   Future<UpdateProfileModel> updateProfileImage(String s3FileName) async {
     return updateProfile({'profile_image': s3FileName});

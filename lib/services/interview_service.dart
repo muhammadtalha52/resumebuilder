@@ -839,6 +839,12 @@ class InterviewService {
       );
     }
 
+    // Add actual transcript - this is the core conversation content
+    if (meeting.transcript != null && meeting.transcript!.isNotEmpty) {
+      transcriptionParts.add('Full transcript of the conversation:');
+      transcriptionParts.add(meeting.transcript!);
+    }
+
     // Add key topics discussed
     if (meeting.keyTopics != null && meeting.keyTopics!.isNotEmpty) {
       transcriptionParts.add('Key topics discussed included:');
