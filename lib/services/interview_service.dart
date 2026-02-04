@@ -63,10 +63,10 @@ class InterviewService {
       final formData = <String, dynamic>{
         'session_type': request.sessionType,
         'role': request.role,
-        'company_name': request.companyName,
+        //'company_name': request.companyName,
         'job_description': request.jobDescription,
-        'agenda': request.agenda,
-        'language': request.language,
+        //'agenda': request.agenda,
+        // 'language': request.language,
         'resume_text': request.resumeText,
       };
 
@@ -462,6 +462,224 @@ class InterviewService {
       }
     } catch (e) {
       print('InterviewService: Follow-up general exception: $e');
+      yield 'Error: Unexpected error occurred: ${e.toString()}';
+    }
+  }
+
+  /// Ask practice interview question - Scout asks the user a question
+  ///
+  /// [request] - SessionHelpRequest containing session_id and transcript
+  ///
+  /// Returns a Stream<String> that emits text chunks as they arrive
+  Stream<String> askPracticeQuestion(SessionHelpRequest request) async* {
+    try {
+      // Convert to form data format (application/x-www-form-urlencoded)
+      final formData = request.toFormData();
+
+      // Make streaming API call to practice question endpoint
+      final response = await _dioForInterview.post(
+        'session/prep/ask-question',
+        data: formData,
+        options: Options(
+          contentType: 'application/x-www-form-urlencoded',
+          headers: {
+            'accept': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          },
+          responseType: ResponseType.stream,
+        ),
+      );
+
+      print(
+        'InterviewService: Practice question response status: ${response.statusCode}',
+      );
+
+      if (response.statusCode == 200) {
+        final stream = response.data as ResponseBody;
+        final streamController = StreamController<String>();
+
+        // Process the stream data
+        String buffer = '';
+
+        stream.stream.listen(
+          (List<int> data) {
+            // Convert bytes to string
+            final chunk = utf8.decode(data, allowMalformed: true);
+            buffer += chunk;
+
+            // Split by newlines and process complete lines
+            final lines = buffer.split('\n');
+            buffer = lines.removeLast(); // Keep incomplete line in buffer
+
+            for (final line in lines) {
+              // Parse Server-Sent Events format: "data: content"
+              if (line.startsWith('data: ')) {
+                final content = line.substring(6); // Remove "data: " prefix
+                streamController.add(content);
+              }
+            }
+          },
+          onError: (error) {
+            print('InterviewService: Practice question stream error: $error');
+            streamController.addError(error);
+          },
+          onDone: () {
+            // Process any remaining buffer
+            if (buffer.isNotEmpty && buffer.startsWith('data: ')) {
+              final content = buffer.substring(6);
+              print(
+                'InterviewService: Final practice question content: "$content"',
+              );
+              streamController.add(content);
+            }
+            print('InterviewService: Practice question stream completed');
+            streamController.close();
+          },
+        );
+
+        yield* streamController.stream;
+      } else {
+        throw DioException(
+          requestOptions: RequestOptions(path: 'session/prep/ask-question'),
+          response: response,
+          message: 'Failed to get practice question: ${response.statusMessage}',
+        );
+      }
+    } on DioException catch (e) {
+      print('InterviewService: Practice question DioException: ${e.message}');
+
+      // Handle specific error cases
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        yield 'Error: Request timeout. Please check your internet connection and try again.';
+      } else if (e.type == DioExceptionType.connectionError) {
+        yield 'Error: Unable to connect to server. Please check your internet connection.';
+      } else if (e.response?.statusCode == 400) {
+        yield 'Error: Invalid request. Please check your session or transcript.';
+      } else if (e.response?.statusCode == 401) {
+        yield 'Error: Session not found or expired. Please start a new session.';
+      } else if (e.response?.statusCode == 422) {
+        yield 'Error: Unable to process your request. Please try again.';
+      } else if (e.response?.statusCode == 500) {
+        yield 'Error: Server error occurred while getting practice question. Please try again later.';
+      } else {
+        yield 'Error: An error occurred while getting practice question. Please try again.';
+      }
+    } catch (e) {
+      print('InterviewService: Practice question general exception: $e');
+      yield 'Error: Unexpected error occurred: ${e.toString()}';
+    }
+  }
+
+  /// Validate practice interview answer - Scout analyzes user's answer
+  ///
+  /// [request] - SessionHelpRequest containing session_id and transcript (user's answer)
+  ///
+  /// Returns a Stream<String> that emits feedback text chunks as they arrive
+  Stream<String> validatePracticeAnswer(SessionHelpRequest request) async* {
+    try {
+      // Create form data with 'answer' key instead of 'transcript'
+      final formData = {
+        'session_id': request.sessionId,
+        'answer': request.transcript,
+      };
+
+      // Make streaming API call to validate answer endpoint
+      final response = await _dioForInterview.post(
+        'session/prep/validate-answer',
+        data: formData,
+        options: Options(
+          contentType: 'application/x-www-form-urlencoded',
+          headers: {
+            'accept': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          },
+          responseType: ResponseType.stream,
+        ),
+      );
+
+      print(
+        'InterviewService: Validate answer response status: ${response.statusCode}',
+      );
+
+      if (response.statusCode == 200) {
+        final stream = response.data as ResponseBody;
+        final streamController = StreamController<String>();
+
+        // Process the stream data
+        String buffer = '';
+
+        stream.stream.listen(
+          (List<int> data) {
+            // Convert bytes to string
+            final chunk = utf8.decode(data, allowMalformed: true);
+            buffer += chunk;
+
+            // Split by newlines and process complete lines
+            final lines = buffer.split('\n');
+            buffer = lines.removeLast(); // Keep incomplete line in buffer
+
+            for (final line in lines) {
+              // Parse Server-Sent Events format: "data: content"
+              if (line.startsWith('data: ')) {
+                final content = line.substring(6); // Remove "data: " prefix
+                streamController.add(content);
+              }
+            }
+          },
+          onError: (error) {
+            print('InterviewService: Validate answer stream error: $error');
+            streamController.addError(error);
+          },
+          onDone: () {
+            // Process any remaining buffer
+            if (buffer.isNotEmpty && buffer.startsWith('data: ')) {
+              final content = buffer.substring(6);
+              print(
+                'InterviewService: Final validate answer content: "$content"',
+              );
+              streamController.add(content);
+            }
+            print('InterviewService: Validate answer stream completed');
+            streamController.close();
+          },
+        );
+
+        yield* streamController.stream;
+      } else {
+        throw DioException(
+          requestOptions: RequestOptions(path: 'session/prep/validate-answer'),
+          response: response,
+          message:
+              'Failed to validate practice answer: ${response.statusMessage}',
+        );
+      }
+    } on DioException catch (e) {
+      print('InterviewService: Validate answer DioException: ${e.message}');
+
+      // Handle specific error cases
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        yield 'Error: Request timeout. Please check your internet connection and try again.';
+      } else if (e.type == DioExceptionType.connectionError) {
+        yield 'Error: Unable to connect to server. Please check your internet connection.';
+      } else if (e.response?.statusCode == 400) {
+        yield 'Error: Invalid request. Please check your session or answer.';
+      } else if (e.response?.statusCode == 401) {
+        yield 'Error: Session not found or expired. Please start a new session.';
+      } else if (e.response?.statusCode == 422) {
+        yield 'Error: Unable to process your answer. Please try again.';
+      } else if (e.response?.statusCode == 500) {
+        yield 'Error: Server error occurred while validating answer. Please try again later.';
+      } else {
+        yield 'Error: An error occurred while validating answer. Please try again.';
+      }
+    } catch (e) {
+      print('InterviewService: Validate answer general exception: $e');
       yield 'Error: Unexpected error occurred: ${e.toString()}';
     }
   }

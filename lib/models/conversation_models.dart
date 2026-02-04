@@ -59,6 +59,7 @@ class ConversationEntry {
   }
 
   bool get isSpeaker => type == ConversationEntryType.speaker;
+
   bool get isScout => type == ConversationEntryType.scout;
 
   /// Get display label

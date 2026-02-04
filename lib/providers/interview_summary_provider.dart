@@ -192,22 +192,15 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
           "interview_date": nowDateTime,
           "duration_minutes": durationMinutes,
           "transcript": transcriptToSave,
-          // "key_topics": summary.keyDiscussionPoints,
-          // "strength_highlight": summary.strengthsHighlighted,
-          // "weakness_highlight": summary.potentialWeaknessOrStrengths,
-          // "action_items": summary.actionItems,
-          // "decisions_made": summary.decisionsMade,
-          // "top_moments_in_interview": summary.topMomentsInInterview,
-          // "ai_driven_interview_analytics": summary.aiDrivenInterviewAnalytics,
-          // "areas_of_improvement": summary.areasOfImprovement,
           "language_selector": "English",
           "status": "scheduled",
           "location": "https://meet.google.com/abc-defg-hij",
           "interviewer_name": "",
           "interviewer_email": "",
-          "notes": sessionData.interviewType.toLowerCase().contains('interview')
-              ? summary.interviewSummary
-              : summary.meetingSummary,
+          "notes": _getNotesForSessionType(
+            sessionData.interviewType.toLowerCase(),
+            summary,
+          ),
         };
 
         // Save to database
@@ -240,6 +233,20 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
         error: 'Missing summary or session data',
       );
     }
+  }
+
+  /// Returns the appropriate notes/summary content based on session type
+  String? _getNotesForSessionType(String sessionType, Summary summary) {
+    // Check for practice/prep sessions
+    if (sessionType.contains('prep') || sessionType.contains('practice')) {
+      return summary.interviewPrepSummary;
+    }
+    // Check for interview sessions
+    if (sessionType.contains('interview')) {
+      return summary.interviewSummary;
+    }
+    // Default to meeting summary
+    return summary.meetingSummary;
   }
 
   void reset() {

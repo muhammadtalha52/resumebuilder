@@ -8,7 +8,7 @@ class WAInterceptorHeaders {
 
 class ApiEndpoints {
   ///Dev urls
-  //static const String baseUrl = 'https://api-dev.skillresy.com/api';
+  // static const String baseUrl = 'https://api-dev.skillresy.com/api';
   // static const String resumeModuleBaseUrl = 'https://ai-dev.skillresy.com';
   // static const String interviewModuleBaseUrl =
   //     'https://ia-dev.skillresy.com/api/'; //

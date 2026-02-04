@@ -15,6 +15,8 @@ import '../screens/candidate/interview/meeting_setup_screen.dart';
 import '../screens/candidate/interview/meeting_detail_screen.dart';
 import '../screens/candidate/interview/meeting_history_screen.dart';
 import '../screens/candidate/interview/meeting_summary_screen.dart';
+import '../screens/candidate/interview/practice_setup_screen.dart';
+import '../screens/candidate/interview/practice_session_screen.dart';
 import '../screens/candidate/profile/edit_career_goals_screen.dart';
 import '../screens/candidate/profile/edit_education_screen.dart';
 import '../screens/candidate/profile/edit_others_screen.dart';
@@ -343,6 +345,20 @@ final GoRouter appRouter = GoRouter(
       path: '/meeting/session',
       pageBuilder: (context, state) => buildPageWithoutSwipeBack(
         child: const MeetingSessionScreen(),
+        key: state.pageKey,
+      ),
+    ),
+    GoRoute(
+      path: '/practice/setup',
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const PracticeSetupScreen(),
+        key: state.pageKey,
+      ),
+    ),
+    GoRoute(
+      path: '/practice/session',
+      pageBuilder: (context, state) => buildPageWithoutSwipeBack(
+        child: const PracticeSessionScreen(),
         key: state.pageKey,
       ),
     ),

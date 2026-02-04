@@ -73,15 +73,24 @@ class _InterviewSummaryScreenState extends ConsumerState<MeetingSummaryScreen> {
   }
 
   /// Returns the appropriate summary content based on session type
-  /// Uses interviewSummary for interview type, meetingSummary for meeting type
+  /// Uses interviewPrepSummary for practice, interviewSummary for interview, meetingSummary for meeting
   String? _getSummaryContent(InterviewSummaryState summaryState) {
     final model = summaryState.meetingSummaryModel;
     if (model == null) return null;
 
+    final sessionTypeLower = widget.sessionType.toLowerCase();
+
+    // Check if session type is practice (interview-prep)
+    if (sessionTypeLower.contains('practice') ||
+        sessionTypeLower.contains('prep')) {
+      return model.interviewPrepSummary;
+    }
+
     // Check if session type is interview
-    if (widget.sessionType.toLowerCase().contains('interview')) {
+    if (sessionTypeLower.contains('interview')) {
       return model.interviewSummary;
     }
+
     // Default to meeting summary
     return model.meetingSummary;
   }

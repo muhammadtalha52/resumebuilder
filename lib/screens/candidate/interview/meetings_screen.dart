@@ -88,8 +88,10 @@ class MeetingScreen extends ConsumerWidget {
                       _buildHeaderText(),
                       const SizedBox(height: 16),
                       _buildSubtitleText(),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 32),
                       _buildStartButton(context),
+                      const SizedBox(height: 12),
+                      _buildPracticeButton(context),
                     ],
                   ),
                 ),
@@ -150,6 +152,36 @@ class MeetingScreen extends ConsumerWidget {
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: AppColors.accent,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPracticeButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        context.push('/practice/setup');
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 15),
+        decoration: BoxDecoration(
+          color: AppColors.accent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.school_outlined, color: AppColors.white, size: 25),
+            SizedBox(width: AppSizes.paddingM),
+            Text(
+              'Practice with Scout',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.white,
               ),
             ),
           ],

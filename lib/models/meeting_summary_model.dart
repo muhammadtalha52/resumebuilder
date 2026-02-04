@@ -30,6 +30,9 @@ class MeetingSummaryModel {
   // Convenience getter to access interviewSummary from Summary
   String? get interviewSummary => summary?.interviewSummary;
 
+  // Convenience getter to access interviewPrepSummary from Summary
+  String? get interviewPrepSummary => summary?.interviewPrepSummary;
+
   MeetingSummaryModel copyWith({
     String? sessionId,
     String? sessionType,
@@ -72,6 +75,7 @@ class Summary {
     List<String>? areasOfImprovement,
     List<String>? meetingSummaryList,
     List<String>? interviewSummaryList,
+    List<String>? interviewPrepSummaryList,
   }) {
     _keyDiscussionPoints = keyDiscussionPoints;
     _decisionsMade = decisionsMade;
@@ -84,6 +88,7 @@ class Summary {
     _areasOfImprovement = areasOfImprovement;
     _meetingSummaryList = meetingSummaryList;
     _interviewSummaryList = interviewSummaryList;
+    _interviewPrepSummaryList = interviewPrepSummaryList;
   }
 
   Summary.fromJson(dynamic json) {
@@ -120,6 +125,9 @@ class Summary {
     _interviewSummaryList = json['interviewSummary'] != null
         ? json['interviewSummary'].cast<String>()
         : [];
+    _interviewPrepSummaryList = json['interviewPrepSummary'] != null
+        ? json['interviewPrepSummary'].cast<String>()
+        : [];
   }
 
   List<String>? _keyDiscussionPoints;
@@ -133,6 +141,7 @@ class Summary {
   List<String>? _areasOfImprovement;
   List<String>? _meetingSummaryList;
   List<String>? _interviewSummaryList;
+  List<String>? _interviewPrepSummaryList;
 
   List<String>? get keyDiscussionPoints => _keyDiscussionPoints;
 
@@ -157,6 +166,8 @@ class Summary {
 
   List<String>? get interviewSummaryList => _interviewSummaryList;
 
+  List<String>? get interviewPrepSummaryList => _interviewPrepSummaryList;
+
   // Convenience getter: joins array into single string for display
   String? get meetingSummary {
     if (_meetingSummaryList == null || _meetingSummaryList!.isEmpty) {
@@ -173,6 +184,15 @@ class Summary {
     return _interviewSummaryList!.join('\n\n');
   }
 
+  // Convenience getter: joins array into single string for display
+  String? get interviewPrepSummary {
+    if (_interviewPrepSummaryList == null ||
+        _interviewPrepSummaryList!.isEmpty) {
+      return null;
+    }
+    return _interviewPrepSummaryList!.join('\n\n');
+  }
+
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     map['keyDiscussionPoints'] = _keyDiscussionPoints;
@@ -186,6 +206,7 @@ class Summary {
     map['areasOfImprovement'] = _areasOfImprovement;
     map['meetingSummary'] = _meetingSummaryList;
     map['interviewSummary'] = _interviewSummaryList;
+    map['interviewPrepSummary'] = _interviewPrepSummaryList;
     return map;
   }
 }

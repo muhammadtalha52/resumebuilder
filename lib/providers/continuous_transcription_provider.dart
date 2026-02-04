@@ -1112,6 +1112,253 @@ class ContinuousTranscriptionNotifier
     }
   }
 
+  // Get practice interview question - Scout asks the user a question
+  Future<void> getPracticeQuestion() async {
+    print('🎯 [PRACTICE] getPracticeQuestion() called');
+
+    if (state.sessionId == null) {
+      print('🎯 [PRACTICE] ERROR: No active session');
+      state = state.copyWith(
+        error: 'No active session. Please start a practice session first.',
+      );
+      return;
+    }
+
+    try {
+      // Set loading state
+      state = state.copyWith(isGettingHelp: true, error: null);
+
+      // Create request with current transcript context
+      final request = SessionHelpRequest(
+        sessionId: state.sessionId!,
+        transcript: state.fullTranscript.trim(),
+      );
+
+      print('[PRACTICE-QUESTION] Requesting practice question from Scout');
+
+      // Start with empty message and add it to conversation
+      final scoutMessageId = _addScoutResponse('', AssistantMessageType.help);
+
+      // Update timestamp
+      state = state.copyWith(helpTimestamp: DateTime.now(), error: null);
+
+      // Stream practice question response
+      String accumulatedResponse = '';
+      await for (final chunk in _interviewService.askPracticeQuestion(
+        request,
+      )) {
+        if (chunk.startsWith('Error:')) {
+          print('[PRACTICE-QUESTION] Request failed: $chunk');
+          _updateScoutResponse(scoutMessageId, chunk);
+          break;
+        } else {
+          // Accumulate the streaming response
+          accumulatedResponse += chunk;
+          print('[PRACTICE-QUESTION] Received chunk: "$chunk"');
+          print(
+            '[PRACTICE-QUESTION] Accumulated length: ${accumulatedResponse.length} chars',
+          );
+
+          // Batch Scout message updates
+          if (accumulatedResponse.length - _pendingScoutContent.length >= 10 ||
+              chunk.contains('.') ||
+              chunk.contains('?') ||
+              chunk.contains('!')) {
+            _updateScoutResponse(scoutMessageId, accumulatedResponse);
+            _pendingScoutContent = accumulatedResponse;
+          }
+
+          // Update help response in state
+          state = state.copyWith(helpResponse: accumulatedResponse);
+        }
+      }
+
+      // Final update to ensure complete response is shown
+      _updateScoutResponse(scoutMessageId, accumulatedResponse);
+      _pendingScoutContent = '';
+
+      print(
+        '[PRACTICE-QUESTION] Streaming completed. Final response length: ${accumulatedResponse.length} chars',
+      );
+
+      // Add conversation entry for saving
+      if (accumulatedResponse.isNotEmpty &&
+          !accumulatedResponse.startsWith('Error:')) {
+        final newEntry = ConversationEntry.scout(text: accumulatedResponse);
+        final updatedEntries = [...state.conversationEntries, newEntry];
+        state = state.copyWith(
+          isGettingHelp: false,
+          conversationEntries: updatedEntries,
+        );
+        print(
+          '[PRACTICE-QUESTION] Added conversation entry. Total entries: ${updatedEntries.length}',
+        );
+      } else {
+        state = state.copyWith(isGettingHelp: false);
+      }
+    } catch (e) {
+      print('[PRACTICE-QUESTION] Error: $e');
+      state = state.copyWith(
+        isGettingHelp: false,
+        error: 'Failed to get practice question: ${e.toString()}',
+      );
+    }
+  }
+
+  // Validate practice answer - Scout analyzes user's answer and provides feedback
+  Future<void> validatePracticeAnswer() async {
+    print('📝 [PRACTICE] validatePracticeAnswer() called');
+
+    if (state.sessionId == null) {
+      print('📝 [PRACTICE] ERROR: No active session');
+      state = state.copyWith(
+        error: 'No active session. Please start a practice session first.',
+      );
+      return;
+    }
+
+    // Get transcript directly - this contains the user's answer
+    final userAnswer =
+        (_audioTranscriber?.rawTranscript ?? state.fullTranscript).trim();
+
+    if (userAnswer.isEmpty) {
+      state = state.copyWith(
+        error: 'No answer recorded. Please speak your answer first.',
+      );
+      return;
+    }
+
+    try {
+      // Set loading state
+      state = state.copyWith(isGettingHelp: true, error: null);
+
+      // Calculate delta (only new text since last validation)
+      String deltaAnswer;
+      if (_lastHelpTranscriptLength > 0 &&
+          _lastHelpTranscriptLength < userAnswer.length) {
+        deltaAnswer = userAnswer.substring(_lastHelpTranscriptLength).trim();
+      } else if (_lastHelpTranscriptLength > 0 &&
+          _lastHelpTranscriptLength >= userAnswer.length) {
+        // No new text - send last 500 chars as context
+        final contextStart = (userAnswer.length - 500).clamp(
+          0,
+          userAnswer.length,
+        );
+        deltaAnswer = userAnswer.substring(contextStart).trim();
+        print('[PRACTICE-VALIDATE] No new text, sending last 500 chars');
+      } else {
+        // First validation - send entire answer
+        deltaAnswer = userAnswer;
+      }
+
+      // Skip if answer too short
+      if (deltaAnswer.length < 10) {
+        print(
+          '[PRACTICE-VALIDATE] Answer too short (${deltaAnswer.length} chars)',
+        );
+        state = state.copyWith(
+          isGettingHelp: false,
+          error: 'Please provide a longer answer for feedback.',
+        );
+        return;
+      }
+
+      // Create request with user's answer
+      final request = SessionHelpRequest(
+        sessionId: state.sessionId!,
+        transcript: deltaAnswer,
+      );
+
+      print(
+        '[PRACTICE-VALIDATE] Requesting feedback. Answer length: ${deltaAnswer.length} chars',
+      );
+
+      // Update last position
+      _lastHelpTranscriptLength = userAnswer.length;
+
+      // Start with empty message and add it to conversation
+      final scoutMessageId = _addScoutResponse(
+        '',
+        AssistantMessageType.followUp, // Use followUp type for feedback
+      );
+
+      // Update timestamp
+      state = state.copyWith(helpTimestamp: DateTime.now(), error: null);
+
+      // Stream validation/feedback response
+      String accumulatedResponse = '';
+      await for (final chunk in _interviewService.validatePracticeAnswer(
+        request,
+      )) {
+        if (chunk.startsWith('Error:')) {
+          print('[PRACTICE-VALIDATE] Request failed: $chunk');
+          _updateScoutResponse(scoutMessageId, chunk);
+          break;
+        } else {
+          // Accumulate the streaming response
+          accumulatedResponse += chunk;
+          print('[PRACTICE-VALIDATE] Received chunk: "$chunk"');
+          print(
+            '[PRACTICE-VALIDATE] Accumulated length: ${accumulatedResponse.length} chars',
+          );
+
+          // Batch Scout message updates
+          if (accumulatedResponse.length - _pendingScoutContent.length >= 10 ||
+              chunk.contains('.') ||
+              chunk.contains('?') ||
+              chunk.contains('!')) {
+            _updateScoutResponse(scoutMessageId, accumulatedResponse);
+            _pendingScoutContent = accumulatedResponse;
+          }
+
+          // Update help response in state
+          state = state.copyWith(helpResponse: accumulatedResponse);
+        }
+      }
+
+      // Final update to ensure complete response is shown
+      _updateScoutResponse(scoutMessageId, accumulatedResponse);
+      _pendingScoutContent = '';
+
+      print(
+        '[PRACTICE-VALIDATE] Streaming completed. Final response length: ${accumulatedResponse.length} chars',
+      );
+
+      // Add conversation entries for saving
+      if (accumulatedResponse.isNotEmpty &&
+          !accumulatedResponse.startsWith('Error:')) {
+        final List<ConversationEntry> newEntries = [];
+
+        // Add user's answer as a conversation entry (speaker 0 = user)
+        if (deltaAnswer.isNotEmpty) {
+          newEntries.add(
+            ConversationEntry.speaker(speakerId: 0, text: deltaAnswer),
+          );
+        }
+
+        // Add scout feedback
+        newEntries.add(ConversationEntry.scout(text: accumulatedResponse));
+
+        final updatedEntries = [...state.conversationEntries, ...newEntries];
+        state = state.copyWith(
+          isGettingHelp: false,
+          conversationEntries: updatedEntries,
+        );
+        print(
+          '[PRACTICE-VALIDATE] Added ${newEntries.length} conversation entries. Total: ${updatedEntries.length}',
+        );
+      } else {
+        state = state.copyWith(isGettingHelp: false);
+      }
+    } catch (e) {
+      print('[PRACTICE-VALIDATE] Error: $e');
+      state = state.copyWith(
+        isGettingHelp: false,
+        error: 'Failed to validate answer: ${e.toString()}',
+      );
+    }
+  }
+
   // Clear help response
   void clearHelpResponse() {
     print('[SCOUT-DEBUG] Clearing helpResponse');
