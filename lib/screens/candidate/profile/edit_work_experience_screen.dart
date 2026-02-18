@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -491,6 +492,78 @@ class _EditWorkExperienceScreenState
     );
   }
 
+  /// Shows a month/year picker using CupertinoDatePicker
+  Future<DateTime?> _showMonthYearPicker({
+    required BuildContext context,
+    required DateTime initialDate,
+    required DateTime firstDate,
+    required DateTime lastDate,
+  }) async {
+    DateTime selectedDate = initialDate;
+
+    return await showModalBottomSheet<DateTime>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          height: 300,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.of(sheetContext).pop(),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(sheetContext).pop(selectedDate),
+                      child: Text(
+                        'Done',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.monthYear,
+                  initialDateTime: initialDate,
+                  minimumDate: firstDate,
+                  maximumDate: lastDate,
+                  onDateTimeChanged: (date) {
+                    selectedDate = date;
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildDatePicker({
     required String label,
     required bool isRequired,
@@ -530,11 +603,11 @@ class _EditWorkExperienceScreenState
           onTap: isDisabled
               ? null
               : () async {
-                  final DateTime? picked = await showDatePicker(
+                  final DateTime? picked = await _showMonthYearPicker(
                     context: context,
                     initialDate: selectedDate ?? DateTime.now(),
                     firstDate: DateTime(1950),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                    lastDate: DateTime.now(),
                   );
                   if (picked != null) {
                     onDateSelected(picked);
@@ -559,8 +632,8 @@ class _EditWorkExperienceScreenState
                 Expanded(
                   child: Text(
                     selectedDate != null && !isDisabled
-                        ? '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}'
-                        : 'DD/MM/YYYY',
+                        ? '${_getMonthName(selectedDate.month)} ${selectedDate.year}'
+                        : 'MM/YYYY',
                     style: TextStyle(
                       color: isDisabled
                           ? AppColors.grey.withValues(alpha: 0.5)
@@ -660,6 +733,24 @@ class _EditWorkExperienceScreenState
         ),
       ),
     );
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return months[month - 1];
   }
 }
 

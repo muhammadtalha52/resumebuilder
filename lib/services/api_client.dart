@@ -60,7 +60,8 @@ class APIClient {
           /// Do something with response data
           if (response.data != null && response.data is Map) {
             var message = response.data["message"];
-            var normalized = message.toLowerCase().trim();
+            if (message == null) return handler.next(response);
+            var normalized = message.toString().toLowerCase().trim();
             const errors = ["invalid token", "token expired", "unauthorized"];
             final hasError = errors.any((e) => normalized.contains(e));
 

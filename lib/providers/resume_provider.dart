@@ -429,14 +429,35 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
     );
   }
 
+  /// Recursively removes null values, empty strings, and empty
+  /// lists/maps from a JSON structure so the backend never
+  /// receives keys with null or empty data.
+  dynamic _stripNulls(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      final cleaned = <String, dynamic>{};
+      for (final entry in value.entries) {
+        final v = _stripNulls(entry.value);
+        if (v != null) cleaned[entry.key] = v;
+      }
+      return cleaned.isEmpty ? null : cleaned;
+    } else if (value is List) {
+      final cleaned = value.map(_stripNulls).where((v) => v != null).toList();
+      return cleaned.isEmpty ? null : cleaned;
+    } else if (value is String) {
+      return value.isEmpty ? null : value;
+    }
+    return value;
+  }
+
   /// Convert current resume data to PDF using specified template
   Future<String?> convertResumeToPdf({
     required GenerateResumeResponse currentResumeData,
     required String template,
   }) async {
     try {
-      // Convert current resume data to JSON string
-      final resumeDataJson = jsonEncode(currentResumeData.resumeData?.toJson());
+      final rawJson = currentResumeData.resumeData?.toJson();
+      final cleanedJson = _stripNulls(rawJson);
+      final resumeDataJson = jsonEncode(cleanedJson);
       final pdfBase64 = await _resumeService.convertResumeToPdf(
         resumeData: resumeDataJson,
         template: template,

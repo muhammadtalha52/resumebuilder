@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -64,6 +65,79 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
   bool get _isSavingChanges => _state.isSavingChanges;
 
   bool get _hasChanges => _state.hasChanges;
+
+  /// Shows a month/year picker using CupertinoDatePicker
+  Future<DateTime?> _showMonthYearPicker({
+    required BuildContext context,
+    required DateTime initialDate,
+    required DateTime firstDate,
+    required DateTime lastDate,
+  }) async {
+    DateTime selectedDate = initialDate;
+
+    return await showModalBottomSheet<DateTime>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          height: 300,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.of(sheetContext).pop(),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(sheetContext).pop(selectedDate),
+                      child: Text(
+                        'Done',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.monthYear,
+                  initialDateTime: initialDate,
+                  minimumDate: firstDate,
+                  maximumDate: lastDate,
+                  onDateTimeChanged: (date) {
+                    selectedDate = date;
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   /// Parses date strings in multiple formats commonly used in resumes
   /// Supports: MM/yyyy, MMM yyyy, MMMM yyyy, yyyy-MM-dd, yyyy-MM, etc.
@@ -748,12 +822,18 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
       TextEditingController(), // Always show one empty field for adding
     ];
 
-    bool isCurrentlyWorking = experience?.toDate?.toLowerCase() == 'present';
+    final toDateLower = experience?.toDate?.toLowerCase().trim() ?? '';
+    bool isCurrentlyWorking =
+        toDateLower == 'present' ||
+        toDateLower == 'current' ||
+        toDateLower == 'currently' ||
+        (isEditing && toDateLower.isEmpty);
 
     // Error state for inline validation
     String? roleError;
     String? companyError;
     String? startDateError;
+    String? endDateError;
 
     showDialog(
       context: context,
@@ -866,7 +946,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                                     value: selectedFromDate,
                                     placeholder: 'MM/YYYY',
                                     onTap: () async {
-                                      final picked = await showDatePicker(
+                                      final picked = await _showMonthYearPicker(
                                         context: context,
                                         initialDate:
                                             selectedFromDate ?? DateTime.now(),
@@ -906,17 +986,20 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                                 onTap: isCurrentlyWorking
                                     ? null
                                     : () async {
-                                        final picked = await showDatePicker(
-                                          context: context,
-                                          initialDate:
-                                              selectedToDate ?? DateTime.now(),
-                                          firstDate: DateTime(1950),
-                                          lastDate: DateTime.now(),
-                                        );
+                                        final picked =
+                                            await _showMonthYearPicker(
+                                              context: context,
+                                              initialDate:
+                                                  selectedToDate ??
+                                                  DateTime.now(),
+                                              firstDate: DateTime(1950),
+                                              lastDate: DateTime.now(),
+                                            );
                                         if (picked != null) {
-                                          setDialogState(
-                                            () => selectedToDate = picked,
-                                          );
+                                          setDialogState(() {
+                                            selectedToDate = picked;
+                                            endDateError = null;
+                                          });
                                         }
                                       },
                               ),
@@ -940,6 +1023,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                                       if (isCurrentlyWorking) {
                                         selectedToDate = null;
                                       }
+                                      endDateError = null;
                                     });
                                   },
                                   activeColor: AppColors.primary,
@@ -957,6 +1041,16 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                             ],
                           ),
                         ),
+                        if (endDateError != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            endDateError!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.error,
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 12),
 
                         // Responsibilities - Auto-add fields
@@ -1022,6 +1116,13 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                             );
                             hasError = true;
                           }
+                          if (selectedToDate == null && !isCurrentlyWorking) {
+                            setDialogState(
+                              () => endDateError =
+                                  'Please select an end date or check "I currently work here"',
+                            );
+                            hasError = true;
+                          }
 
                           if (hasError) return;
 
@@ -1039,13 +1140,13 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                                 ? null
                                 : locationController.text.trim(),
                             fromDate: DateFormat(
-                              'MM/yyyy',
+                              'MMM yyyy',
                             ).format(selectedFromDate!),
                             toDate: isCurrentlyWorking
                                 ? 'Present'
                                 : (selectedToDate != null
                                       ? DateFormat(
-                                          'MM/yyyy',
+                                          'MMM yyyy',
                                         ).format(selectedToDate!)
                                       : null),
                             description: descriptions.isEmpty
@@ -1210,7 +1311,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                 Expanded(
                   child: Text(
                     value != null
-                        ? DateFormat('MM/yyyy').format(value)
+                        ? DateFormat('MMM yyyy').format(value)
                         : placeholder,
                     style: TextStyle(
                       fontSize: 14,
@@ -1851,7 +1952,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                                 value: selectedFromDate,
                                 placeholder: 'MM/YYYY',
                                 onTap: () async {
-                                  final picked = await showDatePicker(
+                                  final picked = await _showMonthYearPicker(
                                     context: context,
                                     initialDate:
                                         selectedFromDate ?? DateTime.now(),
@@ -1873,7 +1974,7 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                                 value: selectedToDate,
                                 placeholder: 'MM/YYYY',
                                 onTap: () async {
-                                  final picked = await showDatePicker(
+                                  final picked = await _showMonthYearPicker(
                                     context: context,
                                     initialDate:
                                         selectedToDate ?? DateTime.now(),
@@ -3341,21 +3442,11 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
     DateTime? selectedToDate;
 
     if (education?.fromDate != null && education!.fromDate!.isNotEmpty) {
-      try {
-        final year = int.parse(education.fromDate!);
-        selectedFromDate = DateTime(year);
-      } catch (e) {
-        // If parsing fails, leave as null
-      }
+      selectedFromDate = _parseFlexibleDate(education.fromDate!);
     }
 
     if (education?.toDate != null && education!.toDate!.isNotEmpty) {
-      try {
-        final year = int.parse(education.toDate!);
-        selectedToDate = DateTime(year);
-      } catch (e) {
-        // If parsing fails, leave as null
-      }
+      selectedToDate = _parseFlexibleDate(education.toDate!);
     }
 
     // Create controllers list for courses (auto-add pattern)
@@ -3449,11 +3540,11 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                     children: [
                       Expanded(
                         child: _buildDateField(
-                          label: 'Start Year',
+                          label: 'Start Date',
                           value: selectedFromDate,
-                          placeholder: 'Select year',
+                          placeholder: 'MM/YYYY',
                           onTap: () async {
-                            final DateTime? picked = await showDatePicker(
+                            final picked = await _showMonthYearPicker(
                               context: context,
                               initialDate: selectedFromDate ?? DateTime.now(),
                               firstDate: DateTime(1950),
@@ -3470,11 +3561,11 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildDateField(
-                          label: 'End Year',
+                          label: 'End Date',
                           value: selectedToDate,
-                          placeholder: 'Select year',
+                          placeholder: 'MM/YYYY',
                           onTap: () async {
-                            final DateTime? picked = await showDatePicker(
+                            final picked = await _showMonthYearPicker(
                               context: context,
                               initialDate: selectedToDate ?? DateTime.now(),
                               firstDate: DateTime(1950),
@@ -3559,10 +3650,14 @@ class _ResumeEditModalState extends ConsumerState<ResumeEditModal> {
                               degree: degreeController.text.trim(),
                               university: universityController.text.trim(),
                               fromDate: selectedFromDate != null
-                                  ? '${selectedFromDate!.year}'
+                                  ? DateFormat(
+                                      'MMM yyyy',
+                                    ).format(selectedFromDate!)
                                   : null,
                               toDate: selectedToDate != null
-                                  ? '${selectedToDate!.year}'
+                                  ? DateFormat(
+                                      'MMM yyyy',
+                                    ).format(selectedToDate!)
                                   : null,
                               courses: courses.isEmpty ? null : courses,
                             );

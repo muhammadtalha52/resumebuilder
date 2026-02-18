@@ -54,4 +54,8 @@ class ApiEndpoints {
   // Invite Friends
   static const String sendInvite = '/auth/invites/send/';
   static const String getInvites = '/auth/invites/';
+
+  // Job Matching
+  static const String matchingJobs = '/jobs/';
+  static const String applyToJob = '/jobs/apply/';
 }

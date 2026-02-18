@@ -1012,7 +1012,37 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 12),
+        // View Matching Jobs button
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: generatedResumeData != null
+                ? () {
+                    final pdfBase64 = generatedResumeData.pdfBase64 ?? '';
+                    final jobTitle = _jobTitleController.text.trim();
+                    context.push(
+                      '/resume/matching-jobs',
+                      extra: {'jobTitle': jobTitle, 'pdfBase64': pdfBase64},
+                    );
+                  }
+                : null,
+            icon: const Icon(Icons.work_outline, size: 18),
+            label: const Text(
+              'Ask Scout to find Jobs for you',
+              style: TextStyle(fontSize: 13),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.primary),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
         // Done button - matches Edit Resume style
         SizedBox(
           width: double.infinity,
@@ -1027,7 +1057,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
             child: const Text(
-              'Done',
+              'Save & Exit',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ),
@@ -3050,16 +3080,11 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
       builder: (BuildContext dialogContext) {
         return _SaveDialog(
           onSave: () async {
-            final success = await _saveResumeAndNavigateBack();
-            if (mounted && success && parentContext.mounted) {
+            await _saveResumeAndNavigateBack();
+            // Always navigate back, whether save succeeded or not
+            if (mounted && parentContext.mounted) {
               Navigator.of(dialogContext).pop(); // Close dialog
               parentContext.pop(); // Navigate back
-            }
-          },
-          onDontSave: () {
-            Navigator.of(dialogContext).pop(); // Close dialog
-            if (parentContext.mounted) {
-              parentContext.pop(); // Navigate back without saving
             }
           },
         );
@@ -3100,9 +3125,8 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
 
 class _SaveDialog extends StatefulWidget {
   final Future<void> Function() onSave;
-  final VoidCallback onDontSave;
 
-  const _SaveDialog({required this.onSave, required this.onDontSave});
+  const _SaveDialog({required this.onSave});
 
   @override
   State<_SaveDialog> createState() => _SaveDialogState();
@@ -3134,23 +3158,15 @@ class _SaveDialogState extends State<_SaveDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Would you like to save your resume for future use?',
+            'Would you like to save this resume? You can download it later from your resume history.',
             style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'You can access it later from your saved resumes.',
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary.withValues(alpha: 0.8),
-            ),
           ),
         ],
       ),
       actions: [
-        // Don't Save button
+        // Cancel button - just closes the dialog
         TextButton(
-          onPressed: _isLoading ? null : widget.onDontSave,
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
           style: TextButton.styleFrom(
             foregroundColor: AppColors.textSecondary,
             shape: RoundedRectangleBorder(
@@ -3158,10 +3174,7 @@ class _SaveDialogState extends State<_SaveDialog> {
             ),
             minimumSize: const Size(100, 44),
           ),
-          child: Text(
-            "Don't Save",
-            style: TextStyle(fontWeight: FontWeight.w500),
-          ),
+          child: Text('Cancel', style: TextStyle(fontWeight: FontWeight.w500)),
         ),
         // Save & Exit button
         ElevatedButton(
@@ -3199,16 +3212,7 @@ class _SaveDialogState extends State<_SaveDialog> {
       _isLoading = true;
     });
 
-    try {
-      await widget.onSave();
-    } catch (e) {
-      // If error occurs, stop loading but keep dialog open
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
+    await widget.onSave();
   }
 }
 

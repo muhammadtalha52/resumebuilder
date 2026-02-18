@@ -26,6 +26,7 @@ import '../screens/candidate/profile/edit_work_experience_screen.dart';
 
 import '../screens/candidate/invite/invite_friends_screen.dart';
 import '../screens/candidate/plans/candidate_plans_screen.dart';
+import '../screens/candidate/resume/matching_jobs_screen.dart';
 import '../screens/candidate/resume/resume_history_screen.dart';
 import '../screens/candidate/resume/resume_review_screen.dart';
 import '../screens/candidate/usage/usage_screen.dart';
@@ -202,6 +203,20 @@ final GoRouter appRouter = GoRouter(
         final flowType = state.uri.queryParameters['flow'];
         return buildPageWithoutSwipeBack(
           child: ResumeReviewScreen(flowType: flowType),
+          key: state.pageKey,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/resume/matching-jobs',
+      pageBuilder: (context, state) {
+        final params = state.extra as Map<String, dynamic>;
+        return buildPageWithoutSwipeBack(
+          child: MatchingJobsScreen(
+            jobTitle: params['jobTitle'] as String,
+            pdfBase64: params['pdfBase64'] as String,
+            location: params['location'] as String?,
+          ),
           key: state.pageKey,
         );
       },
