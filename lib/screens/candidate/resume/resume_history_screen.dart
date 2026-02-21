@@ -18,6 +18,7 @@ import '../../../utils/endpoint_headers.dart';
 import '../../../utils/s3_utils.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/custom_app_bar.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 class ResumeHistoryScreen extends ConsumerStatefulWidget {
   const ResumeHistoryScreen({super.key});
@@ -128,7 +129,25 @@ class _ResumeHistoryScreenState extends ConsumerState<ResumeHistoryScreen> {
           ),
           itemBuilder: (context, index) {
             final resume = historyState.resumes[index];
-            return _buildResumeCard(resume, context);
+            return Slidable(
+              key: ValueKey(resume.id),
+              endActionPane: ActionPane(
+                motion: const BehindMotion(),
+                extentRatio: 0.2,
+                children: [
+                  CustomSlidableAction(
+                    onPressed: (_) => _deleteResume(resume),
+                    backgroundColor: AppColors.error,
+                    child: const Icon(
+                      Icons.delete_outline,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ],
+              ),
+              child: _buildResumeCard(resume, context),
+            );
           },
         ),
       ),
@@ -231,6 +250,22 @@ class _ResumeHistoryScreenState extends ConsumerState<ResumeHistoryScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _deleteResume(ResumeHistory resume) async {
+    try {
+      await ref.read(historyProvider.notifier).deleteResume(resume.id);
+      if (mounted) {
+        showSuccessSnackBar(
+          context: context,
+          message: 'Resume deleted successfully',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackBar(context: context, message: 'Failed to delete resume');
+      }
+    }
   }
 
   String _buildCompanyOrJob(ResumeHistory resume) {

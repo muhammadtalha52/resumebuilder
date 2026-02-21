@@ -4,6 +4,7 @@ import 'package:skillresy/screens/auth/login_screen.dart';
 import 'package:skillresy/screens/auth/forgot_password_screen.dart';
 import 'package:skillresy/screens/common/splash_screen.dart';
 
+import '../models/job_listing_model.dart';
 import '../models/meeting_history_response.dart';
 import '../screens/auth/onboarding_step_screen.dart';
 import '../screens/auth/simple_signup_screen.dart';
@@ -26,6 +27,7 @@ import '../screens/candidate/profile/edit_work_experience_screen.dart';
 
 import '../screens/candidate/invite/invite_friends_screen.dart';
 import '../screens/candidate/plans/candidate_plans_screen.dart';
+import '../screens/candidate/resume/job_detail_screen.dart';
 import '../screens/candidate/resume/matching_jobs_screen.dart';
 import '../screens/candidate/resume/resume_history_screen.dart';
 import '../screens/candidate/resume/resume_review_screen.dart';
@@ -216,6 +218,19 @@ final GoRouter appRouter = GoRouter(
             jobTitle: params['jobTitle'] as String,
             pdfBase64: params['pdfBase64'] as String,
             location: params['location'] as String?,
+          ),
+          key: state.pageKey,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/job/detail',
+      pageBuilder: (context, state) {
+        final params = state.extra as Map<String, dynamic>;
+        return buildPageWithoutSwipeBack(
+          child: JobDetailScreen(
+            jobListing: params['jobListing'] as JobListing,
+            pdfBase64: params['pdfBase64'] as String,
           ),
           key: state.pageKey,
         );

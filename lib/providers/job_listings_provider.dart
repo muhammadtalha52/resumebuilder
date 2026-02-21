@@ -33,7 +33,15 @@ class JobListingsNotifier extends StateNotifier<JobListingsState> {
         final jobs = data
             .map((json) => JobListing.fromJson(json as Map<String, dynamic>))
             .toList();
-        state = state.copyWith(jobs: jobs, isLoading: false);
+        final alreadyApplied = jobs
+            .where((job) => job.hasApplied)
+            .map((job) => job.id)
+            .toSet();
+        state = state.copyWith(
+          jobs: jobs,
+          isLoading: false,
+          appliedJobIds: {...state.appliedJobIds, ...alreadyApplied},
+        );
       } else {
         state = state.copyWith(
           isLoading: false,

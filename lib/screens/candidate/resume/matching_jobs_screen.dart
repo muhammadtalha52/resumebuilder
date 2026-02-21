@@ -90,6 +90,12 @@ class _MatchingJobsScreenState extends ConsumerState<MatchingJobsScreen> {
                 .read(jobListingsProvider.notifier)
                 .applyToJob(job.id, widget.pdfBase64);
           },
+          onTap: () {
+            context.push(
+              '/job/detail',
+              extra: {'jobListing': job, 'pdfBase64': widget.pdfBase64},
+            );
+          },
         );
       },
     );

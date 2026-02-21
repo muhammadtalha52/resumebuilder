@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../models/meeting_history_response.dart';
 import '../../../providers/meeting_history_provider.dart';
 import '../../../utils/date_helpers.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 
 class MeetingHistoryScreen extends ConsumerStatefulWidget {
@@ -117,10 +119,47 @@ class _MeetingHistoryScreenState extends ConsumerState<MeetingHistoryScreen> {
         ),
         itemBuilder: (context, index) {
           final meeting = historyState.meetings[index];
-          return _buildMeetingCard(meeting, context);
+          return Slidable(
+            key: ValueKey(meeting.id),
+            endActionPane: ActionPane(
+              motion: const BehindMotion(),
+              extentRatio: 0.2,
+              children: [
+                CustomSlidableAction(
+                  onPressed: (_) => _deleteMeeting(meeting),
+                  backgroundColor: AppColors.error,
+                  child: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ],
+            ),
+            child: _buildMeetingCard(meeting, context),
+          );
         },
       ),
     );
+  }
+
+  Future<void> _deleteMeeting(MeetingHistoryItem meeting) async {
+    try {
+      await ref.read(meetingHistoryProvider.notifier).deleteMeeting(meeting.id);
+      if (mounted) {
+        showSuccessSnackBar(
+          context: context,
+          message: 'Meeting deleted successfully',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackBar(
+          context: context,
+          message: 'Failed to delete meeting',
+        );
+      }
+    }
   }
 
   Widget _buildMeetingCard(MeetingHistoryItem meeting, BuildContext context) {
