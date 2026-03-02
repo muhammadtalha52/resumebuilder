@@ -145,15 +145,15 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
       try {
         final summary = state.meetingSummaryModel!.summary!;
 
-        // NEW: Use JSON format for conversation entries (unified structure)
+        // Use plain text format for conversation entries (web-compatible)
         String transcriptToSave;
         if (transcriptionData.conversationEntries.isNotEmpty) {
-          // Encode entries as JSON for structured display
-          transcriptToSave = ConversationEntry.encodeList(
+          // Encode entries as plain text: [Speaker N]: text
+          transcriptToSave = ConversationEntry.encodeAsText(
             transcriptionData.conversationEntries,
           );
           print(
-            '[SAVE] Using JSON format with ${transcriptionData.conversationEntries.length} entries',
+            '[SAVE] Using text format with ${transcriptionData.conversationEntries.length} entries',
           );
         } else {
           // Fallback to old format if no entries captured

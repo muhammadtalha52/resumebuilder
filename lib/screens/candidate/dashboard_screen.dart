@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../utils/date_helpers.dart';
 import '../../widgets/common/profile_completion_banner.dart';
+import '../../widgets/common/web_app_banner.dart';
 import '../common/main_screen.dart';
 
 final selectedTabProvider = StateProvider<int>((ref) => 1);
@@ -67,6 +68,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           // const SizedBox(height: 10),
                           // _buildWelcomeSection(ref),
                           const SizedBox(height: 16),
+                          const WebAppBanner(),
+                          const SizedBox(height: 12),
                           const ProfileCompletionBanner(),
                           const SizedBox(height: 16),
                           _buildProgressAndMetricsSection(ref),

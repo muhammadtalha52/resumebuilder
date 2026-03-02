@@ -1,35 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../models/job_listing_model.dart';
-import '../../../providers/job_listings_provider.dart';
-import '../../../utils/url_launcher_utils.dart';
 import '../../../widgets/common/custom_app_bar.dart';
-import '../../../widgets/dialogs/confirmation_dialog.dart';
 
-class JobDetailScreen extends ConsumerStatefulWidget {
+class JobDetailScreen extends ConsumerWidget {
   final JobListing jobListing;
-  final String pdfBase64;
 
-  const JobDetailScreen({
-    super.key,
-    required this.jobListing,
-    required this.pdfBase64,
-  });
+  const JobDetailScreen({super.key, required this.jobListing});
 
   @override
-  ConsumerState<JobDetailScreen> createState() => _JobDetailScreenState();
-}
-
-class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
-  @override
-  Widget build(BuildContext context) {
-    final state = ref.watch(jobListingsProvider);
-    final job = widget.jobListing;
-    final isApplied = state.appliedJobIds.contains(job.id);
-    final isApplying = state.applyingJobIds.contains(job.id);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final job = jobListing;
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
@@ -127,11 +112,7 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
                   ),
                 ),
               ),
-              _buildBottomBar(
-                job,
-                isApplied: isApplied,
-                isApplying: isApplying,
-              ),
+              _buildBottomBar(context, job),
             ],
           ),
         ),
@@ -384,11 +365,7 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
     );
   }
 
-  Widget _buildBottomBar(
-    JobListing job, {
-    required bool isApplied,
-    required bool isApplying,
-  }) {
+  Widget _buildBottomBar(BuildContext context, JobListing job) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
@@ -401,119 +378,49 @@ class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: isApplied
-                ? Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Center(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: 20,
-                            color: AppColors.success,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Applied Successfully',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.success,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradientHorizontal,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: MaterialButton(
-                      onPressed: isApplying ? null : () => _confirmApply(job),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: isApplying
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                              ),
-                            )
-                          : const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.send, size: 18, color: Colors.white),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Quick Apply',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: AppColors.primaryGradientHorizontal,
+            borderRadius: BorderRadius.circular(12),
           ),
-          if (job.jobUrl.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () => UrlLauncherUtils.launchExternalUrl(job.jobUrl),
-              child: const Text(
-                'View Original Listing',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.primary,
-                  decoration: TextDecoration.underline,
-                  decorationColor: AppColors.primary,
-                ),
-              ),
+          child: MaterialButton(
+            // onPressed: () => context.push(
+            //   '/job/apply',
+            //   extra: {
+            //     'jobUrl': job.jobUrl,
+            //     'jobTitle': job.jobTitle,
+            //   },
+            // ),
+            onPressed: () async {
+              final url = Uri.tryParse(job.jobUrl);
+              if (url != null) {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              }
+            },
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
-        ],
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.open_in_new, size: 18, color: Colors.white),
+                SizedBox(width: 8),
+                Text(
+                  'Apply',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
-  }
-
-  Future<void> _confirmApply(JobListing job) async {
-    final confirmed = await showConfirmationDialog(
-      context: context,
-      title: 'Quick Apply',
-      subtitle:
-          'Apply to ${job.jobTitle} at '
-          '${job.companyName} with your resume?',
-      icon: Icons.send,
-      iconBackgroundColor: AppColors.primary,
-      confirmText: 'Apply',
-      cancelText: 'Cancel',
-      confirmButtonColor: AppColors.primary,
-      confirmTextColor: Colors.white,
-    );
-
-    if (confirmed == true && context.mounted) {
-      ref
-          .read(jobListingsProvider.notifier)
-          .applyToJob(job.id, widget.pdfBase64);
-    }
   }
 }

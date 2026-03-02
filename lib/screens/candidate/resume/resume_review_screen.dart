@@ -21,6 +21,7 @@ import '../../../utils/phone_utils.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/custom_button.dart' as button;
+import '../../../widgets/common/custom_dropdown.dart';
 import '../../../widgets/common/custom_text_field.dart';
 import '../../../widgets/common/tag_field.dart';
 import '../../../widgets/dialogs/confirmation_dialog.dart';
@@ -65,6 +66,14 @@ class WorkExperienceEntry {
     company.dispose();
     responsibilities.dispose();
   }
+}
+
+enum JobDetailMethod {
+  jobDescription('Paste Job Description'),
+  linkedInLink('Paste LinkedIn Job Link');
+
+  final String label;
+  const JobDetailMethod(this.label);
 }
 
 class ResumeReviewScreen extends ConsumerStatefulWidget {
@@ -122,6 +131,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
   final _jobTitleController = TextEditingController();
   final _linkedInJobLinkController = TextEditingController();
   final _jobDescriptionController = TextEditingController();
+  JobDetailMethod? _jobDetailMethod;
 
   // Validation errors for step 2
   String? _jobTitleError;
@@ -706,55 +716,54 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           },
         ),
         const SizedBox(height: 20),
-        CustomTextField(
-          controller: _jobDescriptionController,
-          labelText: 'Paste Job Description',
-          hintText: 'Enter a description...',
+        CustomDropdown<JobDetailMethod>(
+          labelText: 'Provide Job Details Via',
           isRequired: true,
-          maxLines: 7,
-          maxLength: 5000,
-          showCharacterCount: true,
+          hintText: 'Select an option',
+          items: JobDetailMethod.values
+              .map((m) => DropdownMenuItem(value: m, child: Text(m.label)))
+              .toList(),
+          value: _jobDetailMethod,
+          errorText: _jobTargetingError,
           onChanged: (value) {
-            if (_jobTargetingError != null) {
-              setState(() {
-                _jobTargetingError = null;
-              });
-            }
+            setState(() {
+              _jobDetailMethod = value;
+              _jobTargetingError = null;
+            });
           },
         ),
-        if (_jobTargetingError != null) ...[
-          const SizedBox(height: 8),
-          Text(
-            _jobTargetingError!,
-            style: const TextStyle(fontSize: 12, color: AppColors.error),
+        const SizedBox(height: 20),
+        if (_jobDetailMethod == JobDetailMethod.jobDescription)
+          CustomTextField(
+            controller: _jobDescriptionController,
+            labelText: 'Paste Job Description',
+            hintText: 'Paste Job Description...',
+            isRequired: true,
+            maxLines: 7,
+            maxLength: 5000,
+            showCharacterCount: true,
+            onChanged: (value) {
+              if (_jobTargetingError != null) {
+                setState(() {
+                  _jobTargetingError = null;
+                });
+              }
+            },
           ),
-        ],
-
-        Center(
-          child: Text(
-            'OR',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary.withValues(alpha: 0.7),
-            ),
+        if (_jobDetailMethod == JobDetailMethod.linkedInLink)
+          CustomTextField(
+            controller: _linkedInJobLinkController,
+            labelText: 'Paste LinkedIn Job Link',
+            hintText: 'Paste here',
+            suffixIcon: const Icon(Icons.link, color: AppColors.textSecondary),
+            onChanged: (value) {
+              if (_jobTargetingError != null) {
+                setState(() {
+                  _jobTargetingError = null;
+                });
+              }
+            },
           ),
-        ),
-        const SizedBox(height: 10),
-        CustomTextField(
-          controller: _linkedInJobLinkController,
-          labelText: 'Paste LinkedIn job link',
-          hintText: 'Paste here',
-          suffixIcon: const Icon(Icons.link, color: AppColors.textSecondary),
-          onChanged: (value) {
-            if (_jobTargetingError != null) {
-              setState(() {
-                _jobTargetingError = null;
-              });
-            }
-          },
-        ),
-
         const SizedBox(height: 20),
       ],
     );
@@ -1019,11 +1028,10 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           child: OutlinedButton.icon(
             onPressed: generatedResumeData != null
                 ? () {
-                    final pdfBase64 = generatedResumeData.pdfBase64 ?? '';
                     final jobTitle = _jobTitleController.text.trim();
                     context.push(
                       '/resume/matching-jobs',
-                      extra: {'jobTitle': jobTitle, 'pdfBase64': pdfBase64},
+                      extra: {'jobTitle': jobTitle},
                     );
                   }
                 : null,
@@ -2086,14 +2094,22 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
       isValid = false;
     }
 
-    // Validate either LinkedIn link or job description is provided
-    final hasLinkedInLink = _linkedInJobLinkController.text.trim().isNotEmpty;
-    final hasJobDescription = _jobDescriptionController.text.trim().isNotEmpty;
-
-    if (!hasLinkedInLink && !hasJobDescription) {
+    // Validate job detail method is selected and field is filled
+    if (_jobDetailMethod == null) {
       setState(() {
-        _jobTargetingError =
-            'Please provide either a LinkedIn job link or job description';
+        _jobTargetingError = 'Please select how to provide job details';
+      });
+      isValid = false;
+    } else if (_jobDetailMethod == JobDetailMethod.jobDescription &&
+        _jobDescriptionController.text.trim().isEmpty) {
+      setState(() {
+        _jobTargetingError = 'Please paste the job description';
+      });
+      isValid = false;
+    } else if (_jobDetailMethod == JobDetailMethod.linkedInLink &&
+        _linkedInJobLinkController.text.trim().isEmpty) {
+      setState(() {
+        _jobTargetingError = 'Please paste the LinkedIn job link';
       });
       isValid = false;
     }

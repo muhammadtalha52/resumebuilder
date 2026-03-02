@@ -24,6 +24,8 @@ class JobListingsNotifier extends StateNotifier<JobListingsState> {
         options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
       );
 
+      debugPrint('[JobListings] Raw API response: ${response.data}');
+
       if (response.statusCode == 200 && response.data != null) {
         final List<dynamic> data = response.data is List
             ? response.data

@@ -11,6 +11,7 @@ import '../../widgets/common/tag_list.dart';
 import '../../widgets/dialogs/confirmation_dialog.dart';
 import '../../widgets/invite_friends_card.dart';
 import '../../widgets/profile_card.dart';
+import '../../widgets/common/web_app_banner.dart';
 import '../../widgets/profile_header.dart';
 
 class StudentProfileScreen extends ConsumerWidget {
@@ -40,6 +41,8 @@ class StudentProfileScreen extends ConsumerWidget {
                 const InviteFriendsCard(isStudent: true),
                 const SizedBox(height: 16),
                 const ProfileHeader(),
+                const SizedBox(height: 16),
+                const WebAppProfileTile(),
                 const SizedBox(height: 16),
                 _buildPersonalDetailsCard(context, ref),
                 const SizedBox(height: 16),

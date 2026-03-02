@@ -1,24 +1,15 @@
 import 'package:flutter/material.dart';
+// import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../constants/app_colors.dart';
 import '../../models/job_listing_model.dart';
-import '../dialogs/confirmation_dialog.dart';
 
 class JobCard extends StatelessWidget {
   final JobListing jobListing;
-  final bool isApplying;
-  final bool isApplied;
-  final VoidCallback onApply;
   final VoidCallback? onTap;
 
-  const JobCard({
-    super.key,
-    required this.jobListing,
-    required this.isApplying,
-    required this.isApplied,
-    required this.onApply,
-    this.onTap,
-  });
+  const JobCard({super.key, required this.jobListing, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -41,41 +32,33 @@ class JobCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Company logo placeholder
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.greyLight,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  _companyInitial(),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.grey,
-                  ),
-                ),
-              ),
-            ),
+            // Company logo
+            _buildCompanyLogo(),
             const SizedBox(width: 12),
             // Job details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    jobListing.jobTitle,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                      height: 1.3,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          jobListing.jobTitle,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildActionWidget(context),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -120,8 +103,33 @@ class JobCard extends StatelessWidget {
                       ],
                     ),
                   ],
-                  const SizedBox(height: 10),
-                  _buildActionWidget(context),
+                  if (jobListing.description != null &&
+                      jobListing.description!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      jobListing.description!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.grey,
+                        height: 1.4,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onTap: onTap,
+                      child: const Text(
+                        'See more',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -131,84 +139,82 @@ class JobCard extends StatelessWidget {
     );
   }
 
-  String _companyInitial() {
-    if (jobListing.companyName.isEmpty) return '?';
-    return jobListing.companyName[0].toUpperCase();
-  }
-
-  Widget _buildActionWidget(BuildContext context) {
-    if (isApplied) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.success.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.check_circle, size: 14, color: AppColors.success),
-            SizedBox(width: 4),
-            Text(
-              'Applied',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.success,
-              ),
-            ),
-          ],
+  Widget _buildCompanyLogo() {
+    if (jobListing.employerLogo != null &&
+        jobListing.employerLogo!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          jobListing.employerLogo!,
+          width: 48,
+          height: 48,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => _buildInitialAvatar(),
         ),
       );
     }
+    return _buildInitialAvatar();
+  }
 
-    return SizedBox(
-      height: 32,
-      child: OutlinedButton.icon(
-        onPressed: isApplying ? null : () => _confirmApply(context),
-        icon: isApplying
-            ? const SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(
-                  strokeWidth: 1.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                ),
-              )
-            : const Icon(Icons.send, size: 14),
-        label: Text(
-          isApplying ? 'Applying...' : 'Quick Apply',
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-        ),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          side: const BorderSide(color: AppColors.primary, width: 1.2),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+  Widget _buildInitialAvatar() {
+    final initial = jobListing.companyName.isEmpty
+        ? '?'
+        : jobListing.companyName[0].toUpperCase();
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: AppColors.greyLight,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: AppColors.grey,
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
         ),
       ),
     );
   }
 
-  Future<void> _confirmApply(BuildContext context) async {
-    final confirmed = await showConfirmationDialog(
-      context: context,
-      title: 'Quick Apply',
-      subtitle:
-          'Apply to ${jobListing.jobTitle} at '
-          '${jobListing.companyName} with your resume?',
-      icon: Icons.send,
-      iconBackgroundColor: AppColors.primary,
-      confirmText: 'Apply',
-      cancelText: 'Cancel',
-      confirmButtonColor: AppColors.primary,
-      confirmTextColor: Colors.white,
+  Widget _buildActionWidget(BuildContext context) {
+    return GestureDetector(
+      // onTap: () => context.push(
+      //   '/job/apply',
+      //   extra: {'jobUrl': jobListing.jobUrl, 'jobTitle': jobListing.jobTitle},
+      // ),
+      onTap: () async {
+        final url = Uri.tryParse(jobListing.jobUrl);
+        if (url != null) {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+        }
+      },
+      child: Container(
+        height: 26,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.primary, width: 1),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.open_in_new, size: 10, color: AppColors.primary),
+            SizedBox(width: 4),
+            Text(
+              'Apply',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
-
-    if (confirmed == true && context.mounted) {
-      onApply();
-    }
   }
 }

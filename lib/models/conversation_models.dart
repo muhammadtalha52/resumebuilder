@@ -120,6 +120,55 @@ class ConversationEntry {
       return null;
     }
   }
+
+  /// Encode list of entries as plain text (web-compatible format)
+  /// Format: [Speaker 1]: text\n\n[Scout Response]: text\n\n
+  static String encodeAsText(List<ConversationEntry> entries) {
+    final buffer = StringBuffer();
+    for (int i = 0; i < entries.length; i++) {
+      final entry = entries[i];
+      buffer.write('[${entry.getDisplayLabel()}]: ${entry.text}');
+      if (i < entries.length - 1) {
+        buffer.write('\n\n');
+      }
+    }
+    return buffer.toString();
+  }
+
+  /// Decode plain text format back to list of entries
+  /// Parses [Speaker N]: and [Scout Response]: headers
+  static List<ConversationEntry>? decodeFromText(String? text) {
+    if (text == null || text.isEmpty) return null;
+
+    final headerPattern = RegExp(r'\[(Speaker \d+|Scout Response)\]:');
+
+    final matches = headerPattern.allMatches(text).toList();
+    if (matches.isEmpty) return null;
+
+    final entries = <ConversationEntry>[];
+    for (int i = 0; i < matches.length; i++) {
+      final match = matches[i];
+      final header = match.group(1)!;
+      final contentStart = match.end;
+      final contentEnd = i + 1 < matches.length
+          ? matches[i + 1].start
+          : text.length;
+      final content = text.substring(contentStart, contentEnd).trim();
+
+      if (header == 'Scout Response') {
+        entries.add(ConversationEntry.scout(text: content));
+      } else {
+        // "Speaker 1" → speakerId 0, "Speaker 2" → speakerId 1
+        final speakerNum =
+            int.tryParse(header.replaceFirst('Speaker ', '')) ?? 1;
+        entries.add(
+          ConversationEntry.speaker(speakerId: speakerNum - 1, text: content),
+        );
+      }
+    }
+
+    return entries.isEmpty ? null : entries;
+  }
 }
 
 /// Model for storing speaker-segmented transcript (kept for transcriber compatibility)

@@ -604,18 +604,23 @@ class _MeetingDetailScreenState extends ConsumerState<MeetingDetailScreen> {
   }
 
   Widget _buildTranscriptSection() {
-    // Try to parse as new ConversationEntry format first
+    // 1. Try old compact JSON format
     final entries = ConversationEntry.decodeList(widget.meeting.transcript);
-
     if (entries != null && entries.isNotEmpty) {
-      // New format: Button to open bottom sheet with all entries
       return _buildTranscriptButton(entries);
     }
 
-    // Try legacy TranscriptAnswerPair format and convert to ConversationEntry
+    // 2. Try new plain text format ([Speaker N]: ...)
+    final textEntries = ConversationEntry.decodeFromText(
+      widget.meeting.transcript,
+    );
+    if (textEntries != null && textEntries.isNotEmpty) {
+      return _buildTranscriptButton(textEntries);
+    }
+
+    // 3. Try legacy TranscriptAnswerPair JSON format
     final pairs = TranscriptAnswerPair.decodeList(widget.meeting.transcript);
     if (pairs != null && pairs.isNotEmpty) {
-      // Convert legacy pairs to ConversationEntry list
       final legacyEntries = <ConversationEntry>[];
       for (final pair in pairs) {
         if (pair.hasSegments && pair.segments != null) {
@@ -628,8 +633,11 @@ class _MeetingDetailScreenState extends ConsumerState<MeetingDetailScreen> {
       return _buildTranscriptButton(legacyEntries);
     }
 
-    // Legacy format: Display as plain text
-    return _buildLegacyTranscriptSection();
+    // 4. Fallback: wrap plain text as a single speaker entry
+    final plainTextEntries = [
+      ConversationEntry.speaker(speakerId: 0, text: widget.meeting.transcript!),
+    ];
+    return _buildTranscriptButton(plainTextEntries);
   }
 
   /// Builds a button that opens the transcript bottom sheet
@@ -703,84 +711,6 @@ class _MeetingDetailScreenState extends ConsumerState<MeetingDetailScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _TranscriptBottomSheet(entries: entries),
-    );
-  }
-
-  /// Legacy transcript display (plain text)
-  Widget _buildLegacyTranscriptSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Full Transcript',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-            child: ExpansionTile(
-              tilePadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 4,
-              ),
-              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.description_outlined,
-                  color: Colors.blue.shade700,
-                  size: 20,
-                ),
-              ),
-              title: const Text(
-                'View Transcript',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-              subtitle: Text(
-                'Tap to expand full conversation',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: SelectableText(
-                    widget.meeting.transcript!,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[800],
-                      height: 1.6,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

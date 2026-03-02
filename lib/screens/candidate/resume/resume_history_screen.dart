@@ -184,45 +184,45 @@ class _ResumeHistoryScreenState extends ConsumerState<ResumeHistoryScreen> {
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    resume.title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _buildCompanyOrJob(resume),
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    DateHelpers.formatDateTimeToLocal(
-                      resume.createdAt,
-                      defaultValue: 'N/A',
-                    ),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textLight,
-                    ),
-                  ),
-                ],
-              ),
-            ),
             Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        resume.title,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1A1A1A),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _buildCompanyOrJob(resume),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        DateHelpers.formatDateTimeToLocal(
+                          resume.createdAt,
+                          defaultValue: 'N/A',
+                        ),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 if (resume.resumeUrl.isNotEmpty)
                   _downloadingIds.contains(resume.id)
                       ? const SizedBox(
@@ -246,6 +246,36 @@ class _ResumeHistoryScreenState extends ConsumerState<ResumeHistoryScreen> {
                         ),
               ],
             ),
+            if (resume.jobTitle.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 32,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    context.push(
+                      '/resume/matching-jobs',
+                      extra: {'jobTitle': resume.jobTitle},
+                    );
+                  },
+                  icon: const Icon(Icons.work_outline, size: 14),
+                  label: const Text(
+                    'Ask Scout to find Jobs for you',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(
+                      color: AppColors.primary,
+                      width: 0.8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

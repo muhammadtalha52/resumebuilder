@@ -10,15 +10,9 @@ import '../../../widgets/job/job_card.dart';
 
 class MatchingJobsScreen extends ConsumerStatefulWidget {
   final String jobTitle;
-  final String pdfBase64;
   final String? location;
 
-  const MatchingJobsScreen({
-    super.key,
-    required this.jobTitle,
-    required this.pdfBase64,
-    this.location,
-  });
+  const MatchingJobsScreen({super.key, required this.jobTitle, this.location});
 
   @override
   ConsumerState<MatchingJobsScreen> createState() => _MatchingJobsScreenState();
@@ -64,7 +58,25 @@ class _MatchingJobsScreenState extends ConsumerState<MatchingJobsScreen> {
 
   Widget _buildBody(JobListingsState state) {
     if (state.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              'Scout AI is finding matching jobs\n'
+              'for "${widget.jobTitle}"...',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.grey,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     if (state.error != null && state.jobs.isEmpty) {
@@ -83,18 +95,8 @@ class _MatchingJobsScreenState extends ConsumerState<MatchingJobsScreen> {
         final job = state.jobs[index];
         return JobCard(
           jobListing: job,
-          isApplying: state.applyingJobIds.contains(job.id),
-          isApplied: state.appliedJobIds.contains(job.id),
-          onApply: () {
-            ref
-                .read(jobListingsProvider.notifier)
-                .applyToJob(job.id, widget.pdfBase64);
-          },
           onTap: () {
-            context.push(
-              '/job/detail',
-              extra: {'jobListing': job, 'pdfBase64': widget.pdfBase64},
-            );
+            context.push('/job/detail', extra: {'jobListing': job});
           },
         );
       },
@@ -112,20 +114,20 @@ class _MatchingJobsScreenState extends ConsumerState<MatchingJobsScreen> {
             color: AppColors.grey.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'No matching jobs found',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              'We couldn\'t find any jobs for '
+              '"${widget.jobTitle}" right now.\n'
+              'New jobs are added regularly '
+              '— check back soon!',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 15,
+                color: AppColors.grey,
+                height: 1.4,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Try adjusting your job title or\n'
-            'check back later for new listings',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: AppColors.grey),
           ),
         ],
       ),

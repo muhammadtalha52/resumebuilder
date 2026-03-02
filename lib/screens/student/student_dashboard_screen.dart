@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/student_dashboard_provider.dart';
 import '../../utils/date_helpers.dart';
 import '../../widgets/common/custom_app_bar.dart';
+import '../../widgets/common/web_app_banner.dart';
 import '../common/main_screen.dart';
 
 class StudentDashboardScreen extends ConsumerStatefulWidget {
@@ -49,6 +50,8 @@ class _StudentDashboardScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SizedBox(height: 10),
+              const WebAppBanner(),
               const SizedBox(height: 10),
               _buildWelcomeSection(ref),
               const SizedBox(height: 10),

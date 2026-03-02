@@ -27,6 +27,7 @@ import '../screens/candidate/profile/edit_work_experience_screen.dart';
 
 import '../screens/candidate/invite/invite_friends_screen.dart';
 import '../screens/candidate/plans/candidate_plans_screen.dart';
+import '../screens/candidate/resume/job_apply_webview_screen.dart';
 import '../screens/candidate/resume/job_detail_screen.dart';
 import '../screens/candidate/resume/matching_jobs_screen.dart';
 import '../screens/candidate/resume/resume_history_screen.dart';
@@ -216,7 +217,6 @@ final GoRouter appRouter = GoRouter(
         return buildPageWithoutSwipeBack(
           child: MatchingJobsScreen(
             jobTitle: params['jobTitle'] as String,
-            pdfBase64: params['pdfBase64'] as String,
             location: params['location'] as String?,
           ),
           key: state.pageKey,
@@ -230,7 +230,19 @@ final GoRouter appRouter = GoRouter(
         return buildPageWithoutSwipeBack(
           child: JobDetailScreen(
             jobListing: params['jobListing'] as JobListing,
-            pdfBase64: params['pdfBase64'] as String,
+          ),
+          key: state.pageKey,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/job/apply',
+      pageBuilder: (context, state) {
+        final params = state.extra as Map<String, dynamic>;
+        return buildPageWithoutSwipeBack(
+          child: JobApplyWebviewScreen(
+            jobUrl: params['jobUrl'] as String,
+            jobTitle: params['jobTitle'] as String,
           ),
           key: state.pageKey,
         );

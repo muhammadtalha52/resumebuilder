@@ -362,13 +362,33 @@ class ContinuousTranscriptionNotifier
     final currentHelpResponse = state.helpResponse;
     final currentHelpTimestamp = state.helpTimestamp;
     final currentSessionDuration = state.sessionDuration;
-    final currentConversationEntries = state.conversationEntries;
     final currentSpeakerSegments = state.speakerSegments;
     final currentSpeakerCount = state.speakerCount;
 
+    // Flush any remaining unsaved speaker segments into conversationEntries
+    // These are segments recorded after the last "Get Help" tap
+    final List<ConversationEntry> finalConversationEntries = [
+      ...state.conversationEntries,
+    ];
+    if (currentSpeakerSegments.length > _lastSavedSpeakerSegmentCount) {
+      final unsavedCount =
+          currentSpeakerSegments.length - _lastSavedSpeakerSegmentCount;
+      for (
+        int i = _lastSavedSpeakerSegmentCount;
+        i < currentSpeakerSegments.length;
+        i++
+      ) {
+        finalConversationEntries.add(
+          ConversationEntry.fromSpeakerSegment(currentSpeakerSegments[i]),
+        );
+      }
+      _lastSavedSpeakerSegmentCount = currentSpeakerSegments.length;
+      print('[SESSION-STOP] Flushed $unsavedCount remaining speaker segments');
+    }
+
     print('[SESSION-STOP] Preserved data:');
     print(
-      '[SESSION-STOP] Conversation entries: ${currentConversationEntries.length}',
+      '[SESSION-STOP] Conversation entries: ${finalConversationEntries.length}',
     );
     print(
       '[SESSION-STOP] Speaker segments: ${currentSpeakerSegments.length}, Speaker count: $currentSpeakerCount',
@@ -409,8 +429,8 @@ class ContinuousTranscriptionNotifier
       transcriptionState: null,
       chunkCount: 0,
       pendingChunks: 0,
-      // PRESERVE CONVERSATION ENTRIES
-      conversationEntries: currentConversationEntries,
+      // PRESERVE CONVERSATION ENTRIES (with flushed remaining segments)
+      conversationEntries: finalConversationEntries,
       // PRESERVE SPEAKER DIARIZATION DATA
       speakerSegments: currentSpeakerSegments,
       speakerCount: currentSpeakerCount,
