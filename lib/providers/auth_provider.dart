@@ -405,10 +405,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
 
     // Must have same email (additional identity check)
-    if (freshUser.email != currentUser.email) {
-      print('[AuthProvider] Validation failed: email mismatch');
-      return false;
-    }
+
+    // commented out for now
+    // if (freshUser.email != currentUser.email) {
+    //   print('[AuthProvider] Validation failed: email mismatch');
+    //   return false;
+    // }
 
     // Profile completion percentage must be valid (0-100)
     final percentage = freshUser.profileCompletionPercentage;

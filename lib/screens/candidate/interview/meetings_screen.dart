@@ -77,22 +77,24 @@ class MeetingScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset(
-                        'assets/icons/interview-fox.png',
-                        height: 150,
-                      ),
-                      const SizedBox(height: 32),
-                      _buildHeaderText(),
-                      const SizedBox(height: 16),
-                      _buildSubtitleText(),
-                      const SizedBox(height: 32),
-                      _buildStartButton(context),
-                      const SizedBox(height: 12),
-                      _buildPracticeButton(context),
-                    ],
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/icons/interview-fox.png',
+                          height: 150,
+                        ),
+                        const SizedBox(height: 32),
+                        _buildHeaderText(),
+                        const SizedBox(height: 16),
+                        _buildSubtitleText(),
+                        const SizedBox(height: 32),
+                        _buildStartButton(context),
+                        const SizedBox(height: 12),
+                        _buildPracticeButton(context),
+                      ],
+                    ),
                   ),
                 ),
               ),

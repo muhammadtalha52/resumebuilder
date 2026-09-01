@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../constants/app_colors.dart';
 import '../../providers/user_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../candidate/interview/meetings_screen.dart';
 import '../candidate/profile/profile_screen.dart';
 import '../candidate/dashboard_screen.dart';
@@ -171,6 +172,12 @@ class MainScreen extends ConsumerWidget {
     return InkWell(
       onTap: () {
         ref.read(navigationIndexProvider.notifier).state = index;
+        
+        // Because IndexedStack keeps widgets alive, ProfileScreen's initState
+        // only runs once. We must explicitly trigger a refresh when the tab is tapped.
+        if (label == 'Profile') {
+          ref.read(authProvider.notifier).refreshUser();
+        }
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(

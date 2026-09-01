@@ -21,7 +21,16 @@ class AuthService {
       if (response.statusCode == 200 && response.data != null) {
         return LoginModel.fromJson(response.data);
       } else {
-        throw Exception(response.data?['error'] ?? 'Login failed');
+        String errMsg = 'Login failed';
+        if (response.data is Map) {
+          errMsg = response.data?['error'] ?? 
+                   response.data?['message'] ?? 
+                   response.data?['detail'] ?? 
+                   'Login failed';
+        } else if (response.data is String) {
+          errMsg = response.data;
+        }
+        throw Exception(errMsg);
       }
     } on DioException catch (e) {
       if (e.response != null) {
@@ -73,6 +82,9 @@ class AuthService {
         // Add status code information for better debugging
         if (e.response!.statusCode == 401) {
           errorMessage = 'Invalid credentials: $errorMessage';
+        } else if (e.response!.statusCode == 403) {
+          // Pass the exact suspension/deactivation message from the server
+          errorMessage = errorMessage;
         } else if (e.response!.statusCode == 422) {
           errorMessage = 'Validation Error: $errorMessage';
         } else if (e.response!.statusCode == 400) {
