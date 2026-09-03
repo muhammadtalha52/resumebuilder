@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import '../models/login_model.dart';
 import '../models/signup_request.dart';
 import '../models/student_signup_request.dart';
@@ -15,7 +17,7 @@ class AuthService {
     try {
       final response = await _apiClient.dio.post(
         ApiEndpoints.login,
-        data: {'email': email, 'password': password},
+        data: {'email': email, 'password': password, 'platform': 'app'},
       );
 
       if (response.statusCode == 200 && response.data != null) {
@@ -122,10 +124,10 @@ class AuthService {
     } on DioException catch (e) {
       // If API returns error, it might mean email already exists
       // Return false to indicate email is not available
-      print('Error checking email availability: ${e.message}');
+      debugPrint('Error checking email availability: ${e.message}');
       return false;
     } catch (e) {
-      print('Unexpected error checking email: $e');
+      debugPrint('Unexpected error checking email: $e');
       return false;
     }
   }
@@ -133,6 +135,7 @@ class AuthService {
   Future<LoginModel> register(SignUpRequest request) async {
     try {
       var requestData = {
+        'platform': 'app',
         'email': request.email,
         'password': request.password,
         'confirm_password': request.confirmPassword,
@@ -188,19 +191,43 @@ class AuthService {
           'location_preferences': request.locationPreferences,
       };
 
-      print(requestData);
+      debugPrint("==============================");
+      debugPrint("API URL: ${_apiClient.dio.options.baseUrl}${ApiEndpoints.register}");
+      debugPrint("Headers: ${_apiClient.dio.options.headers}");
+      debugPrint("Body: $requestData");
 
       final response = await _apiClient.dio.post(
         ApiEndpoints.register,
         data: requestData,
       );
+      
+      debugPrint("Response Status: ${response.statusCode}");
+      debugPrint("Response Data: ${response.data}");
+      debugPrint("==============================");
 
       if (response.statusCode == 201 && response.data != null) {
+        // Log successful signup to Firebase Analytics for Google Ads tracking
+        // Note: The 'source' parameter will be tracked even if not configured as a custom dimension in GA4.
+        try {
+          await FirebaseAnalytics.instance.logEvent(
+            name: 'ads_conversion_signup',
+            parameters: {
+              'signup_source': 'mobile_app',
+            },
+          );
+          debugPrint("🔥 FIREBASE EVENT TRIGGERED: ads_conversion_signup with params: {signup_source: mobile_app}");
+        } catch (e) {
+          debugPrint('🔥 Firebase Analytics error: $e');
+        }
         return LoginModel.fromJson(response.data);
       } else {
         throw Exception(response.data?['error'] ?? 'Registration failed');
       }
     } on DioException catch (e) {
+      debugPrint("Exception Occurred: ${e.message}");
+      debugPrint("Exception Response Status: ${e.response?.statusCode}");
+      debugPrint("Exception Response Data: ${e.response?.data}");
+      debugPrint("==============================");
       if (e.response != null) {
         final responseData = e.response!.data;
         String errorMessage = 'Registration failed';
@@ -272,20 +299,45 @@ class AuthService {
   Future<LoginModel> registerStudent(StudentSignupRequest request) async {
     try {
       final requestData = request.toJson();
+      requestData['platform'] = 'app';
 
-      print('Student Registration Data: $requestData');
+      debugPrint("==============================");
+      debugPrint("API URL: ${_apiClient.dio.options.baseUrl}${ApiEndpoints.register}");
+      debugPrint("Headers: ${_apiClient.dio.options.headers}");
+      debugPrint("Body: $requestData");
 
       final response = await _apiClient.dio.post(
         ApiEndpoints.register,
         data: requestData,
       );
+      
+      debugPrint("Response Status: ${response.statusCode}");
+      debugPrint("Response Data: ${response.data}");
+      debugPrint("==============================");
 
       if (response.statusCode == 201 && response.data != null) {
+        // Log successful signup to Firebase Analytics for Google Ads tracking
+        // Note: The 'source' parameter will be tracked even if not configured as a custom dimension in GA4.
+        try {
+          await FirebaseAnalytics.instance.logEvent(
+            name: 'ads_conversion_signup',
+            parameters: {
+              'signup_source': 'mobile_app',
+            },
+          );
+          debugPrint("🔥 FIREBASE EVENT TRIGGERED: ads_conversion_signup with params: {signup_source: mobile_app}");
+        } catch (e) {
+          debugPrint('🔥 Firebase Analytics error: $e');
+        }
         return LoginModel.fromJson(response.data);
       } else {
         throw Exception(response.data?['error'] ?? 'Registration failed');
       }
     } on DioException catch (e) {
+      debugPrint("Exception Occurred: ${e.message}");
+      debugPrint("Exception Response Status: ${e.response?.statusCode}");
+      debugPrint("Exception Response Data: ${e.response?.data}");
+      debugPrint("==============================");
       if (e.response != null) {
         final responseData = e.response!.data;
         String errorMessage = 'Registration failed';
@@ -360,21 +412,45 @@ class AuthService {
     required int role,
   }) async {
     try {
-      final requestData = {'email': email, 'password': password, 'role': role};
+      final requestData = {'email': email, 'password': password, 'role': role, 'platform': 'app'};
 
-      print('Simple Registration Data: $requestData');
+      debugPrint("==============================");
+      debugPrint("API URL: ${_apiClient.dio.options.baseUrl}${ApiEndpoints.registerSimple}");
+      debugPrint("Headers: ${_apiClient.dio.options.headers}");
+      debugPrint("Body: $requestData");
 
       final response = await _apiClient.dio.post(
         ApiEndpoints.registerSimple,
         data: requestData,
       );
+      
+      debugPrint("Response Status: ${response.statusCode}");
+      debugPrint("Response Data: ${response.data}");
+      debugPrint("==============================");
 
       if (response.statusCode == 201 && response.data != null) {
+        // Log successful signup to Firebase Analytics for Google Ads tracking
+        // Note: The 'source' parameter will be tracked even if not configured as a custom dimension in GA4.
+        try {
+          await FirebaseAnalytics.instance.logEvent(
+            name: 'ads_conversion_signup',
+            parameters: {
+              'signup_source': 'mobile_app',
+            },
+          );
+          debugPrint("🔥 FIREBASE EVENT TRIGGERED: ads_conversion_signup with params: {signup_source: mobile_app}");
+        } catch (e) {
+          debugPrint('🔥 Firebase Analytics error: $e');
+        }
         return LoginModel.fromJson(response.data);
       } else {
         throw Exception(response.data?['error'] ?? 'Registration failed');
       }
     } on DioException catch (e) {
+      debugPrint("Exception Occurred: ${e.message}");
+      debugPrint("Exception Response Status: ${e.response?.statusCode}");
+      debugPrint("Exception Response Data: ${e.response?.data}");
+      debugPrint("==============================");
       if (e.response != null) {
         final responseData = e.response!.data;
         String errorMessage = 'Registration failed';

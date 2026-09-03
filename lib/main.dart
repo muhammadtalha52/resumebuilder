@@ -11,16 +11,17 @@ import 'package:skillresy/services/app_logic.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase for Analytics and Google Ads tracking
+  await Firebase.initializeApp();
 
   await GetStorage.init();
   // Enable wakelock to keep screen on while app is open
   WakelockPlus.enable();
-  // Create ProviderContainer for dependency injection
-  final container = ProviderContainer();
-  registerSingletons(container);
   // Load environment variables (API keys, etc.) - optional if file doesn't exist
   try {
     await dotenv.load(fileName: ".env");
@@ -30,6 +31,10 @@ Future<void> main() async {
     // Continue without .env file - secure_keys.dart will handle key retrieval
   }
 
+  // Create ProviderContainer for dependency injection
+  final container = ProviderContainer();
+  registerSingletons(container);
+
   // Lock app to portrait mode only
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -38,7 +43,7 @@ Future<void> main() async {
   await SentryFlutter.init(
     (options) {
       options.dsn =
-          'https://8da8c435c5a2649ebf4f34c2075e7068@o4510670412578816.ingest.us.sentry.io/4510670481588224';
+          'https://8da8c435c5a2649ebf4f34c2075e7068@o4510670412578816.ingesttalha.us.sentry.io/4510670481588224';
       // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
       // We recommend adjusting this value in production.
       options.tracesSampleRate = 1.0;
