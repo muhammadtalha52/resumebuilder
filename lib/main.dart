@@ -12,6 +12,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:skillresy/utils/custom_upgrade_alert.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -74,6 +75,12 @@ class SkillResyApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.light,
       routerConfig: appRouter,
+      builder: (context, child) {
+        return CustomUpgradeAlert(
+          navigatorKey: appRouter.routerDelegate.navigatorKey,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }
