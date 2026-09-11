@@ -30,6 +30,7 @@ class _CustomUpgradeAlertState extends State<CustomUpgradeAlert> {
 
   Future<void> _checkVersion() async {
     try {
+      debugPrint('--- CUSTOM UPGRADE ALERT: Checking version ---');
       final remoteConfig = FirebaseRemoteConfig.instance;
       // Fetch instantly for testing, but in production this can be cached
       await remoteConfig.setConfigSettings(RemoteConfigSettings(
@@ -42,21 +43,30 @@ class _CustomUpgradeAlertState extends State<CustomUpgradeAlert> {
         'min_app_version': '1.0.0',
       });
       
-      await remoteConfig.fetchAndActivate();
+      final activated = await remoteConfig.fetchAndActivate();
+      debugPrint('--- CUSTOM UPGRADE ALERT: fetchAndActivate returned $activated ---');
 
       final minVersion = remoteConfig.getString('min_app_version');
-      if (minVersion.isEmpty) return;
+      debugPrint('--- CUSTOM UPGRADE ALERT: Firebase minVersion is "$minVersion" ---');
+      if (minVersion.isEmpty) {
+        debugPrint('--- CUSTOM UPGRADE ALERT: minVersion was empty. Aborting check. ---');
+        return;
+      }
 
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
+      debugPrint('--- CUSTOM UPGRADE ALERT: Local app currentVersion is "$currentVersion" ---');
 
       if (_isVersionLower(currentVersion, minVersion)) {
+        debugPrint('--- CUSTOM UPGRADE ALERT: Local version is lower! Showing dialog! ---');
         setState(() {
           _shouldDisplay = true;
         });
+      } else {
+        debugPrint('--- CUSTOM UPGRADE ALERT: Local version is OK. ---');
       }
     } catch (e) {
-      debugPrint('Error checking remote config version: $e');
+      debugPrint('--- CUSTOM UPGRADE ALERT Error: $e ---');
     }
   }
 
