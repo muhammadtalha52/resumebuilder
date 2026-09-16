@@ -61,7 +61,7 @@ class SecureKeys {
 
     // Layer 2: Get from .env file and store encrypted in secure storage
     try {
-      final envKey = dotenv.env['DEEPGRAM_API_KEY'];
+      final envKey = dotenv.env['VITE_ASSEMBLY_API_KEY'];
       if (envKey != null && envKey.isNotEmpty) {
         // Encrypt and store for next time
         final encrypted = _encrypt(envKey);
@@ -79,7 +79,7 @@ class SecureKeys {
     throw Exception(
       'Deepgram API key not configured!\n\n'
       'Please add to your .env file:\n'
-      'DEEPGRAM_API_KEY=your-key-here\n\n'
+      'VITE_ASSEMBLY_API_KEY=your-key-here\n\n'
       'Get your key from: https://console.deepgram.com/',
     );
   }
