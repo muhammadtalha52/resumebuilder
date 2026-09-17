@@ -255,6 +255,7 @@ class ContinuousTranscriptionNotifier
 
     // Reset the UI state but KEEP session metadata if it exists
     state = InterviewSessionData(
+      state: InterviewSessionState.listening, // Set directly to listening to prevent UI auto-transition race condition
       sessionId: currentSessionId,
       sessionType: currentSessionType,
       role: currentRole,

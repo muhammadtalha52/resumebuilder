@@ -155,6 +155,7 @@ class AssemblyAiAudioTranscriber extends AudioTranscriber {
 
   void _onMessage(dynamic message) {
     if (message is! String) return;
+    
     final data = jsonDecode(message) as Map<String, dynamic>;
 
     if (data['type'] == 'Termination') {
@@ -172,7 +173,13 @@ class AssemblyAiAudioTranscriber extends AudioTranscriber {
     // An ended turn arrives twice: first without punctuation, then formatted. Keep only the formatted one.
     if (endOfTurn && data['turn_is_formatted'] != true) return;
 
-    final speakerId = _speakerFor(data['speaker_label'] as String?);
+    // Check both possible keys AssemblyAI might use for the speaker
+    final rawSpeaker = data['speaker_label']?.toString() ?? data['speaker']?.toString();
+    
+    // Debug log to see exactly what AssemblyAI is returning for speakers
+    debugPrint('[AssemblyAI Turn] text: "$text", speaker: "$rawSpeaker", endOfTurn: $endOfTurn');
+
+    final speakerId = _speakerFor(rawSpeaker);
 
     if (endOfTurn) {
       _speakerSegments.add(SpeakerSegment(
