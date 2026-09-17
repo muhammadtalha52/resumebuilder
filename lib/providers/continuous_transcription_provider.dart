@@ -10,7 +10,7 @@ import '../services/interview_service.dart';
 import '../services/subscription_service.dart';
 import '../services/api_client.dart';
 import '../services/transcription/transcriber_interface.dart';
-import '../services/transcription/deepgram_audio_transcriber.dart';
+import '../services/transcription/assembly_ai_transcriber.dart';
 import 'usage_provider.dart';
 
 enum InterviewSessionState {
@@ -210,10 +210,10 @@ class ContinuousTranscriptionNotifier
     _subscriptionService = SubscriptionService(apiClient);
   }
 
-  // Create Deepgram transcriber for real-time word-by-word streaming
+  // Create AssemblyAI transcriber for real-time streaming
   AudioTranscriber _createTranscriber() {
-    print('[FACTORY] Creating Deepgram transcriber');
-    return DeepgramAudioTranscriber();
+    print('[FACTORY] Creating AssemblyAI transcriber');
+    return AssemblyAiAudioTranscriber();
   }
 
   // Listen to audio transcriber updates and sync with provider state

@@ -8,7 +8,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class SecureKeys {
   static const _storage = FlutterSecureStorage();
   static const _keyStorageName = 'oai_k';
-  static const _deepgramKeyStorageName = 'dg_k';
+  static const _assemblyAiKeyStorageName = 'assembly_k';
 
   // Obfuscated encryption key parts (split to avoid easy detection)
   static String _getP1() => 'SkR3';
@@ -47,11 +47,11 @@ class SecureKeys {
     return decrypted;
   }
 
-  /// Get Deepgram API key with multi-layer security
-  static Future<String> getDeepgramKey() async {
-    // Layer 1: Try to get from secure storage (Android Keystore/iOS Keychain)
+  /// Get AssemblyAI API key with multi-layer security
+  static Future<String> getAssemblyAiKey() async {
+    // Layer 1: Try to get from secure storage
     try {
-      final storedKey = await _storage.read(key: _deepgramKeyStorageName);
+      final storedKey = await _storage.read(key: _assemblyAiKeyStorageName);
       if (storedKey != null && storedKey.isNotEmpty) {
         return _decrypt(storedKey);
       }
@@ -59,14 +59,14 @@ class SecureKeys {
       // If secure storage fails, fall through to environment variable
     }
 
-    // Layer 2: Get from .env file and store encrypted in secure storage
+    // Layer 2: Get from .env file
     try {
-      final envKey = dotenv.env['VITE_ASSEMBLY_API_KEY'];
+      final envKey = dotenv.env['ASSEMBLY_API_KEY'] ?? dotenv.env['ASSEMBLY_API_KEY'];
       if (envKey != null && envKey.isNotEmpty) {
         // Encrypt and store for next time
         final encrypted = _encrypt(envKey);
         try {
-          await _storage.write(key: _deepgramKeyStorageName, value: encrypted);
+          await _storage.write(key: _assemblyAiKeyStorageName, value: encrypted);
         } catch (e) {
           // Ignore storage errors
         }
@@ -77,10 +77,10 @@ class SecureKeys {
     }
 
     throw Exception(
-      'Deepgram API key not configured!\n\n'
+      'ASSEMBLYAI API KEY not configured!\n\n'
       'Please add to your .env file:\n'
-      'VITE_ASSEMBLY_API_KEY=your-key-here\n\n'
-      'Get your key from: https://console.deepgram.com/',
+      'ASSEMBLY_API_KEY=your-key-here\n\n'
+      'Get your key from: https://www.assemblyai.com/',
     );
   }
 
@@ -93,10 +93,10 @@ class SecureKeys {
     }
   }
 
-  /// Clear stored Deepgram key
-  static Future<void> clearDeepgramKey() async {
+  /// Clear stored AssemblyAI key
+  static Future<void> clearAssemblyAiKey() async {
     try {
-      await _storage.delete(key: _deepgramKeyStorageName);
+      await _storage.delete(key: _assemblyAiKeyStorageName);
     } catch (e) {
       // Ignore errors
     }
