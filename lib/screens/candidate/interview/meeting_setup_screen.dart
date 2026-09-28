@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +15,7 @@ import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/custom_button.dart';
 import '../../../widgets/common/custom_picker_field.dart';
 import '../../../widgets/common/custom_text_field.dart';
+import '../../../widgets/dialogs/ai_consent_dialog.dart';
 import '../../../widgets/dialogs/confirmation_dialog.dart';
 
 class MeetingSetupScreen extends ConsumerStatefulWidget {
@@ -192,6 +194,20 @@ class _State extends ConsumerState<MeetingSetupScreen> {
         interviewType: _selectedSessionType,
         roleIndustry: _roleIndustryController.text.trim(),
       );
+
+      // Check iOS AI third-party data consent compliance before proceeding to session
+      if (Platform.isIOS) {
+        if (!mounted) return;
+        final consentGranted = await AIConsentDialog.showIfNeeded(context);
+        if (!consentGranted) {
+          if (mounted) {
+            setState(() {
+              _isCheckingCredits = false;
+            });
+          }
+          return;
+        }
+      }
 
       // Navigate to session screen
       if (mounted) {

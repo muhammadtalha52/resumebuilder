@@ -587,18 +587,37 @@ class AuthService {
     }
   }
 
-  Future<void> deleteAccount({required int userId}) async {
+  Future<void> deleteAccount() async {
     try {
       final response = await _apiClient.dio.delete(
         ApiEndpoints.deleteAccount,
+        data: {'confirm': 'DELETE'},
         options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
       );
 
-      if (response.statusCode == 204 || response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 204) {
         // Account deleted successfully
         return;
       } else {
-        throw Exception(response.data?['error'] ?? 'Failed to delete account');
+        String errorMessage = 'Failed to delete account';
+        if (response.data != null) {
+          if (response.data is Map) {
+            errorMessage = response.data['message']?.toString() ??
+                response.data['error']?.toString() ??
+                response.data['detail']?.toString() ??
+                'Failed to delete account';
+          } else if (response.data is String) {
+            errorMessage = response.data;
+          }
+        }
+
+        if (response.statusCode == 500) {
+          errorMessage = "We couldn't delete your account, please try again.";
+        } else if (response.statusCode == 401 || response.statusCode == 403) {
+          errorMessage = 'Session expired. Please log in again.';
+        }
+
+        throw Exception(errorMessage);
       }
     } on DioException catch (e) {
       if (e.response != null) {
@@ -607,10 +626,10 @@ class AuthService {
 
         // Handle different error response formats
         if (responseData is Map) {
-          if (responseData.containsKey('error')) {
-            errorMessage = responseData['error'].toString();
-          } else if (responseData.containsKey('message')) {
+          if (responseData.containsKey('message')) {
             errorMessage = responseData['message'].toString();
+          } else if (responseData.containsKey('error')) {
+            errorMessage = responseData['error'].toString();
           } else if (responseData.containsKey('detail')) {
             errorMessage = responseData['detail'].toString();
           } else {
@@ -621,7 +640,9 @@ class AuthService {
         }
 
         // Add status code information
-        if (e.response!.statusCode == 404) {
+        if (e.response!.statusCode == 500) {
+          errorMessage = "We couldn't delete your account, please try again.";
+        } else if (e.response!.statusCode == 404) {
           errorMessage = 'Account not found: $errorMessage';
         } else if (e.response!.statusCode == 403) {
           errorMessage = 'Access denied: $errorMessage';

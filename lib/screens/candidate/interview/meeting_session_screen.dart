@@ -11,6 +11,7 @@ import '../../../constants/app_colors.dart';
 import '../../../models/conversation_models.dart';
 import '../../../providers/continuous_transcription_provider.dart';
 import '../../../providers/interview_session_provider.dart';
+import '../../../widgets/dialogs/ai_consent_dialog.dart';
 import '../../../widgets/dialogs/confirmation_dialog.dart';
 import '../../../widgets/dialogs/notification_dialog.dart';
 
@@ -27,7 +28,13 @@ class MeetingSessionScreen extends ConsumerWidget {
     if (sessionData.sessionId != null &&
         sessionData.sessionId!.isNotEmpty &&
         sessionData.state == InterviewSessionState.idle) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (Platform.isIOS) {
+          final consentGranted = await AIConsentDialog.showIfNeeded(context);
+          if (!consentGranted) {
+            return;
+          }
+        }
         print(
           '[AUTO-TRANSITION] Session ID exists but in idle state, transitioning to listening',
         );
@@ -344,11 +351,11 @@ class MeetingSessionScreen extends ConsumerWidget {
 
                     // Bottom section - conditional based on session state
                     if (sessionData.state != InterviewSessionState.idle)
-                      _buildBottomSection(ref, sessionData, sessionNotifier),
+                      _buildBottomSection(context, ref, sessionData, sessionNotifier),
 
                     // Start button for idle state
                     if (sessionData.state == InterviewSessionState.idle)
-                      _buildStartSessionButton(ref, sessionNotifier),
+                      _buildStartSessionButton(context, ref, sessionNotifier),
                   ],
                 ),
               ),
@@ -543,13 +550,14 @@ class MeetingSessionScreen extends ConsumerWidget {
 
   // Bottom section - conditional based on session state
   Widget _buildBottomSection(
+    BuildContext context,
     WidgetRef ref,
     InterviewSessionData sessionData,
     ContinuousTranscriptionNotifier sessionNotifier,
   ) {
     switch (sessionData.state) {
       case InterviewSessionState.idle:
-        return _buildStartSessionButton(ref, sessionNotifier);
+        return _buildStartSessionButton(context, ref, sessionNotifier);
       case InterviewSessionState.paused:
         return _buildPausedStatus();
       case InterviewSessionState.listening:
@@ -563,6 +571,7 @@ class MeetingSessionScreen extends ConsumerWidget {
   }
 
   Widget _buildStartSessionButton(
+    BuildContext context,
     WidgetRef ref,
     ContinuousTranscriptionNotifier sessionNotifier,
   ) {
@@ -594,24 +603,38 @@ class MeetingSessionScreen extends ConsumerWidget {
                 }
 
                 // Show error if no internet connection
-                if (!hasInternet && ref.context.mounted) {
-                  await showConfirmationDialog(
-                    context: ref.context,
-                    title: 'No Internet Connection',
-                    subtitle:
-                        'Please check your internet connection and try again. Your credits will not be used.',
-                    icon: Icons.wifi_off,
-                    iconBackgroundColor: Colors.red,
-                    confirmText: 'OK',
-                    confirmButtonColor: Colors.red,
-                    confirmTextColor: Colors.white,
-                  );
+                if (!hasInternet) {
+                  if (context.mounted) {
+                    await showConfirmationDialog(
+                      context: context,
+                      title: 'No Internet Connection',
+                      subtitle:
+                          'Please check your internet connection and try again. Your credits will not be used.',
+                      icon: Icons.wifi_off,
+                      iconBackgroundColor: Colors.red,
+                      confirmText: 'OK',
+                      confirmButtonColor: Colors.red,
+                      confirmTextColor: Colors.white,
+                    );
+                  }
                   return;
                 }
 
+                // Check iOS AI third-party data consent compliance before mic access
+                if (Platform.isIOS) {
+                  if (!context.mounted) return;
+                  final consentGranted =
+                      await AIConsentDialog.showIfNeeded(context);
+                  if (!consentGranted) {
+                    return;
+                  }
+                }
+
+                if (!context.mounted) return;
+
                 // Show confirmation dialog before starting session
                 final confirmed = await showConfirmationDialog(
-                  context: ref.context,
+                  context: context,
                   title: 'Ready to Start?',
                   subtitle:
                       'Your session will begin and Scout will start listening',

@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../models/conversation_models.dart';
 import '../models/interview_session_models.dart';
+import '../services/ai_consent_service.dart';
 import '../services/interview_service.dart';
 import '../services/subscription_service.dart';
 import '../services/api_client.dart';
@@ -270,7 +271,16 @@ class ContinuousTranscriptionNotifier
     _lastSavedSpeakerSegmentCount = 0;
 
     try {
-      // Request microphone permission on Android (iOS handles it automatically)
+      // Gate iOS AI disclosure consent before mic access
+      if (Platform.isIOS) {
+        final hasConsent = await AIConsentService.hasConsent();
+        if (!hasConsent) {
+          print('AI data consent not yet granted on iOS, aborting audio start');
+          return;
+        }
+      }
+
+      // Request microphone permission on Android
       if (Platform.isAndroid) {
         print('Requesting microphone permission on Android...');
         final micPermission = await Permission.microphone.request();
@@ -462,6 +472,15 @@ class ContinuousTranscriptionNotifier
     print('[TRANSITION] Current session ID: ${state.sessionId}');
 
     try {
+      // Gate iOS AI disclosure consent before mic access
+      if (Platform.isIOS) {
+        final hasConsent = await AIConsentService.hasConsent();
+        if (!hasConsent) {
+          print('AI data consent not yet granted on iOS, aborting audio start');
+          return;
+        }
+      }
+
       // Don't reset any session data, just transition state and start audio
       state = state.copyWith(
         state: InterviewSessionState.listening,

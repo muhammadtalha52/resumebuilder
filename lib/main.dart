@@ -12,13 +12,16 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:skillresy/firebase_options.dart';
 import 'package:skillresy/utils/custom_upgrade_alert.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize Firebase for Analytics and Google Ads tracking
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   await GetStorage.init();
   // Enable wakelock to keep screen on while app is open
