@@ -30,6 +30,7 @@ class ApiEndpoints {
   static const String profileUpdate = '/auth/profile/';
   static const String uploadProfilePhoto = '/auth/upload-profile-image/';
   static const String deleteAccount = '/auth/delete-user-data/';
+  static const String aiConsent = '/auth/ai-consent/';
   static const String educationData =
       '/resume/degree-types-subject-institutes/';
   static const String sessionStart = '/session/start';

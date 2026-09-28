@@ -195,18 +195,16 @@ class _State extends ConsumerState<MeetingSetupScreen> {
         roleIndustry: _roleIndustryController.text.trim(),
       );
 
-      // Check iOS AI third-party data consent compliance before proceeding to session
-      if (Platform.isIOS) {
-        if (!mounted) return;
-        final consentGranted = await AIConsentDialog.showIfNeeded(context);
-        if (!consentGranted) {
-          if (mounted) {
-            setState(() {
-              _isCheckingCredits = false;
-            });
-          }
-          return;
+      // Check AI third-party data consent compliance before proceeding to session
+      if (!mounted) return;
+      final consentGranted = await AIConsentDialog.showIfNeeded(context, isResume: false);
+      if (!consentGranted) {
+        if (mounted) {
+          setState(() {
+            _isCheckingCredits = false;
+          });
         }
+        return;
       }
 
       // Navigate to session screen

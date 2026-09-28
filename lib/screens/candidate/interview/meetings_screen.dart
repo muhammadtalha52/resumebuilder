@@ -83,13 +83,13 @@ class MeetingScreen extends ConsumerWidget {
                       children: [
                         Image.asset(
                           'assets/icons/interview-fox.png',
-                          height: 150,
+                          height: 120,
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 22),
                         _buildHeaderText(),
                         const SizedBox(height: 16),
                         _buildSubtitleText(),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 22),
                         _buildStartButton(context),
                         const SizedBox(height: 12),
                         _buildPracticeButton(context),
@@ -98,7 +98,7 @@ class MeetingScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+             
             ],
           ),
         ),

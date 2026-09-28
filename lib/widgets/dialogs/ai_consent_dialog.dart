@@ -10,7 +10,8 @@ import '../../utils/url_launcher_utils.dart';
 ///
 /// This dialog explains third-party voice/transcript processing before microphone permission is requested.
 class AIConsentDialog extends StatelessWidget {
-  const AIConsentDialog({super.key});
+  final bool isResume;
+  const AIConsentDialog({super.key, this.isResume = false});
 
   /// Static helper to check and show the consent dialog if required.
   ///
@@ -18,12 +19,13 @@ class AIConsentDialog extends StatelessWidget {
   /// - On iOS/iPadOS, returns `true` if consent was already given.
   /// - If not yet given on iOS/iPadOS, presents the dialog and returns `true` if the user taps "I Agree",
   ///   or `false` if the user taps "Cancel".
-  static Future<bool> showIfNeeded(BuildContext context) async {
-    if (!Platform.isIOS) {
-      return true; // Android is completely bypassed
-    }
+  static Future<bool> showIfNeeded(BuildContext context, {bool isResume = false}) async {
+    // NOTE: Temporarily commented out for testing so you can see it on Android!
+    // if (!Platform.isIOS) {
+    //   return true; // Android is completely bypassed
+    // }
 
-    final hasConsent = await AIConsentService.hasConsent();
+    final hasConsent = await AIConsentService.hasConsent(isResume: isResume);
     if (hasConsent) {
       return true;
     }
@@ -33,7 +35,7 @@ class AIConsentDialog extends StatelessWidget {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext dialogContext) => const AIConsentDialog(),
+      builder: (BuildContext dialogContext) => AIConsentDialog(isResume: isResume),
     );
 
     return result == true;
@@ -70,8 +72,9 @@ class AIConsentDialog extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
           children: [
             // Mascot / Fox icon at top
             Container(
@@ -113,7 +116,9 @@ class AIConsentDialog extends StatelessWidget {
 
             // Body
             Text(
-              'SkillResy uses a third-party AI service to transcribe and generate interview practice responses from your voice input. Your voice/transcript data will be sent to this service for this purpose only.',
+              isResume 
+                ? 'To craft your professional resume, SkillResy sends your profile data to OpenAI, which securely processes and formats your tailored resume.'
+                : 'To coach you during the interview, SkillResy sends your microphone audio to AssemblyAI, which turns it into text, and that text to OpenAI, which writes the questions and feedback you see. We do not keep an audio recording — only the written transcript, in your account.',
               style: textTheme.bodyMedium?.copyWith(
                 fontSize: 14.5,
                 height: 1.45,
@@ -161,10 +166,15 @@ class AIConsentDialog extends StatelessWidget {
             // Action Buttons (Cancel / I Agree)
             Row(
               children: [
-                // Cancel Button
+                // Reject Button
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(false),
+                    onPressed: () async {
+                      await AIConsentService.acceptConsent(isResume: isResume, accepted: false);
+                      if (context.mounted) {
+                        Navigator.of(context).pop(false);
+                      }
+                    },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: isDark ? Colors.white70 : AppColors.greyDark,
                       side: BorderSide(
@@ -177,7 +187,7 @@ class AIConsentDialog extends StatelessWidget {
                       ),
                     ),
                     child: const Text(
-                      'Cancel',
+                      'Reject',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -187,11 +197,11 @@ class AIConsentDialog extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
 
-                // I Agree Button
+                // Agree Button
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () async {
-                      await AIConsentService.acceptConsent();
+                      await AIConsentService.acceptConsent(isResume: isResume);
                       if (context.mounted) {
                         Navigator.of(context).pop(true);
                       }
@@ -206,7 +216,7 @@ class AIConsentDialog extends StatelessWidget {
                       ),
                     ),
                     child: const Text(
-                      'I Agree',
+                      'Agree',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -218,6 +228,7 @@ class AIConsentDialog extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

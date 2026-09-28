@@ -147,18 +147,16 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
         roleIndustry: _roleIndustryController.text.trim(),
       );
 
-      // Check iOS AI third-party data consent compliance before proceeding to practice session
-      if (Platform.isIOS) {
-        if (!mounted) return;
-        final consentGranted = await AIConsentDialog.showIfNeeded(context);
-        if (!consentGranted) {
-          if (mounted) {
-            setState(() {
-              _isCheckingCredits = false;
-            });
-          }
-          return;
+      // Check AI third-party data consent compliance before proceeding to practice session
+      if (!mounted) return;
+      final consentGranted = await AIConsentDialog.showIfNeeded(context, isResume: false);
+      if (!consentGranted) {
+        if (mounted) {
+          setState(() {
+            _isCheckingCredits = false;
+          });
         }
+        return;
       }
 
       // Navigate to practice session screen
