@@ -11,7 +11,8 @@ import '../../utils/url_launcher_utils.dart';
 /// This dialog explains third-party voice/transcript processing before microphone permission is requested.
 class AIConsentDialog extends StatelessWidget {
   final bool isResume;
-  const AIConsentDialog({super.key, this.isResume = false});
+  final bool isQuiz;
+  const AIConsentDialog({super.key, this.isResume = false, this.isQuiz = false});
 
   /// Static helper to check and show the consent dialog if required.
   ///
@@ -19,13 +20,13 @@ class AIConsentDialog extends StatelessWidget {
   /// - On iOS/iPadOS, returns `true` if consent was already given.
   /// - If not yet given on iOS/iPadOS, presents the dialog and returns `true` if the user taps "I Agree",
   ///   or `false` if the user taps "Cancel".
-  static Future<bool> showIfNeeded(BuildContext context, {bool isResume = false}) async {
+  static Future<bool> showIfNeeded(BuildContext context, {bool isResume = false, bool isQuiz = false}) async {
     // NOTE: Temporarily commented out for testing so you can see it on Android!
     // if (!Platform.isIOS) {
     //   return true; // Android is completely bypassed
     // }
 
-    final hasConsent = await AIConsentService.hasConsent(isResume: isResume);
+    final hasConsent = await AIConsentService.hasConsent(isResume: isResume, isQuiz: isQuiz);
     if (hasConsent) {
       return true;
     }
@@ -35,7 +36,7 @@ class AIConsentDialog extends StatelessWidget {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext dialogContext) => AIConsentDialog(isResume: isResume),
+      builder: (BuildContext dialogContext) => AIConsentDialog(isResume: isResume, isQuiz: isQuiz),
     );
 
     return result == true;
@@ -118,6 +119,7 @@ class AIConsentDialog extends StatelessWidget {
             Text(
               isResume 
                 ? 'To craft your professional resume, SkillResy sends your profile data to OpenAI, which securely processes and formats your tailored resume.'
+                :isQuiz? 'To generate a quiz from your document, SkillResy sends your document text to OpenAI, which securely processes it to create tailored quiz questions for your study session'
                 : 'To coach you during the interview, SkillResy sends your microphone audio to AssemblyAI, which turns it into text, and that text to OpenAI, which writes the questions and feedback you see. We do not keep an audio recording — only the written transcript, in your account.',
               style: textTheme.bodyMedium?.copyWith(
                 fontSize: 14.5,
@@ -170,7 +172,7 @@ class AIConsentDialog extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () async {
-                      await AIConsentService.acceptConsent(isResume: isResume, accepted: false);
+                      await AIConsentService.acceptConsent(isResume: isResume, isQuiz: isQuiz, accepted: false);
                       if (context.mounted) {
                         Navigator.of(context).pop(false);
                       }
@@ -201,7 +203,7 @@ class AIConsentDialog extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () async {
-                      await AIConsentService.acceptConsent(isResume: isResume);
+                      await AIConsentService.acceptConsent(isResume: isResume, isQuiz: isQuiz);
                       if (context.mounted) {
                         Navigator.of(context).pop(true);
                       }
@@ -221,9 +223,9 @@ class AIConsentDialog extends StatelessWidget {
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
-                    ),
+                    )),
                   ),
-                ),
+                
               ],
             ),
           ],

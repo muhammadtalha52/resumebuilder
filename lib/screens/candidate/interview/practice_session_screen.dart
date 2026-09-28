@@ -599,7 +599,7 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen> {
                     child: Text(
                       fullTranscript.isNotEmpty
                           ? fullTranscript
-                          : 'Listening...',
+                          : 'Recording...',
                       style: TextStyle(
                         fontSize: 14,
                         color: fullTranscript.isNotEmpty

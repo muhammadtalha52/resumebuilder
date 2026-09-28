@@ -41,6 +41,8 @@
 	<string>This app needs your location to suggest your hometown and state during signup</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs your location to suggest your hometown and state during signup</string>
+	<key>NSLocationDefaultAccuracyReduced</key>
+	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app needs access to your microphone to record and transcribe interview conversations for AI assistance</string>
 	<key>NSPhotoLibraryUsageDescription</key>

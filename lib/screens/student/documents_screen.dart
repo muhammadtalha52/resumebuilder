@@ -19,6 +19,7 @@ import '../../utils/s3_utils.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/dialogs/confirmation_dialog.dart';
+import '../../widgets/dialogs/ai_consent_dialog.dart';
 import '../../widgets/dialogs/delete_confirmation_dialog.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
@@ -594,8 +595,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.upload_file, color: AppColors.accent, size: 22),
-                    const SizedBox(width: 12),
                     const Text(
                       'Upload Your First Document',
                       style: TextStyle(
@@ -826,6 +825,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     DocumentSelectionState selectionState,
   ) async {
     if (selectionState.selectedDocuments.isEmpty) return;
+
+    if (!context.mounted) return;
+    final hasConsent = await AIConsentDialog.showIfNeeded(
+      context,
+      isQuiz: true,
+    );
+    if (!hasConsent) return;
 
     // Check if user has quiz generation credits
     try {

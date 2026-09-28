@@ -322,7 +322,8 @@ class _StudySpaceScreenState extends ConsumerState<StudySpaceScreen> {
             ),
           ],
         ),
-        child: Column(
+        child: SingleChildScrollView(
+          child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Scout fox image
@@ -376,6 +377,7 @@ class _StudySpaceScreenState extends ConsumerState<StudySpaceScreen> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

@@ -1422,7 +1422,7 @@ class _TranscriptSectionState extends ConsumerState<TranscriptSection> {
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    'Scout is listening...',
+                                    'Recording (Scout is listening...)',
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: Colors.lightBlueAccent,

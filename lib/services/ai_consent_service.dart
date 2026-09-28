@@ -19,8 +19,8 @@ class AIConsentService {
   static const int currentConsentVersion = 1;
 
   /// Returns true if the user has accepted third-party AI data consent.
-  static Future<bool> hasConsent({bool isResume = false}) async {
-    debugPrint("=== AI CONSENT CHECK (isResume: $isResume) ===");
+  static Future<bool> hasConsent({bool isResume = false, bool isQuiz = false}) async {
+    debugPrint("=== AI CONSENT CHECK (isResume: $isResume, isQuiz: $isQuiz) ===");
     
     // NOTE: Commented out iOS-only check so you can test this on Android!
     // if (!Platform.isIOS) {
@@ -30,7 +30,7 @@ class AIConsentService {
 
     try {
       final dio = APIClient().dio;
-      final providers = isResume ? ["OpenAI"] : ["AssemblyAI", "OpenAI"];
+      final providers = (isResume || isQuiz) ? ["OpenAI"] : ["AssemblyAI", "OpenAI"];
       final queryParam = providers.join(',');
       
       final url = '${ApiEndpoints.aiConsent}?providers=$queryParam';
@@ -66,7 +66,7 @@ class AIConsentService {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final key = isResume ? _resumeConsentKey : _consentKey;
+      final key = isQuiz ? 'ai_quiz_consent_given' : (isResume ? _resumeConsentKey : _consentKey);
       final hasAccepted = prefs.getBool(key) ?? false;
       final savedVersion = prefs.getInt(_consentVersionKey) ?? 0;
       
@@ -78,11 +78,11 @@ class AIConsentService {
   }
 
   /// Persists user consent to backend and locally.
-  static Future<void> acceptConsent({bool isResume = false, bool accepted = true}) async {
-    debugPrint("=== POSTING AI CONSENT (Accepted: $accepted, isResume: $isResume) ===");
+  static Future<void> acceptConsent({bool isResume = false, bool isQuiz = false, bool accepted = true}) async {
+    debugPrint("=== POSTING AI CONSENT (Accepted: $accepted, isResume: $isResume, isQuiz: $isQuiz) ===");
     try {
       final dio = APIClient().dio;
-      final providers = isResume ? ["OpenAI"] : ["AssemblyAI", "OpenAI"];
+      final providers = (isResume || isQuiz) ? ["OpenAI"] : ["AssemblyAI", "OpenAI"];
       
       final payload = {
         "accepted": accepted,
@@ -106,7 +106,7 @@ class AIConsentService {
     if (accepted) {
       try {
         final prefs = await SharedPreferences.getInstance();
-        final key = isResume ? _resumeConsentKey : _consentKey;
+        final key = isQuiz ? 'ai_quiz_consent_given' : (isResume ? _resumeConsentKey : _consentKey);
         await prefs.setBool(key, true);
         await prefs.setInt(_consentVersionKey, currentConsentVersion);
         debugPrint("Saved to local SharedPreferences as fallback.");

@@ -143,7 +143,7 @@ class AuthService {
         'first_name': request.firstName,
         'last_name': request.lastName,
         'phone_number': request.phoneNumber,
-        'date_of_birth': request.dateOfBirth,
+        if (request.dateOfBirth != null) 'date_of_birth': request.dateOfBirth,
         'address': request.address,
         'city': request.city,
         'state': request.userState,

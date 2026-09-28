@@ -10,6 +10,7 @@ class OnboardingState {
   final String? fullName;
   final String? email;
   final String? phone;
+  final String? dateOfBirth;
   final String? linkedIn;
   final String? website;
   final String? password;
@@ -29,6 +30,7 @@ class OnboardingState {
     this.fullName,
     this.email,
     this.phone,
+    this.dateOfBirth,
     this.linkedIn,
     this.website,
     this.password,
@@ -49,6 +51,7 @@ class OnboardingState {
     String? fullName,
     String? email,
     String? phone,
+    String? dateOfBirth,
     String? linkedIn,
     String? website,
     String? password,
@@ -69,6 +72,7 @@ class OnboardingState {
       fullName: fullName ?? this.fullName,
       email: email ?? this.email,
       phone: phone ?? this.phone,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       linkedIn: linkedIn ?? this.linkedIn,
       website: website ?? this.website,
       password: password ?? this.password,
@@ -96,6 +100,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     required String fullName,
     required String email,
     required String phone,
+      String? dateOfBirth,
     String? linkedIn,
     String? website,
   }) {
@@ -103,6 +108,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       fullName: fullName,
       email: email,
       phone: phone,
+        dateOfBirth: dateOfBirth,
       linkedIn: linkedIn,
       website: website,
     );
