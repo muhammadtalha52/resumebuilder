@@ -460,6 +460,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
     // Reset auth state
     state = const AuthState();
   }
+
+  /// Delete user account and all associated data
+  Future<void> deleteAccount() async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final authService = _ref.read(authServiceProvider);
+      await authService.deleteAccount();
+
+      // Clear all user data, cached preferences, and reset providers
+      signOut();
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString().replaceAll('Exception: ', ''),
+      );
+      rethrow;
+    }
+  }
 }
 
 // Provider

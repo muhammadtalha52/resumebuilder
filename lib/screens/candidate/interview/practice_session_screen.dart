@@ -11,6 +11,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/continuous_transcription_provider.dart';
 import '../../../providers/interview_session_provider.dart';
 import '../../../widgets/common/custom_button.dart';
+import '../../../widgets/dialogs/ai_consent_dialog.dart';
 import '../../../widgets/dialogs/confirmation_dialog.dart';
 import '../../../widgets/dialogs/notification_dialog.dart';
 
@@ -949,6 +950,17 @@ class _PracticeSessionScreenState extends ConsumerState<PracticeSessionScreen> {
       );
       return;
     }
+
+    // Check iOS AI third-party data consent compliance before mic access
+    if (Platform.isIOS) {
+      if (!mounted) return;
+      final consentGranted = await AIConsentDialog.showIfNeeded(context);
+      if (!consentGranted) {
+        return;
+      }
+    }
+
+    if (!mounted) return;
 
     // Show confirmation dialog
     final confirmed = await showConfirmationDialog(

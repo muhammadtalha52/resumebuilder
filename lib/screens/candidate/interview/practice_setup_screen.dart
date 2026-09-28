@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,7 @@ import '../../../providers/usage_provider.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/custom_button.dart';
 import '../../../widgets/common/custom_text_field.dart';
+import '../../../widgets/dialogs/ai_consent_dialog.dart';
 import '../../../widgets/dialogs/confirmation_dialog.dart';
 
 class PracticeSetupScreen extends ConsumerStatefulWidget {
@@ -144,6 +146,20 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
         interviewType: 'interview-prep',
         roleIndustry: _roleIndustryController.text.trim(),
       );
+
+      // Check iOS AI third-party data consent compliance before proceeding to practice session
+      if (Platform.isIOS) {
+        if (!mounted) return;
+        final consentGranted = await AIConsentDialog.showIfNeeded(context);
+        if (!consentGranted) {
+          if (mounted) {
+            setState(() {
+              _isCheckingCredits = false;
+            });
+          }
+          return;
+        }
+      }
 
       // Navigate to practice session screen
       if (mounted) {
