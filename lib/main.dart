@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
@@ -28,8 +29,9 @@ Future<void> main() async {
   WakelockPlus.enable();
   // Load environment variables (API keys, etc.) - optional if file doesn't exist
   try {
-    await dotenv.load(fileName: ".env");
-    print("Env loaded successfully");
+    final envFile = kReleaseMode ? ".env.prod" : ".env.local";
+    await dotenv.load(fileName: envFile);
+    print("Env loaded successfully: $envFile");
   } catch (e) {
     print('⚠️ .env file not found - using fallback configuration');
     // Continue without .env file - secure_keys.dart will handle key retrieval
