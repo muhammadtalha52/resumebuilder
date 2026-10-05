@@ -73,6 +73,10 @@ figma/
 
 # Security - API Keys and Secrets
 .env
+.env.local
+.env.prod
+google-services.json
+GoogleService-Info.plist
 **/obfuscation/
 **/debug-info/
 
