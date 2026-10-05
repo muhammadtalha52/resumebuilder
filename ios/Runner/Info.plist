@@ -72,5 +72,13 @@
 	</array>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
+	<key>FacebookAppID</key>
+	<string>858749073237787</string>
+	<key>FacebookClientToken</key>
+	<string>000131bb44ba52cbf10e7540e48da161</string>
+	<key>FacebookDisplayName</key>
+	<string>SkillResy</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>This identifier will be used to deliver personalized ads to you.</string>
 </dict>
 </plist>

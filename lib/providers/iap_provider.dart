@@ -1,4 +1,6 @@
 import 'dart:async';
+import '../services/analytics_service.dart';
+import '../models/purchase_product_model.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -326,6 +328,16 @@ class IAPNotifier extends StateNotifier<IAPState> {
         print('========================================\n');
 
         if (response.success) {
+          // Log purchase to Analytics
+          final product = PurchaseProducts.getProductById(purchase.productID);
+          final priceString = product?.price ?? '0';
+          final value = double.tryParse(priceString.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0.0;
+          await AnalyticsService.logPurchase(
+            transactionId: purchase.purchaseID ?? 'unknown',
+            value: value,
+            currency: 'USD',
+          );
+          
           // Complete the purchase
           await _iapService.completePurchase(purchase);
 
@@ -379,6 +391,16 @@ class IAPNotifier extends StateNotifier<IAPState> {
         print('========================================\n');
 
         if (response.success) {
+          // Log purchase to Analytics
+          final product = PurchaseProducts.getProductById(purchase.productID);
+          final priceString = product?.price ?? '0';
+          final value = double.tryParse(priceString.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0.0;
+          await AnalyticsService.logPurchase(
+            transactionId: purchase.purchaseID ?? 'unknown',
+            value: value,
+            currency: 'USD',
+          );
+
           // Complete the purchase
           await _iapService.completePurchase(purchase);
 

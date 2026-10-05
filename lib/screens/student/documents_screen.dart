@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../services/analytics_service.dart';
 
 import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:flutter/material.dart';
@@ -633,6 +634,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       if (remainingUploads <= 0) {
         // Show dialog and redirect to student plans
         if (context.mounted) {
+          AnalyticsService.logCreditLimitHit();
           final shouldBuyPlan = await showConfirmationDialog(
             context: context,
             title: 'No Document Upload Credits',
@@ -778,6 +780,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
               count: 1,
               description: 'Document uploaded',
             )
+            .then((_) => AnalyticsService.logCreditsSpent(1))
             .catchError((e) {
               print('Failed to mark credits used: $e');
               // Silent fail - don't interrupt user experience
@@ -845,6 +848,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       if (remainingQuizCount <= 0) {
         // Show dialog and redirect to student plans
         if (context.mounted) {
+          AnalyticsService.logCreditLimitHit();
           final shouldBuyPlan = await showConfirmationDialog(
             context: context,
             title: 'No Quiz Generation Credits',
@@ -894,6 +898,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             count: 1,
             description: 'Quiz generated from documents',
           )
+          .then((_) => AnalyticsService.logCreditsSpent(1))
           .catchError((e) {
             print('Failed to mark credits used: $e');
             // Silent fail - don't interrupt user experience

@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../../services/analytics_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -151,6 +152,7 @@ class _State extends ConsumerState<MeetingSetupScreen> {
       if (remainingInterviews <= 0) {
         // Show dialog and redirect to plans
         if (mounted) {
+          AnalyticsService.logCreditLimitHit();
           final shouldBuyPlan = await showConfirmationDialog(
             context: context,
             title: 'No Meeting Credits',

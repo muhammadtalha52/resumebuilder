@@ -5,6 +5,7 @@ import '../models/login_model.dart';
 import '../models/signup_request.dart';
 import '../models/student_signup_request.dart';
 import '../utils/endpoint_headers.dart';
+import 'analytics_service.dart';
 import 'api_client.dart';
 
 class AuthService {
@@ -216,6 +217,7 @@ class AuthService {
             },
           );
           debugPrint("🔥 FIREBASE EVENT TRIGGERED: ads_conversion_signup with params: {signup_source: mobile_app}");
+          await AnalyticsService.logRegistration('candidate');
         } catch (e) {
           debugPrint('🔥 Firebase Analytics error: $e');
         }
@@ -326,6 +328,7 @@ class AuthService {
             },
           );
           debugPrint("🔥 FIREBASE EVENT TRIGGERED: ads_conversion_signup with params: {signup_source: mobile_app}");
+          await AnalyticsService.logRegistration('student');
         } catch (e) {
           debugPrint('🔥 Firebase Analytics error: $e');
         }
@@ -439,6 +442,10 @@ class AuthService {
             },
           );
           debugPrint("🔥 FIREBASE EVENT TRIGGERED: ads_conversion_signup with params: {signup_source: mobile_app}");
+          
+          // Role mapped to user type (1: candidate, 2: student)
+          String userType = role == 2 ? 'student' : 'candidate';
+          await AnalyticsService.logRegistration(userType);
         } catch (e) {
           debugPrint('🔥 Firebase Analytics error: $e');
         }

@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="facebook_app_id">858749073237787</string>
+    <string name="facebook_client_token">000131bb44ba52cbf10e7540e48da161</string>
     <string name="app_name">SkillResy</string>
 </resources>

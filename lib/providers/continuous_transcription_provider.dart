@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../services/analytics_service.dart';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -963,6 +964,7 @@ class ContinuousTranscriptionNotifier
                 print('⚠️ Failed to mark interview credit as used');
               }
             })
+            .then((_) => AnalyticsService.logCreditsSpent(1))
             .catchError((e) {
               print('⚠️ Error marking interview credit as used: $e');
               // Silent fail - don't interrupt user experience

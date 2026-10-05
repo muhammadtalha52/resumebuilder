@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../../services/analytics_service.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -2175,6 +2176,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
         if (remainingResumes <= 0) {
           // Show dialog and redirect to plans
           if (mounted) {
+            AnalyticsService.logCreditLimitHit();
             final shouldBuyPlan = await showConfirmationDialog(
               context: context,
               title: 'No Resume Credits',

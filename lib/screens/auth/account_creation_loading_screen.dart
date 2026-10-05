@@ -127,10 +127,11 @@ class AccountCreationLoadingScreenState
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 SizedBox(height: 30),
                 Image.asset('assets/icons/logo-fox-on-left.png', height: 55),
@@ -199,7 +200,7 @@ class AccountCreationLoadingScreenState
           ),
         ),
       ),
-    );
+    ));
   }
 }
 

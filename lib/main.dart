@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -68,11 +70,33 @@ Future<void> main() async {
   );
 }
 
-class SkillResyApp extends ConsumerWidget {
+class SkillResyApp extends ConsumerStatefulWidget {
   const SkillResyApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SkillResyApp> createState() => _SkillResyAppState();
+}
+
+class _SkillResyAppState extends ConsumerState<SkillResyApp> {
+  @override
+  void initState() {
+    super.initState();
+    _initAppTracking();
+  }
+
+  Future<void> _initAppTracking() async {
+    if (Platform.isIOS) {
+      // Delay slightly so the UI is ready
+      await Future.delayed(const Duration(milliseconds: 1000));
+      final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+      if (status == TrackingStatus.notDetermined) {
+        await AppTrackingTransparency.requestTrackingAuthorization();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp.router(
       title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
