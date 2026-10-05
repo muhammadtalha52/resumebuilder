@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../constants/app_colors.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/education_data_provider.dart';
-import '../../../services/auth_service.dart';
 import '../../../utils/date_helpers.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/common/custom_app_bar.dart';
@@ -761,79 +760,65 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             );
 
             if (confirmed == true && context.mounted) {
-              final authState = ref.read(authProvider);
-              final userId = authState.user?.id;
-
-              if (userId != null) {
-                // Show loading
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) => PopScope(
-                    canPop: false,
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircularProgressIndicator(color: AppColors.error),
-                            SizedBox(height: 16),
-                            Text(
-                              'Deleting account...',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
+              // Show loading
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => PopScope(
+                  canPop: false,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(color: AppColors.error),
+                          SizedBox(height: 16),
+                          Text(
+                            'Deleting account...',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                );
+                ),
+              );
 
-                try {
-                  // Call delete account API
-                  final authService = AuthService();
-                  await authService.deleteAccount(userId: userId);
+              try {
+                // Call delete account API via AuthNotifier
+                await ref.read(authProvider.notifier).deleteAccount();
 
-                  // Close loading
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                  }
-
-                  // Sign out and redirect to login
-                  if (context.mounted) {
-                    ref.read(authProvider.notifier).signOut();
-                    context.go('/login');
-                    showSuccessSnackBar(
-                      context: context,
-                      message: 'Account deleted successfully',
-                    );
-                  }
-                } catch (e) {
-                  // Close loading
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                  }
-
-                  if (context.mounted) {
-                    showErrorSnackBar(
-                      context: context,
-                      message: e.toString().replaceAll('Exception: ', ''),
-                    );
-                  }
+                // Close loading
+                if (context.mounted) {
+                  Navigator.of(context).pop();
                 }
-              } else {
+
+                // Redirect to login and show success
+                if (context.mounted) {
+                  context.go('/login');
+                  showSuccessSnackBar(
+                    context: context,
+                    message: 'Account deleted successfully',
+                  );
+                }
+              } catch (e) {
+                // Close loading
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+
                 if (context.mounted) {
                   showErrorSnackBar(
                     context: context,
-                    message: 'User ID not found',
+                    message: e.toString().replaceAll('Exception: ', ''),
                   );
                 }
               }

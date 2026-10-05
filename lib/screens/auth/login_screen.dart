@@ -10,6 +10,7 @@ import 'package:skillresy/utils/snackbar_utils.dart';
 import 'package:skillresy/widgets/common/custom_button.dart';
 import 'package:skillresy/widgets/common/custom_text_field.dart'
     hide CustomButton;
+import 'package:skillresy/utils/url_launcher_utils.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -41,6 +42,59 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  void _showSuspendedDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusL),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.gavel_rounded, color: AppColors.error),
+            const SizedBox(width: 8),
+            Text(
+              'Account Suspended',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Close',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              UrlLauncherUtils.launchSupportEmail();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSizes.radiusM),
+              ),
+            ),
+            child: const Text('Contact Support'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -52,7 +106,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (previous?.isLoading == true &&
           !next.isLoading &&
           next.error != null) {
-        showErrorSnackBar(context: context, message: next.error!);
+        
+        final errorLower = next.error!.toLowerCase();
+        if (errorLower.contains('suspended') || errorLower.contains('deactivated')) {
+          _showSuspendedDialog(context, next.error!);
+        } else {
+          showErrorSnackBar(context: context, message: next.error!);
+        }
       }
 
       if (next.isAuthenticated && !previous!.isAuthenticated) {

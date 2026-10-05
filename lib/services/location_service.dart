@@ -27,7 +27,7 @@ class LocationService {
 
       // Get current position with timeout
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        desiredAccuracy: LocationAccuracy.low,
         timeLimit: const Duration(seconds: 10),
       );
 

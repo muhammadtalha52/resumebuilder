@@ -6,6 +6,7 @@ import '../../../constants/app_colors.dart';
 import '../../../providers/resume_provider.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/profile_completion_banner.dart';
+import '../../../widgets/dialogs/ai_consent_dialog.dart';
 
 class ResumeScreen extends ConsumerWidget {
   const ResumeScreen({super.key});
@@ -210,6 +211,7 @@ class ResumeScreen extends ConsumerWidget {
               ),
             ),
           ),
+          
         ],
       ),
     );
@@ -292,6 +294,7 @@ class ResumeScreen extends ConsumerWidget {
               ),
             ),
           ),
+        
         ],
       ),
     );
@@ -306,6 +309,9 @@ class ResumeScreen extends ConsumerWidget {
   }
 
   void _handleUploadResume(BuildContext context, WidgetRef ref) async {
+    final consentGranted = await AIConsentDialog.showIfNeeded(context, isResume: true);
+    if (!consentGranted) return;
+
     // Reset any previous state before starting fresh session
     ref.read(resumeProvider.notifier).resetResumeState();
     // Pick file without parsing and navigate directly to review screen
@@ -315,7 +321,10 @@ class ResumeScreen extends ConsumerWidget {
     }
   }
 
-  void _handleCreateResume(BuildContext context, WidgetRef ref) {
+  void _handleCreateResume(BuildContext context, WidgetRef ref) async {
+    final consentGranted = await AIConsentDialog.showIfNeeded(context, isResume: true);
+    if (!consentGranted) return;
+
     // Reset any previous state before starting fresh session
     ref.read(resumeProvider.notifier).resetResumeState();
     // Set profile data mode before navigation

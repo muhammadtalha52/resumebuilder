@@ -163,14 +163,14 @@ class _ProfileHeaderState extends ConsumerState<ProfileHeader> {
   }
 
   String _getInitials(String? fullName) {
-    final name = fullName ?? 'John';
-    final parts = name.split(' ');
+    final name = (fullName?.trim().isNotEmpty == true) ? fullName!.trim() : 'User';
+    final parts = name.split(' ').where((p) => p.isNotEmpty).toList();
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    } else if (parts.isNotEmpty) {
+    } else if (parts.isNotEmpty && parts[0].isNotEmpty) {
       return parts[0][0].toUpperCase();
     }
-    return '';
+    return 'U';
   }
 
   bool _hasProfileImage(String? profileImage) {

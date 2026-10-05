@@ -405,10 +405,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
 
     // Must have same email (additional identity check)
-    if (freshUser.email != currentUser.email) {
-      print('[AuthProvider] Validation failed: email mismatch');
-      return false;
-    }
+
+    // commented out for now
+    // if (freshUser.email != currentUser.email) {
+    //   print('[AuthProvider] Validation failed: email mismatch');
+    //   return false;
+    // }
 
     // Profile completion percentage must be valid (0-100)
     final percentage = freshUser.profileCompletionPercentage;
@@ -457,6 +459,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     // Reset auth state
     state = const AuthState();
+  }
+
+  /// Delete user account and all associated data
+  Future<void> deleteAccount() async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final authService = _ref.read(authServiceProvider);
+      await authService.deleteAccount();
+
+      // Clear all user data, cached preferences, and reset providers
+      signOut();
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString().replaceAll('Exception: ', ''),
+      );
+      rethrow;
+    }
   }
 }
 

@@ -38,7 +38,7 @@ class SignUpRequest {
   final String firstName;
   final String lastName;
   final String phoneNumber;
-  final String dateOfBirth;
+  final String? dateOfBirth;
   final String address;
   final String city;
   final String userState;
@@ -80,7 +80,7 @@ class SignUpRequest {
     required this.firstName,
     required this.lastName,
     required this.phoneNumber,
-    required this.dateOfBirth,
+    this.dateOfBirth,
     required this.address,
     required this.city,
     required this.userState,
@@ -263,8 +263,8 @@ class SignUpRequest {
       firstName: firstName,
       lastName: lastName,
       phoneNumber: state.phone ?? '',
+      dateOfBirth: state.dateOfBirth,
       // Default values for required fields not collected in onboarding
-      dateOfBirth: '1990-01-01',
       address: '',
       city: '',
       userState: '',

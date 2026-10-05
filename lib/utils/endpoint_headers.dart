@@ -1,3 +1,5 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class WAInterceptorHeaders {
   static String requiresToken = 'requiresToken';
   static String authorization = 'Authorization';
@@ -15,7 +17,7 @@ class ApiEndpoints {
   // static const String quizModuleBaseUrl = 'https://quiz-dev.skillresy.com';
 
   ///Prod Urls
-  static const String baseUrl = 'https://api.skillresy.com/api';
+  static String get baseUrl => (dotenv.isInitialized ? dotenv.env['API_BASE_URL'] : null) ?? 'https://api.skillresy.com/api';
   static const String resumeModuleBaseUrl = 'https://ai.skillresy.com/';
   static const String interviewModuleBaseUrl = 'https://ia.skillresy.com/api/';
   static const String quizModuleBaseUrl = 'https://quiz.skillresy.com/';
@@ -27,8 +29,8 @@ class ApiEndpoints {
   static const String forgotPassword = '/auth/forgot-password/';
   static const String profileUpdate = '/auth/profile/';
   static const String uploadProfilePhoto = '/auth/upload-profile-image/';
-  static const String deleteAccount =
-      '/auth/delete-user-data/'; // Append user ID
+  static const String deleteAccount = '/auth/delete-user-data/';
+  static const String aiConsent = '/auth/ai-consent/';
   static const String educationData =
       '/resume/degree-types-subject-institutes/';
   static const String sessionStart = '/session/start';

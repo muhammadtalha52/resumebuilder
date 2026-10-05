@@ -29,6 +29,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _dobController = TextEditingController();
   final _linkedInController = TextEditingController();
   final _websiteController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -94,6 +95,8 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
       _phoneController.text = phoneNumber;
     }
 
+    _dobController.text = state.dateOfBirth ?? '';
+
     _linkedInController.text = state.linkedIn ?? '';
     _websiteController.text = state.website ?? '';
     _passwordController.text = state.password ?? '';
@@ -105,6 +108,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
     _fullNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _dobController.dispose();
     _linkedInController.dispose();
     _websiteController.dispose();
     _passwordController.dispose();
@@ -168,6 +172,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
               phone: phoneNumber,
               linkedIn: _linkedInController.text.trim(),
               website: _websiteController.text.trim(),
+              dateOfBirth: _dobController.text.trim().isNotEmpty ? _dobController.text.trim() : null,
             );
 
         ref
@@ -340,6 +345,28 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 20),
+          GestureDetector(
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+                firstDate: DateTime(1900),
+                lastDate: DateTime.now(),
+              );
+              if (picked != null) {
+                _dobController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+              }
+            },
+            child: AbsorbPointer(
+              child: CustomTextField(
+                controller: _dobController,
+                labelText: 'Date of Birth (Optional)',
+                hintText: 'YYYY-MM-DD',
+                keyboardType: TextInputType.none,
+              ),
+            ),
           ),
           const SizedBox(height: 20),
           CustomTextField(

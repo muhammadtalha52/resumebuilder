@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../services/analytics_service.dart';
 
 import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:flutter/material.dart';
@@ -19,6 +20,7 @@ import '../../utils/s3_utils.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/dialogs/confirmation_dialog.dart';
+import '../../widgets/dialogs/ai_consent_dialog.dart';
 import '../../widgets/dialogs/delete_confirmation_dialog.dart';
 
 class DocumentsScreen extends ConsumerStatefulWidget {
@@ -594,8 +596,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.upload_file, color: AppColors.accent, size: 22),
-                    const SizedBox(width: 12),
                     const Text(
                       'Upload Your First Document',
                       style: TextStyle(
@@ -634,6 +634,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       if (remainingUploads <= 0) {
         // Show dialog and redirect to student plans
         if (context.mounted) {
+          AnalyticsService.logCreditLimitHit();
           final shouldBuyPlan = await showConfirmationDialog(
             context: context,
             title: 'No Document Upload Credits',
@@ -779,6 +780,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
               count: 1,
               description: 'Document uploaded',
             )
+            .then((_) => AnalyticsService.logCreditsSpent(1))
             .catchError((e) {
               print('Failed to mark credits used: $e');
               // Silent fail - don't interrupt user experience
@@ -827,6 +829,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
   ) async {
     if (selectionState.selectedDocuments.isEmpty) return;
 
+    if (!context.mounted) return;
+    final hasConsent = await AIConsentDialog.showIfNeeded(
+      context,
+      isQuiz: true,
+    );
+    if (!hasConsent) return;
+
     // Check if user has quiz generation credits
     try {
       // Always fetch latest usage from API
@@ -839,6 +848,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       if (remainingQuizCount <= 0) {
         // Show dialog and redirect to student plans
         if (context.mounted) {
+          AnalyticsService.logCreditLimitHit();
           final shouldBuyPlan = await showConfirmationDialog(
             context: context,
             title: 'No Quiz Generation Credits',
@@ -888,6 +898,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             count: 1,
             description: 'Quiz generated from documents',
           )
+          .then((_) => AnalyticsService.logCreditsSpent(1))
           .catchError((e) {
             print('Failed to mark credits used: $e');
             // Silent fail - don't interrupt user experience

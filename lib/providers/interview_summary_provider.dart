@@ -201,6 +201,20 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
             sessionData.interviewType.toLowerCase(),
             summary,
           ),
+          "decisions_made": summary.decisionsMade ?? [],
+          "top_moments_in_interview": summary.topMomentsInInterview ?? [],
+          "ai_driven_interview_analytics":
+              summary.aiDrivenInterviewAnalytics ?? [],
+          "areas_of_improvement": summary.areasOfImprovement ?? [],
+          "strength_highlight": summary.strengthsHighlighted ?? [],
+          "weakness_highlight": summary.potentialWeaknessOrStrengths ?? [],
+          // Candidate-facing action items take priority, matching the
+          // fallback used on the summary screen (meeting_summary_screen.dart).
+          "action_items":
+              (summary.candidateActionItems != null &&
+                  summary.candidateActionItems!.isNotEmpty)
+              ? summary.candidateActionItems
+              : (summary.actionItems ?? []),
         };
 
         // Save to database

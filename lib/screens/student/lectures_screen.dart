@@ -290,7 +290,8 @@ class LecturesScreen extends ConsumerWidget {
             ),
           ],
         ),
-        child: Column(
+        child: SingleChildScrollView(
+          child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Scout fox image
@@ -345,6 +346,7 @@ class LecturesScreen extends ConsumerWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

@@ -1,8 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import '../models/login_model.dart';
 import '../models/signup_request.dart';
 import '../models/student_signup_request.dart';
 import '../utils/endpoint_headers.dart';
+import 'analytics_service.dart';
 import 'api_client.dart';
 
 class AuthService {
@@ -15,13 +18,22 @@ class AuthService {
     try {
       final response = await _apiClient.dio.post(
         ApiEndpoints.login,
-        data: {'email': email, 'password': password},
+        data: {'email': email, 'password': password, 'platform': 'app'},
       );
 
       if (response.statusCode == 200 && response.data != null) {
         return LoginModel.fromJson(response.data);
       } else {
-        throw Exception(response.data?['error'] ?? 'Login failed');
+        String errMsg = 'Login failed';
+        if (response.data is Map) {
+          errMsg = response.data?['error'] ?? 
+                   response.data?['message'] ?? 
+                   response.data?['detail'] ?? 
+                   'Login failed';
+        } else if (response.data is String) {
+          errMsg = response.data;
+        }
+        throw Exception(errMsg);
       }
     } on DioException catch (e) {
       if (e.response != null) {
@@ -73,6 +85,9 @@ class AuthService {
         // Add status code information for better debugging
         if (e.response!.statusCode == 401) {
           errorMessage = 'Invalid credentials: $errorMessage';
+        } else if (e.response!.statusCode == 403) {
+          // Pass the exact suspension/deactivation message from the server
+          errorMessage = errorMessage;
         } else if (e.response!.statusCode == 422) {
           errorMessage = 'Validation Error: $errorMessage';
         } else if (e.response!.statusCode == 400) {
@@ -110,10 +125,10 @@ class AuthService {
     } on DioException catch (e) {
       // If API returns error, it might mean email already exists
       // Return false to indicate email is not available
-      print('Error checking email availability: ${e.message}');
+      debugPrint('Error checking email availability: ${e.message}');
       return false;
     } catch (e) {
-      print('Unexpected error checking email: $e');
+      debugPrint('Unexpected error checking email: $e');
       return false;
     }
   }
@@ -121,6 +136,7 @@ class AuthService {
   Future<LoginModel> register(SignUpRequest request) async {
     try {
       var requestData = {
+        'platform': 'app',
         'email': request.email,
         'password': request.password,
         'confirm_password': request.confirmPassword,
@@ -128,7 +144,7 @@ class AuthService {
         'first_name': request.firstName,
         'last_name': request.lastName,
         'phone_number': request.phoneNumber,
-        'date_of_birth': request.dateOfBirth,
+        if (request.dateOfBirth != null) 'date_of_birth': request.dateOfBirth,
         'address': request.address,
         'city': request.city,
         'state': request.userState,
@@ -176,19 +192,44 @@ class AuthService {
           'location_preferences': request.locationPreferences,
       };
 
-      print(requestData);
+      debugPrint("==============================");
+      debugPrint("API URL: ${_apiClient.dio.options.baseUrl}${ApiEndpoints.register}");
+      debugPrint("Headers: ${_apiClient.dio.options.headers}");
+      debugPrint("Body: $requestData");
 
       final response = await _apiClient.dio.post(
         ApiEndpoints.register,
         data: requestData,
       );
+      
+      debugPrint("Response Status: ${response.statusCode}");
+      debugPrint("Response Data: ${response.data}");
+      debugPrint("==============================");
 
       if (response.statusCode == 201 && response.data != null) {
+        // Log successful signup to Firebase Analytics for Google Ads tracking
+        // Note: The 'source' parameter will be tracked even if not configured as a custom dimension in GA4.
+        try {
+          await FirebaseAnalytics.instance.logEvent(
+            name: 'ads_conversion_signup',
+            parameters: {
+              'signup_source': 'mobile_app',
+            },
+          );
+          debugPrint("🔥 FIREBASE EVENT TRIGGERED: ads_conversion_signup with params: {signup_source: mobile_app}");
+          await AnalyticsService.logRegistration('candidate');
+        } catch (e) {
+          debugPrint('🔥 Firebase Analytics error: $e');
+        }
         return LoginModel.fromJson(response.data);
       } else {
         throw Exception(response.data?['error'] ?? 'Registration failed');
       }
     } on DioException catch (e) {
+      debugPrint("Exception Occurred: ${e.message}");
+      debugPrint("Exception Response Status: ${e.response?.statusCode}");
+      debugPrint("Exception Response Data: ${e.response?.data}");
+      debugPrint("==============================");
       if (e.response != null) {
         final responseData = e.response!.data;
         String errorMessage = 'Registration failed';
@@ -260,20 +301,46 @@ class AuthService {
   Future<LoginModel> registerStudent(StudentSignupRequest request) async {
     try {
       final requestData = request.toJson();
+      requestData['platform'] = 'app';
 
-      print('Student Registration Data: $requestData');
+      debugPrint("==============================");
+      debugPrint("API URL: ${_apiClient.dio.options.baseUrl}${ApiEndpoints.register}");
+      debugPrint("Headers: ${_apiClient.dio.options.headers}");
+      debugPrint("Body: $requestData");
 
       final response = await _apiClient.dio.post(
         ApiEndpoints.register,
         data: requestData,
       );
+      
+      debugPrint("Response Status: ${response.statusCode}");
+      debugPrint("Response Data: ${response.data}");
+      debugPrint("==============================");
 
       if (response.statusCode == 201 && response.data != null) {
+        // Log successful signup to Firebase Analytics for Google Ads tracking
+        // Note: The 'source' parameter will be tracked even if not configured as a custom dimension in GA4.
+        try {
+          await FirebaseAnalytics.instance.logEvent(
+            name: 'ads_conversion_signup',
+            parameters: {
+              'signup_source': 'mobile_app',
+            },
+          );
+          debugPrint("🔥 FIREBASE EVENT TRIGGERED: ads_conversion_signup with params: {signup_source: mobile_app}");
+          await AnalyticsService.logRegistration('student');
+        } catch (e) {
+          debugPrint('🔥 Firebase Analytics error: $e');
+        }
         return LoginModel.fromJson(response.data);
       } else {
         throw Exception(response.data?['error'] ?? 'Registration failed');
       }
     } on DioException catch (e) {
+      debugPrint("Exception Occurred: ${e.message}");
+      debugPrint("Exception Response Status: ${e.response?.statusCode}");
+      debugPrint("Exception Response Data: ${e.response?.data}");
+      debugPrint("==============================");
       if (e.response != null) {
         final responseData = e.response!.data;
         String errorMessage = 'Registration failed';
@@ -348,21 +415,49 @@ class AuthService {
     required int role,
   }) async {
     try {
-      final requestData = {'email': email, 'password': password, 'role': role};
+      final requestData = {'email': email, 'password': password, 'role': role, 'platform': 'app'};
 
-      print('Simple Registration Data: $requestData');
+      debugPrint("==============================");
+      debugPrint("API URL: ${_apiClient.dio.options.baseUrl}${ApiEndpoints.registerSimple}");
+      debugPrint("Headers: ${_apiClient.dio.options.headers}");
+      debugPrint("Body: $requestData");
 
       final response = await _apiClient.dio.post(
         ApiEndpoints.registerSimple,
         data: requestData,
       );
+      
+      debugPrint("Response Status: ${response.statusCode}");
+      debugPrint("Response Data: ${response.data}");
+      debugPrint("==============================");
 
       if (response.statusCode == 201 && response.data != null) {
+        // Log successful signup to Firebase Analytics for Google Ads tracking
+        // Note: The 'source' parameter will be tracked even if not configured as a custom dimension in GA4.
+        try {
+          await FirebaseAnalytics.instance.logEvent(
+            name: 'ads_conversion_signup',
+            parameters: {
+              'signup_source': 'mobile_app',
+            },
+          );
+          debugPrint("🔥 FIREBASE EVENT TRIGGERED: ads_conversion_signup with params: {signup_source: mobile_app}");
+          
+          // Role mapped to user type (1: candidate, 2: student)
+          String userType = role == 2 ? 'student' : 'candidate';
+          await AnalyticsService.logRegistration(userType);
+        } catch (e) {
+          debugPrint('🔥 Firebase Analytics error: $e');
+        }
         return LoginModel.fromJson(response.data);
       } else {
         throw Exception(response.data?['error'] ?? 'Registration failed');
       }
     } on DioException catch (e) {
+      debugPrint("Exception Occurred: ${e.message}");
+      debugPrint("Exception Response Status: ${e.response?.statusCode}");
+      debugPrint("Exception Response Data: ${e.response?.data}");
+      debugPrint("==============================");
       if (e.response != null) {
         final responseData = e.response!.data;
         String errorMessage = 'Registration failed';
@@ -499,18 +594,37 @@ class AuthService {
     }
   }
 
-  Future<void> deleteAccount({required int userId}) async {
+  Future<void> deleteAccount() async {
     try {
       final response = await _apiClient.dio.delete(
         ApiEndpoints.deleteAccount,
+        data: {'confirm': 'DELETE'},
         options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
       );
 
-      if (response.statusCode == 204 || response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 204) {
         // Account deleted successfully
         return;
       } else {
-        throw Exception(response.data?['error'] ?? 'Failed to delete account');
+        String errorMessage = 'Failed to delete account';
+        if (response.data != null) {
+          if (response.data is Map) {
+            errorMessage = response.data['message']?.toString() ??
+                response.data['error']?.toString() ??
+                response.data['detail']?.toString() ??
+                'Failed to delete account';
+          } else if (response.data is String) {
+            errorMessage = response.data;
+          }
+        }
+
+        if (response.statusCode == 500) {
+          errorMessage = "We couldn't delete your account, please try again.";
+        } else if (response.statusCode == 401 || response.statusCode == 403) {
+          errorMessage = 'Session expired. Please log in again.';
+        }
+
+        throw Exception(errorMessage);
       }
     } on DioException catch (e) {
       if (e.response != null) {
@@ -519,10 +633,10 @@ class AuthService {
 
         // Handle different error response formats
         if (responseData is Map) {
-          if (responseData.containsKey('error')) {
-            errorMessage = responseData['error'].toString();
-          } else if (responseData.containsKey('message')) {
+          if (responseData.containsKey('message')) {
             errorMessage = responseData['message'].toString();
+          } else if (responseData.containsKey('error')) {
+            errorMessage = responseData['error'].toString();
           } else if (responseData.containsKey('detail')) {
             errorMessage = responseData['detail'].toString();
           } else {
@@ -533,7 +647,9 @@ class AuthService {
         }
 
         // Add status code information
-        if (e.response!.statusCode == 404) {
+        if (e.response!.statusCode == 500) {
+          errorMessage = "We couldn't delete your account, please try again.";
+        } else if (e.response!.statusCode == 404) {
           errorMessage = 'Account not found: $errorMessage';
         } else if (e.response!.statusCode == 403) {
           errorMessage = 'Access denied: $errorMessage';

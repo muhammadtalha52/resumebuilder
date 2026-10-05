@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import '../services/analytics_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -364,6 +365,7 @@ class ResumeNotifier extends StateNotifier<ResumeState> {
                 print('⚠️ Failed to mark resume credit as used');
               }
             })
+            .then((_) => AnalyticsService.logCreditsSpent(1))
             .catchError((e) {
               print('⚠️ Error marking resume credit as used: $e');
               // Silent fail - don't interrupt user experience
