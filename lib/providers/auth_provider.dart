@@ -10,6 +10,7 @@ import '../models/student_signup_request.dart';
 import '../models/user_model.dart';
 import '../services/profile_service.dart';
 import '../services/resume_service.dart';
+import '../services/analytics_service.dart';
 import '../utils/keys.dart';
 import 'auth_service_provider.dart';
 import 'continuous_transcription_provider.dart';
@@ -104,6 +105,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
           // Store token and user data in AppLogic
           appLogic.accessToken = token;
           appLogic.user = user;
+          
+          // Log session_started backend event
+          AnalyticsService.logBackendEvent('session_started');
 
           // Save to local storage
           await appLogic.box.write(AppKeys.accessToken, token);
@@ -147,6 +151,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
           // Store token and user data in AppLogic
           appLogic.accessToken = token;
           appLogic.user = user;
+          
+          // Log session_started backend event
+          AnalyticsService.logBackendEvent('session_started');
 
           // Save to local storage
           await appLogic.box.write(AppKeys.accessToken, token);
@@ -291,6 +298,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
           // Store token and user data in AppLogic
           appLogic.accessToken = token;
           appLogic.user = user;
+          
+          // Log session_started backend event
+          AnalyticsService.logBackendEvent('session_started');
 
           // Save to local storage
           await appLogic.box.write(AppKeys.accessToken, token);
@@ -322,6 +332,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> signUpWithEmailAndPassword({
     required String email,
     required String password,
+    String? heardAboutUs,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
 
@@ -331,6 +342,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         email: email,
         password: password,
         role: 1, // Candidate role
+        heardAboutUs: heardAboutUs,
       );
 
       if (registerResponse.status == 'success' &&
@@ -342,6 +354,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
           // Store token and user data in AppLogic
           appLogic.accessToken = token;
           appLogic.user = user;
+          
+          // Log session_started backend event
+          AnalyticsService.logBackendEvent('session_started');
 
           // Save to local storage
           await appLogic.box.write(AppKeys.accessToken, token);

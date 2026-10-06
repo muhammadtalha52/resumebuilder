@@ -110,6 +110,7 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
         // Show dialog and redirect to plans
         if (mounted) {
           AnalyticsService.logCreditLimitHit();
+          AnalyticsService.logPaywallShown(trigger: 'new_session_blocked');
           final shouldBuyPlan = await showConfirmationDialog(
             context: context,
             title: 'No Practice Credits',

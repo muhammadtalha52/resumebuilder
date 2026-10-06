@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../main.dart';
 import '../models/job_listing_model.dart';
 import '../utils/endpoint_headers.dart';
+import '../services/analytics_service.dart';
 
 class JobListingsNotifier extends StateNotifier<JobListingsState> {
   JobListingsNotifier() : super(JobListingsState());
@@ -84,6 +85,17 @@ class JobListingsNotifier extends StateNotifier<JobListingsState> {
           appliedJobIds: {...state.appliedJobIds, jobId},
           applyingJobIds: applying,
         );
+        
+        // Find the job to log its properties
+        try {
+          final job = state.jobs.firstWhere((j) => j.id == jobId);
+          AnalyticsService.logBackendEvent('seeker_job_applied', properties: {
+            'job_title': job.jobTitle,
+            'company': job.companyName,
+          });
+        } catch (e) {
+          AnalyticsService.logBackendEvent('seeker_job_applied');
+        }
       } else {
         state = state.copyWith(
           applyingJobIds: applying,

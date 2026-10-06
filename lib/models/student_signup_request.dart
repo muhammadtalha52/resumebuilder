@@ -15,6 +15,7 @@ class StudentSignupRequest {
   final String major;
   final List<String> idealJobTitles;
   final int role;
+  final String? heardAboutUs;
 
   StudentSignupRequest({
     required this.email,
@@ -30,6 +31,7 @@ class StudentSignupRequest {
     required this.major,
     required this.idealJobTitles,
     required this.role,
+    this.heardAboutUs,
   });
 
   factory StudentSignupRequest.fromStudentSignupState(
@@ -59,6 +61,7 @@ class StudentSignupRequest {
       major: state.major ?? '',
       idealJobTitles: state.idealJobTitles,
       role: 2, // Student role ID
+      heardAboutUs: state.heardAboutUs,
     );
   }
 
@@ -75,6 +78,7 @@ class StudentSignupRequest {
       'school_major': major,
       'school_graduation_date': expectedGraduationDate,
       'role': role,
+      if (heardAboutUs != null && heardAboutUs!.isNotEmpty) 'heard_about_us': heardAboutUs,
     };
   }
 }

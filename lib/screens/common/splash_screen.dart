@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../main.dart';
 import '../../services/app_preferences.dart';
+import '../../services/analytics_service.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -47,6 +48,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Check if user is already logged in
     if (appLogic.accessToken.isNotEmpty && appLogic.user != null) {
       // User is logged in - go to home
+      AnalyticsService.logBackendEvent('session_started');
       context.go('/home');
       return;
     }

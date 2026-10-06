@@ -42,6 +42,19 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
   bool _isCheckingEmail = false;
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
   final AuthService _authService = AuthService();
+  
+  String? _selectedHeardAboutUs;
+  final List<Map<String, String>> _marketingSources = [
+    {'label': 'Radio', 'value': 'radio'},
+    {'label': 'Facebook', 'value': 'facebook'},
+    {'label': 'Instagram', 'value': 'instagram'},
+    {'label': 'TikTok', 'value': 'tiktok'},
+    {'label': 'YouTube', 'value': 'youtube'},
+    {'label': 'Reddit', 'value': 'reddit'},
+    {'label': 'Friend/Referral', 'value': 'friend_referral'},
+    {'label': 'Blog', 'value': 'blog'},
+    {'label': 'Tools Directory', 'value': 'tools_directory'},
+  ];
 
   @override
   void initState() {
@@ -101,6 +114,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
     _websiteController.text = state.website ?? '';
     _passwordController.text = state.password ?? '';
     _confirmPasswordController.text = state.password ?? '';
+    _selectedHeardAboutUs = state.heardAboutUs;
   }
 
   @override
@@ -173,6 +187,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
               linkedIn: _linkedInController.text.trim(),
               website: _websiteController.text.trim(),
               dateOfBirth: _dobController.text.trim().isNotEmpty ? _dobController.text.trim() : null,
+              heardAboutUs: _selectedHeardAboutUs,
             );
 
         ref
@@ -181,6 +196,7 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
               fullName: _fullNameController.text.trim(),
               email: _emailController.text.trim(),
               password: _passwordController.text.trim(),
+              heardAboutUs: _selectedHeardAboutUs,
             );
 
         widget.onNext();
@@ -458,6 +474,28 @@ class _Step1PersonalDetailsState extends ConsumerState<Step1PersonalDetails> {
                 return 'Passwords do not match';
               }
               return null;
+            },
+          ),
+          const SizedBox(height: 20),
+          // How did you hear about us? Dropdown
+          DropdownButtonFormField<String>(
+            decoration: InputDecoration(
+              labelText: 'How did you hear about us? (Optional)',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            value: _selectedHeardAboutUs,
+            items: _marketingSources.map((source) {
+              return DropdownMenuItem<String>(
+                value: source['value'],
+                child: Text(source['label']!),
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedHeardAboutUs = value;
+              });
             },
           ),
           const SizedBox(height: 20),

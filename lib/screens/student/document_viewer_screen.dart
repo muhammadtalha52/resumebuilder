@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../constants/app_colors.dart';
@@ -40,8 +41,12 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     final lowerUrl = url.toLowerCase();
 
     // Check file extension
-    if (lowerUrl.endsWith('.pdf')) {
-      // PDF can be loaded directly
+    if (lowerUrl.endsWith('.pdf') && Platform.isAndroid) {
+      // PDF on Android needs Google Docs Viewer because Android WebView doesn't support PDFs natively
+      final encodedUrl = Uri.encodeComponent(url);
+      return 'https://docs.google.com/viewer?url=$encodedUrl&embedded=true';
+    } else if (lowerUrl.endsWith('.pdf')) {
+      // iOS can load PDFs directly
       return url;
     } else if (lowerUrl.endsWith('.pptx') ||
         lowerUrl.endsWith('.ppt') ||

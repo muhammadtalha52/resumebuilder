@@ -153,6 +153,7 @@ class _State extends ConsumerState<MeetingSetupScreen> {
         // Show dialog and redirect to plans
         if (mounted) {
           AnalyticsService.logCreditLimitHit();
+          AnalyticsService.logPaywallShown(trigger: 'new_session_blocked');
           final shouldBuyPlan = await showConfirmationDialog(
             context: context,
             title: 'No Meeting Credits',

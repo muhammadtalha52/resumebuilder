@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import '../models/login_model.dart';
@@ -136,7 +137,7 @@ class AuthService {
   Future<LoginModel> register(SignUpRequest request) async {
     try {
       var requestData = {
-        'platform': 'app',
+        'platform': Platform.isIOS ? 'ios' : 'android',
         'email': request.email,
         'password': request.password,
         'confirm_password': request.confirmPassword,
@@ -301,7 +302,7 @@ class AuthService {
   Future<LoginModel> registerStudent(StudentSignupRequest request) async {
     try {
       final requestData = request.toJson();
-      requestData['platform'] = 'app';
+      requestData['platform'] = Platform.isIOS ? 'ios' : 'android';
 
       debugPrint("==============================");
       debugPrint("API URL: ${_apiClient.dio.options.baseUrl}${ApiEndpoints.register}");
@@ -413,9 +414,16 @@ class AuthService {
     required String email,
     required String password,
     required int role,
+    String? heardAboutUs,
   }) async {
     try {
-      final requestData = {'email': email, 'password': password, 'role': role, 'platform': 'app'};
+      final requestData = {
+        'email': email,
+        'password': password,
+        'role': role,
+        'platform': Platform.isIOS ? 'ios' : 'android',
+        if (heardAboutUs != null && heardAboutUs.isNotEmpty) 'heard_about_us': heardAboutUs,
+      };
 
       debugPrint("==============================");
       debugPrint("API URL: ${_apiClient.dio.options.baseUrl}${ApiEndpoints.registerSimple}");
