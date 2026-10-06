@@ -127,17 +127,26 @@ class DocumentsService {
           .map((filename) => S3Utils.constructAssetUrl(filename))
           .join(',');
 
-      print('🎯 [QUIZ] Generating quiz from URLs: $urls');
+      final payload = {'urls': urls};
+      print('================= QUIZ API PAYLOAD =================');
+      print('URL: ${ApiEndpoints.quizModuleBaseUrl}${ApiEndpoints.generateQuiz}');
+      print('Headers: {Content-Type: application/x-www-form-urlencoded}');
+      print('Body: $payload');
+      print('====================================================');
 
       // Make regular POST request
       final response = await _dioForQuiz.post(
         ApiEndpoints.generateQuiz,
-        data: {'urls': urls},
+        data: payload,
         options: Options(
           headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         ),
       );
-      print('🎯 [QUIZ] Response data: ${response.data}');
+      
+      print('================= QUIZ API RESPONSE =================');
+      print('Status Code: ${response.statusCode}');
+      print('Response Data: ${response.data}');
+      print('=====================================================');
 
       if (response.statusCode == 200 && response.data != null) {
         print('🎯 [QUIZ] Parsing response...');

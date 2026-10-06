@@ -23,6 +23,7 @@ class OnboardingState {
   final Map<String, dynamic>? optionalInfo;
   final ResumeParse? parsedResume;
   final File? resumeFile; // Store resume file for upload after signup
+  final String? heardAboutUs;
 
   OnboardingState({
     this.currentStep = 1,
@@ -43,6 +44,7 @@ class OnboardingState {
     this.optionalInfo,
     this.parsedResume,
     this.resumeFile,
+    this.heardAboutUs,
   });
 
   OnboardingState copyWith({
@@ -65,6 +67,7 @@ class OnboardingState {
     ResumeParse? parsedResume,
     File? resumeFile,
     bool clearResumeFile = false,
+    String? heardAboutUs,
   }) {
     return OnboardingState(
       currentStep: currentStep ?? this.currentStep,
@@ -85,6 +88,7 @@ class OnboardingState {
       optionalInfo: optionalInfo ?? this.optionalInfo,
       parsedResume: parsedResume ?? this.parsedResume,
       resumeFile: clearResumeFile ? null : (resumeFile ?? this.resumeFile),
+      heardAboutUs: heardAboutUs ?? this.heardAboutUs,
     );
   }
 }
@@ -103,6 +107,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       String? dateOfBirth,
     String? linkedIn,
     String? website,
+    String? heardAboutUs,
   }) {
     state = state.copyWith(
       fullName: fullName,
@@ -111,6 +116,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
         dateOfBirth: dateOfBirth,
       linkedIn: linkedIn,
       website: website,
+      heardAboutUs: heardAboutUs,
     );
   }
 
@@ -118,11 +124,13 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     required String fullName,
     required String email,
     required String password,
+    String? heardAboutUs,
   }) {
     state = state.copyWith(
       fullName: fullName,
       email: email,
       password: password,
+      heardAboutUs: heardAboutUs,
     );
   }
 

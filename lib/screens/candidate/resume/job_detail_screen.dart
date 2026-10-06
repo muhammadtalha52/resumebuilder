@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../constants/app_colors.dart';
 import '../../../models/job_listing_model.dart';
 import '../../../widgets/common/custom_app_bar.dart';
+import '../../../services/analytics_service.dart';
 
 class JobDetailScreen extends ConsumerWidget {
   final JobListing jobListing;
@@ -397,7 +398,13 @@ class JobDetailScreen extends ConsumerWidget {
             onPressed: () async {
               final url = Uri.tryParse(job.jobUrl);
               if (url != null) {
-                await launchUrl(url, mode: LaunchMode.externalApplication);
+                final success = await launchUrl(url, mode: LaunchMode.externalApplication);
+                if (success) {
+                  AnalyticsService.logBackendEvent('seeker_job_applied', properties: {
+                    'job_title': job.jobTitle,
+                    'company': job.companyName,
+                  });
+                }
               }
             },
             shape: RoundedRectangleBorder(

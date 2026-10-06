@@ -32,6 +32,19 @@ class _SimpleSignupScreenState extends ConsumerState<SimpleSignupScreen> {
   bool _isCheckingEmail = false;
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
   final AuthService _authService = AuthService();
+  
+  String? _selectedHeardAboutUs;
+  final List<Map<String, String>> _marketingSources = [
+    {'label': 'Radio', 'value': 'radio'},
+    {'label': 'Facebook', 'value': 'facebook'},
+    {'label': 'Instagram', 'value': 'instagram'},
+    {'label': 'TikTok', 'value': 'tiktok'},
+    {'label': 'YouTube', 'value': 'youtube'},
+    {'label': 'Reddit', 'value': 'reddit'},
+    {'label': 'Friend/Referral', 'value': 'friend_referral'},
+    {'label': 'Blog', 'value': 'blog'},
+    {'label': 'Tools Directory', 'value': 'tools_directory'},
+  ];
 
   @override
   void dispose() {
@@ -124,6 +137,7 @@ class _SimpleSignupScreenState extends ConsumerState<SimpleSignupScreen> {
       await authNotifier.signUpWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
+        heardAboutUs: _selectedHeardAboutUs,
       );
 
       // Check if we're still mounted before showing UI
@@ -323,6 +337,29 @@ class _SimpleSignupScreenState extends ConsumerState<SimpleSignupScreen> {
                                       return null;
                                     },
                                     onFieldSubmitted: (_) => _handleSignup(),
+                                  ),
+                                  const SizedBox(height: AppSizes.spaceL),
+
+                                  // How did you hear about us? Dropdown
+                                  DropdownButtonFormField<String>(
+                                    decoration: InputDecoration(
+                                      labelText: 'How did you hear about us? (Optional)',
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    value: _selectedHeardAboutUs,
+                                    items: _marketingSources.map((source) {
+                                      return DropdownMenuItem<String>(
+                                        value: source['value'],
+                                        child: Text(source['label']!),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _selectedHeardAboutUs = value;
+                                      });
+                                    },
                                   ),
                                   const SizedBox(height: AppSizes.spaceXL),
 

@@ -1,6 +1,10 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:facebook_app_events/facebook_app_events.dart';
+import 'package:dio/dio.dart';
+import 'api_client.dart';
+import '../utils/endpoint_headers.dart';
 
 class AnalyticsService {
   static final _fb = FacebookAppEvents();
@@ -90,6 +94,56 @@ class AnalyticsService {
       });
     } catch (e) {
       debugPrint('❌ Failed to log GA purchase event: $e');
+    }
+  }
+
+  /// Event 5: Paywall Shown
+  static Future<void> logPaywallShown({required String trigger}) async {
+    try {
+      debugPrint("📘 META PIXEL EVENT: paywall_shown | params: {trigger: $trigger}");
+      await _fb.logEvent(
+        name: 'paywall_shown',
+        parameters: {'trigger': trigger},
+      );
+    } catch (e) {
+      debugPrint('❌ Failed to log Meta paywall shown event: $e');
+    }
+    
+    try {
+      debugPrint("🟢 GA4 EVENT: paywall_shown | params: {trigger: $trigger}");
+      await _ga.logEvent(
+        name: 'paywall_shown',
+        parameters: {'trigger': trigger},
+      );
+    } catch (e) {
+      debugPrint('❌ Failed to log GA paywall shown event: $e');
+    }
+  }
+
+  /// Backend Event Tracking API (Fire and forget)
+  static Future<void> logBackendEvent(String eventName, {Map<String, dynamic> properties = const {}}) async {
+    try {
+      final platform = Platform.isIOS ? 'ios' : 'android';
+      debugPrint("🚀 BACKEND EVENT: $eventName | params: $properties | platform: $platform");
+      
+      APIClient().dio.post(
+        ApiEndpoints.trackEvent,
+        data: {
+          "event": eventName,
+          "properties": properties,
+          "platform": platform,
+        },
+        options: Options(
+          headers: {
+            WAInterceptorHeaders.requiresToken: true,
+          }
+        )
+      ).catchError((e) {
+        debugPrint('❌ Failed to log Backend event (fire-and-forget): $eventName - Error: $e');
+        return Response(requestOptions: RequestOptions(path: ''));
+      });
+    } catch (e) {
+      debugPrint('❌ Failed to construct Backend event: $eventName - Error: $e');
     }
   }
 }

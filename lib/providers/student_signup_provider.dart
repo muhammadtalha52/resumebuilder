@@ -11,6 +11,7 @@ class StudentSignupState {
   final DateTime? expectedGraduationDate;
   final String? major;
   final List<String> idealJobTitles;
+  final String? heardAboutUs;
 
   StudentSignupState({
     this.currentStep = 1,
@@ -23,6 +24,7 @@ class StudentSignupState {
     this.expectedGraduationDate,
     this.major,
     this.idealJobTitles = const [],
+    this.heardAboutUs,
   });
 
   StudentSignupState copyWith({
@@ -36,6 +38,7 @@ class StudentSignupState {
     DateTime? expectedGraduationDate,
     String? major,
     List<String>? idealJobTitles,
+    String? heardAboutUs,
   }) {
     return StudentSignupState(
       currentStep: currentStep ?? this.currentStep,
@@ -49,6 +52,7 @@ class StudentSignupState {
           expectedGraduationDate ?? this.expectedGraduationDate,
       major: major ?? this.major,
       idealJobTitles: idealJobTitles ?? this.idealJobTitles,
+      heardAboutUs: heardAboutUs ?? this.heardAboutUs,
     );
   }
 }
@@ -61,12 +65,14 @@ class StudentSignupNotifier extends StateNotifier<StudentSignupState> {
     required String email,
     required String phone,
     required String password,
+    String? heardAboutUs,
   }) {
     state = state.copyWith(
       fullName: fullName,
       email: email,
       phone: phone,
       password: password,
+      heardAboutUs: heardAboutUs,
     );
   }
 

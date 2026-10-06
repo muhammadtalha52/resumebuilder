@@ -2177,6 +2177,7 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
           // Show dialog and redirect to plans
           if (mounted) {
             AnalyticsService.logCreditLimitHit();
+            AnalyticsService.logPaywallShown(trigger: 'resume_generation_blocked');
             final shouldBuyPlan = await showConfirmationDialog(
               context: context,
               title: 'No Resume Credits',

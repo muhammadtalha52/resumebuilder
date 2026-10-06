@@ -635,6 +635,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         // Show dialog and redirect to student plans
         if (context.mounted) {
           AnalyticsService.logCreditLimitHit();
+          AnalyticsService.logPaywallShown(trigger: 'credits_exhausted');
           final shouldBuyPlan = await showConfirmationDialog(
             context: context,
             title: 'No Document Upload Credits',
@@ -849,6 +850,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         // Show dialog and redirect to student plans
         if (context.mounted) {
           AnalyticsService.logCreditLimitHit();
+          AnalyticsService.logPaywallShown(trigger: 'credits_exhausted');
           final shouldBuyPlan = await showConfirmationDialog(
             context: context,
             title: 'No Quiz Generation Credits',

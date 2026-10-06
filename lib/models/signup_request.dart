@@ -71,6 +71,7 @@ class SignUpRequest {
   final List<String>? locationPreferences;
   final int? yearsOfExperience;
   final String? placementType;
+  final String? heardAboutUs;
 
   SignUpRequest({
     required this.email,
@@ -113,6 +114,7 @@ class SignUpRequest {
     this.locationPreferences,
     this.yearsOfExperience,
     this.placementType,
+    this.heardAboutUs,
   });
 
   factory SignUpRequest.fromOnboardingState(OnboardingState state) {
@@ -299,6 +301,7 @@ class SignUpRequest {
           ? (careerGoals!['locationPreferences'] as List<dynamic>)
                 .cast<String>()
           : null,
+      heardAboutUs: state.heardAboutUs,
     );
   }
 

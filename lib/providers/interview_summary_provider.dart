@@ -4,6 +4,7 @@ import '../models/conversation_models.dart';
 import '../models/meeting_summary_model.dart';
 import '../services/interview_service.dart';
 import '../services/in_app_review_service.dart';
+import '../services/analytics_service.dart';
 import 'continuous_transcription_provider.dart';
 import 'interview_session_provider.dart';
 
@@ -74,6 +75,9 @@ class InterviewSummaryNotifier extends StateNotifier<InterviewSummaryState> {
       );
 
       if (response['status'] == 'success') {
+        // Log backend event
+        AnalyticsService.logBackendEvent('seeker_practice_session_completed');
+        
         // Debug: Print all keys in response
         print('[END-SESSION] Response keys: ${response.keys.toList()}');
         print(

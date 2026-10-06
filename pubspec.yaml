@@ -2,7 +2,7 @@ name: skillresy
 description: "SkillResy - Professional Resume Builder"
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # The following defines the version and build number for your application.
-version: 1.0.7+30
+version: 1.0.8+32
 
 environment:
   sdk: ^3.9.0-268.0.dev

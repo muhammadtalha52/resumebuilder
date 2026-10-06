@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../constants/app_colors.dart';
 import '../../models/job_listing_model.dart';
+import '../../services/analytics_service.dart';
 
 class JobCard extends StatelessWidget {
   final JobListing jobListing;
@@ -189,7 +190,13 @@ class JobCard extends StatelessWidget {
       onTap: () async {
         final url = Uri.tryParse(jobListing.jobUrl);
         if (url != null) {
-          await launchUrl(url, mode: LaunchMode.externalApplication);
+          final success = await launchUrl(url, mode: LaunchMode.externalApplication);
+          if (success) {
+            AnalyticsService.logBackendEvent('seeker_job_applied', properties: {
+              'job_title': jobListing.jobTitle,
+              'company': jobListing.companyName,
+            });
+          }
         }
       },
       child: Container(

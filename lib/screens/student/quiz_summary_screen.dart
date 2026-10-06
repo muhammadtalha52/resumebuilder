@@ -6,6 +6,7 @@ import '../../providers/quiz_provider.dart';
 import '../../providers/quiz_history_provider.dart';
 import '../../providers/documents_provider.dart';
 import '../../services/in_app_review_service.dart';
+import '../../services/analytics_service.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/common/custom_button.dart';
 import '../../utils/snackbar_utils.dart' as snackbar;
@@ -39,6 +40,9 @@ class _QuizSummaryScreenState extends ConsumerState<QuizSummaryScreen> {
 
         // Refresh history
         ref.read(quizHistoryProvider.notifier).loadHistory();
+
+        // Log backend event
+        AnalyticsService.logBackendEvent('student_study_session_completed');
 
         if (mounted) {
           snackbar.showSuccessSnackBar(
