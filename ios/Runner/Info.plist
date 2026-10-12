@@ -24,7 +24,15 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>FacebookAppID</key>
+	<string>858749073237787</string>
+	<key>FacebookClientToken</key>
+	<string>000131bb44ba52cbf10e7540e48da161</string>
+	<key>FacebookDisplayName</key>
+	<string>SkillResy</string>
 	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
@@ -39,21 +47,42 @@
 	<string>This app needs access to your documents to allow you to upload your resume for automatic parsing</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>This app needs your location to suggest your hometown and state during signup</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs your location to suggest your hometown and state during signup</string>
 	<key>NSLocationDefaultAccuracyReduced</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs your location to suggest your hometown and state during signup</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app needs access to your microphone to record and transcribe interview conversations for AI assistance</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to your photo library to allow you to select and upload profile images</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>This app needs access to speech recognition to transcribe interview conversations and provide real-time AI assistance</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>This identifier will be used to deliver personalized ads to you.</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIFileSharingEnabled</key>
-	<true/>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
@@ -72,13 +101,5 @@
 	</array>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
-	<key>FacebookAppID</key>
-	<string>858749073237787</string>
-	<key>FacebookClientToken</key>
-	<string>000131bb44ba52cbf10e7540e48da161</string>
-	<key>FacebookDisplayName</key>
-	<string>SkillResy</string>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>This identifier will be used to deliver personalized ads to you.</string>
 </dict>
 </plist>

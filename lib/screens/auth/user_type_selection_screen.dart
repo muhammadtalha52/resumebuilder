@@ -6,6 +6,7 @@ import 'package:skillresy/constants/app_sizes.dart';
 import 'package:skillresy/providers/user_type_provider.dart';
 import 'package:skillresy/providers/onboarding_provider.dart';
 import 'package:skillresy/widgets/common/custom_button.dart';
+import 'package:skillresy/widgets/common/server_url_tap_detector.dart';
 
 class UserTypeSelectionScreen extends ConsumerStatefulWidget {
   const UserTypeSelectionScreen({super.key});
@@ -81,10 +82,12 @@ class _UserTypeSelectionScreenState
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 // SkillResy Logo
-                                Image.asset(
-                                  'assets/icons/logo-fox-on-left.png',
-                                  height: isTablet ? 150 : 120,
-                                  width: isTablet ? 350 : 300,
+                                ServerUrlTapDetector(
+                                  child: Image.asset(
+                                    'assets/icons/logo-fox-on-left.png',
+                                    height: isTablet ? 150 : 120,
+                                    width: isTablet ? 350 : 300,
+                                  ),
                                 ),
 
                                 const SizedBox(height: AppSizes.spaceS),

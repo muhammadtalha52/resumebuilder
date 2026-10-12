@@ -194,8 +194,10 @@ class SubscriptionService {
         // Build productId -> planId mapping
         final Map<String, int> mapping = {};
         for (final plan in plansResponse.data) {
-          if (plan.isActive) {
-            mapping[plan.productId] = plan.id;
+          if (plan.isActive &&
+              plan.productId != null &&
+              plan.productId!.isNotEmpty) {
+            mapping[plan.productId!] = plan.id;
             print(
               '[SubscriptionService] Mapped: ${plan.productId} -> ${plan.id}',
             );

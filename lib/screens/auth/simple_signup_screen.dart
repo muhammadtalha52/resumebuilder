@@ -12,6 +12,7 @@ import '../../widgets/common/custom_button.dart';
 import '../../widgets/common/custom_text_field.dart';
 import '../../widgets/common/password_strength_indicator.dart';
 import '../../widgets/dialogs/email_exists_dialog.dart';
+import '../../widgets/common/server_url_tap_detector.dart';
 import 'account_creation_loading_screen.dart';
 
 class SimpleSignupScreen extends ConsumerStatefulWidget {
@@ -207,10 +208,12 @@ class _SimpleSignupScreenState extends ConsumerState<SimpleSignupScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   // SkillResy Logo
-                                  Image.asset(
-                                    'assets/icons/logo-fox-on-left.png',
-                                    height: isTablet ? 150 : 120,
-                                    width: isTablet ? 350 : 300,
+                                  ServerUrlTapDetector(
+                                    child: Image.asset(
+                                      'assets/icons/logo-fox-on-left.png',
+                                      height: isTablet ? 150 : 120,
+                                      width: isTablet ? 350 : 300,
+                                    ),
                                   ),
 
                                   const SizedBox(height: AppSizes.spaceS),

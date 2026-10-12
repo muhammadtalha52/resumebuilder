@@ -18,6 +18,16 @@ class ApiEndpoints {
 
   ///Prod Urls
   static String get baseUrl => (dotenv.isInitialized ? dotenv.env['API_BASE_URL'] : null) ?? 'https://api.skillresy.com/api';
+  static String get formattedServerBaseUrl {
+    final url = baseUrl;
+    if (url.contains('api-dev.skillresy.com')) {
+      return 'Dev Server: $url';
+    } else if (url.contains('api.skillresy.com')) {
+      return 'Prod Server: $url';
+    } else {
+      return url;
+    }
+  }
   static const String resumeModuleBaseUrl = 'https://ai.skillresy.com/';
   static const String interviewModuleBaseUrl = 'https://ia.skillresy.com/api/';
   static const String quizModuleBaseUrl = 'https://quiz.skillresy.com/';
@@ -53,6 +63,23 @@ class ApiEndpoints {
   static const String planAllocation = '/plan/allocation/';
   static const String plans = '/plan/plans/';
   static const String markCreditsUsed = '/plan/allocation/use/';
+
+  // Stripe Subscription Endpoints
+  static const String oneTimePlans = '/plan/plans/one-time/';
+  static const String subscription = '/plan/subscription/';
+  static const String subscriptionCheckout = '/plan/subscription/checkout/';
+  static const String subscriptionVerify = '/plan/subscription/verify/';
+  static const String subscriptionUpdate = '/plan/subscription/update/';
+  static const String subscriptionCancel = '/plan/subscription/cancel/';
+
+  /// Returns origin URL Stripe redirects user to. Dev: dev-app.skillresy.com, Prod: app.skillresy.com
+  static String get stripeReturnOrigin {
+    final url = baseUrl.toLowerCase();
+    if (url.contains('api-dev') || url.contains('dev')) {
+      return 'https://dev-app.skillresy.com';
+    }
+    return 'https://app.skillresy.com';
+  }
 
   // Invite Friends
   static const String sendInvite = '/auth/invites/send/';

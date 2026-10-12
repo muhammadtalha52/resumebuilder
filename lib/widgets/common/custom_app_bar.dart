@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../constants/app_colors.dart';
-import '../../utils/endpoint_headers.dart';
+import 'server_url_tap_detector.dart';
 
 class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final Widget? leading;
@@ -42,48 +42,12 @@ class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(56);
 }
 
-int _foxTapCount = 0;
-DateTime? _lastFoxTap;
-
-class _FoxSecretTapDetector extends StatelessWidget {
-  final Widget child;
-  
-  const _FoxSecretTapDetector({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        final now = DateTime.now();
-        if (_lastFoxTap == null || now.difference(_lastFoxTap!).inSeconds > 2) {
-          _foxTapCount = 1;
-        } else {
-          _foxTapCount++;
-        }
-        _lastFoxTap = now;
-
-        if (_foxTapCount >= 7) {
-          _foxTapCount = 0;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('API URL: ${ApiEndpoints.baseUrl}'),
-              duration: const Duration(seconds: 4),
-              backgroundColor: AppColors.primary,
-            ),
-          );
-        }
-      },
-      child: child,
-    );
-  }
-}
-
 // Commonly used app bar widgets
 class AppBarWidgets {
   AppBarWidgets._();
 
   static Widget foxLogo() {
-    return _FoxSecretTapDetector(
+    return ServerUrlTapDetector(
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -95,7 +59,7 @@ class AppBarWidgets {
   }
 
   static Widget foxWithTitle({required String title}) {
-    return _FoxSecretTapDetector(
+    return ServerUrlTapDetector(
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -114,7 +78,7 @@ class AppBarWidgets {
   }
 
   static Widget foxWithSmallTitle({required String title}) {
-    return _FoxSecretTapDetector(
+    return ServerUrlTapDetector(
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -218,7 +182,9 @@ class BackNavigationAppBar extends StatelessWidget
         mainAxisSize: MainAxisSize.min,
         children: [
           if (showFoxIcon) ...[
-            Image.asset('assets/icons/fox-mascot.png', height: 35),
+            ServerUrlTapDetector(
+              child: Image.asset('assets/icons/fox-mascot.png', height: 35),
+            ),
             const SizedBox(width: 8),
           ],
           Flexible(

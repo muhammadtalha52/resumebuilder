@@ -3,11 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/meeting_history_response.dart';
 import '../models/scout_chat_models.dart';
 import '../services/interview_service.dart';
+import '../services/stripe_subscription_service.dart';
+import 'stripe_subscription_provider.dart';
+import 'user_provider.dart';
 
 class ScoutChatNotifier extends StateNotifier<ScoutChatState> {
   final InterviewService _interviewService;
+  final StripeSubscriptionService? _stripeService;
+  final bool _isStudent;
 
-  ScoutChatNotifier(this._interviewService) : super(ScoutChatState());
+  ScoutChatNotifier(
+    this._interviewService, {
+    StripeSubscriptionService? stripeService,
+    bool isStudent = false,
+  })  : _stripeService = stripeService,
+        _isStudent = isStudent,
+        super(ScoutChatState());
 
   /// Setup Scout chat session for a meeting
   Future<void> setupChatSession(MeetingHistoryItem meeting) async {
@@ -60,6 +71,24 @@ class ScoutChatNotifier extends StateNotifier<ScoutChatState> {
             'You have reached the maximum of ${state.maxQuestions} questions for this session.',
       );
       return;
+    }
+
+    // 1. Ask Scout questions are counted for Candidates (Students are not affected)
+    final stripeService = _stripeService;
+    if (!_isStudent && stripeService != null) {
+      state = state.copyWith(isLoading: true, error: null);
+      final hasCredit = await stripeService.deductAskScoutCredit(
+        sessionId: state.sessionId!.toString(),
+      );
+
+      if (!hasCredit) {
+        state = state.copyWith(
+          isLoading: false,
+          error:
+              "You've used all your Ask Scout questions for this period. They come back when your plan renews, or you can switch to a bigger plan.",
+        );
+        return;
+      }
     }
 
     // Increment question count
@@ -132,6 +161,13 @@ final interviewServiceProvider = Provider<InterviewService>((ref) {
 
 final scoutChatProvider =
     StateNotifierProvider.autoDispose<ScoutChatNotifier, ScoutChatState>((ref) {
-      final interviewService = ref.watch(interviewServiceProvider);
-      return ScoutChatNotifier(interviewService);
-    });
+  final interviewService = ref.watch(interviewServiceProvider);
+  final isStudent = ref.watch(isStudentProvider);
+  final stripeService = ref.watch(stripeSubscriptionServiceProvider);
+
+  return ScoutChatNotifier(
+    interviewService,
+    stripeService: stripeService,
+    isStudent: isStudent,
+  );
+});

@@ -201,6 +201,7 @@ class ContinuousTranscriptionNotifier
   late final SubscriptionService _subscriptionService;
   final Ref _ref;
   DateTime? _sessionStartTime;
+  DateTime? _lastCaptionTime; // Track timestamp of latest caption/speech
   int _lastHelpTranscriptLength =
       0; // Track transcript position for delta sending
   int _lastSavedSpeakerSegmentCount =
@@ -235,6 +236,12 @@ class ContinuousTranscriptionNotifier
       speakerSegments: _audioTranscriber!.speakerSegments,
       speakerCount: _audioTranscriber!.speakerCount,
     );
+
+    // Track latest caption timestamp
+    final segment = _audioTranscriber!.latestSegment;
+    if (segment != null && segment.trim().isNotEmpty) {
+      _lastCaptionTime = DateTime.now();
+    }
 
     // Update conversation message with new transcript
     _updateCurrentConversationMessage(_audioTranscriber!.transcript);
@@ -321,6 +328,7 @@ class ContinuousTranscriptionNotifier
 
       _startTimer();
       _sessionStartTime = DateTime.now();
+      _lastCaptionTime = DateTime.now();
 
       // AUTO-START: Begin continuous recording immediately
       print(
@@ -513,6 +521,7 @@ class ContinuousTranscriptionNotifier
       // Start timer and audio transcription
       _startTimer();
       _sessionStartTime = DateTime.now();
+      _lastCaptionTime = DateTime.now();
       _startNewConversationMessage();
       await _audioTranscriber!.startRecording();
 
@@ -547,6 +556,9 @@ class ContinuousTranscriptionNotifier
     print('[$timestamp] updateTranscription called');
     print('  - New transcription: "$transcription"');
     print('  - Previous transcription: "${state.currentTranscription}"');
+    if (transcription.trim().isNotEmpty) {
+      _lastCaptionTime = DateTime.now();
+    }
     state = state.copyWith(currentTranscription: transcription);
   }
 
@@ -1426,21 +1438,32 @@ class ContinuousTranscriptionNotifier
 
       // Calculate actual elapsed time from session start
       if (_sessionStartTime != null) {
-        final elapsed = DateTime.now().difference(_sessionStartTime!);
+        final now = DateTime.now();
+        final elapsed = now.difference(_sessionStartTime!);
 
-        // TESTING: Check for 5-minute warning (only trigger once)
-        // TODO: Change to 3300 seconds (55 minutes) for production
-        if (elapsed.inSeconds >= 3300 && !state.sessionWarning5Min) {
-          print('[SESSION-TIMER] 5 minutes elapsed - triggering warning');
+        // 3. Live sessions close after 10 silent minutes (no new captions).
+        final silentDuration = _lastCaptionTime != null
+            ? now.difference(_lastCaptionTime!)
+            : Duration.zero;
+
+        if (silentDuration.inSeconds >= 600 && !state.sessionAutoEnd) {
+          print('[SESSION-TIMER] 10 silent minutes (no new captions) - triggering auto-end');
+          state = state.copyWith(
+            sessionDuration: elapsed,
+            sessionAutoEnd: true,
+          );
+        }
+        // 55-minute warning (only trigger once)
+        else if (elapsed.inSeconds >= 3300 && !state.sessionWarning5Min) {
+          print('[SESSION-TIMER] 55 minutes elapsed - triggering warning');
           state = state.copyWith(
             sessionDuration: elapsed,
             sessionWarning5Min: true,
           );
         }
-        // TESTING: Check for 10-minute auto-end (only trigger once)
-        // TODO: Change to 3600 seconds (60 minutes) for production
+        // 60-minute session limit auto-end (unchanged)
         else if (elapsed.inSeconds >= 3600 && !state.sessionAutoEnd) {
-          print('[SESSION-TIMER] 10 minutes elapsed - triggering auto-end');
+          print('[SESSION-TIMER] 60 minutes elapsed - triggering auto-end');
           state = state.copyWith(
             sessionDuration: elapsed,
             sessionAutoEnd: true,

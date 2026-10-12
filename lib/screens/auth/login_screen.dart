@@ -11,6 +11,7 @@ import 'package:skillresy/widgets/common/custom_button.dart';
 import 'package:skillresy/widgets/common/custom_text_field.dart'
     hide CustomButton;
 import 'package:skillresy/utils/url_launcher_utils.dart';
+import 'package:skillresy/widgets/common/server_url_tap_detector.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -164,10 +165,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   // SkillResy Logo
-                                  Image.asset(
-                                    'assets/icons/logo-fox-on-left.png',
-                                    height: isTablet ? 150 : 120,
-                                    width: isTablet ? 350 : 300,
+                                  ServerUrlTapDetector(
+                                    child: Image.asset(
+                                      'assets/icons/logo-fox-on-left.png',
+                                      height: isTablet ? 150 : 120,
+                                      width: isTablet ? 350 : 300,
+                                    ),
                                   ),
 
                                   const SizedBox(height: AppSizes.spaceS),

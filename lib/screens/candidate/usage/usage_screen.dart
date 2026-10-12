@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_sizes.dart';
+import '../../../providers/stripe_subscription_provider.dart';
 import '../../../providers/usage_provider.dart';
 import '../../../providers/user_provider.dart';
 import '../../../widgets/common/custom_app_bar.dart';
@@ -21,9 +22,10 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetch usage data when screen loads
+    // Fetch usage and subscription data when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(usageProvider.notifier).fetchUsageAllocation();
+      ref.read(stripeSubscriptionProvider.notifier).refreshSubscription();
     });
   }
 
@@ -201,6 +203,15 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
                       style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Last updated: ${_formatDate(usage.lastUpdated)}',
+                      style: const TextStyle(
+                        color: AppColors.textLight,
+                        fontSize: 12,
                       ),
                     ),
                   ],
@@ -238,6 +249,15 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
                     count: usage.remainingInterviewCount,
                     color: const Color(0xFF2196F3),
                   ),
+                  if (ref.watch(stripeSubscriptionProvider).credits.askScout > 0) ...[
+                    const SizedBox(height: 12),
+                    _buildUsageCard(
+                      icon: Icons.smart_toy_outlined,
+                      title: 'Ask Scout Questions',
+                      count: ref.watch(stripeSubscriptionProvider).credits.askScout,
+                      color: AppColors.primary,
+                    ),
+                  ],
                 ] else ...[
                   // Student features
                   _buildUsageCard(
@@ -254,6 +274,63 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
                     color: const Color(0xFF9C27B0),
                   ),
                 ],
+
+                // 2. Show when credits expire (credits_expire_at)
+                Consumer(
+                  builder: (context, ref, _) {
+                    final stripeSub = ref.watch(stripeSubscriptionProvider).subscription;
+                    final creditsExpireAt = stripeSub?.formattedCreditsExpireAt;
+                    if (creditsExpireAt != null && creditsExpireAt.isNotEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.hourglass_bottom_rounded,
+                                color: AppColors.primary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Credits Expire: $creditsExpireAt',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    const Text(
+                                      'Unused credits expire at period end and do not carry over.',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
 
                 const SizedBox(height: 20),
 

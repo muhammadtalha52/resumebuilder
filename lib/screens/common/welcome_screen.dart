@@ -4,6 +4,7 @@ import '../../constants/app_colors.dart';
 import '../../models/welcome_page_data.dart';
 import '../../services/app_preferences.dart';
 import '../../widgets/page_indicator.dart';
+import '../../widgets/common/server_url_tap_detector.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -72,9 +73,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     left: 20,
                     right: 20,
                   ),
-                  child: Image.asset(
-                    'assets/icons/logo-fox-on-left.png',
-                    height: isTablet ? 70 : 60,
+                  child: ServerUrlTapDetector(
+                    child: Image.asset(
+                      'assets/icons/logo-fox-on-left.png',
+                      height: isTablet ? 70 : 60,
+                    ),
                   ),
                 ),
                 // Page content

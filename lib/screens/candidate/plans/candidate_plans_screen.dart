@@ -3,10 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_sizes.dart';
+import '../../../models/backend_plan_model.dart';
 import '../../../models/plan_model.dart';
 import '../../../models/purchase_product_model.dart';
 import '../../../providers/iap_provider.dart';
+import '../../../providers/stripe_subscription_provider.dart';
+import '../../../providers/usage_provider.dart';
+import '../../../widgets/plans/active_subscription_card.dart';
 import '../../../widgets/plans/plan_card.dart';
+import '../../../widgets/plans/subscription_dialogs.dart';
+import '../../../widgets/plans/subscription_plan_card.dart';
+import '../../../widgets/plans/subscription_rules_widget.dart';
 
 class CandidatePlansScreen extends ConsumerStatefulWidget {
   const CandidatePlansScreen({super.key});
@@ -16,29 +23,134 @@ class CandidatePlansScreen extends ConsumerStatefulWidget {
       _CandidatePlansScreenState();
 }
 
-class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen> {
+class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
+    with WidgetsBindingObserver {
   final PageController _pageController = PageController(viewportFraction: 0.92);
+  final PageController _iapPageController =
+      PageController(viewportFraction: 0.92);
   int _currentPage = 0;
+  int _currentIapPage = 0;
+  int _selectedTab = 0; // 0 = Subscriptions, 1 = Store Packs (One-Time)
+
+  // Documented fallback plans for candidate (role 1) if offline/syncing
+  static const List<BackendPlanModel> _fallbackCandidatePlans = [
+    BackendPlanModel(
+      id: 11,
+      name: 'Weekend Warrior',
+      price: '10.99',
+      billingInterval: 'week',
+      resumeCount: 3,
+      interviewCount: 3,
+      askScoutCount: 10,
+      trialDays: 3,
+      isSubscription: true,
+    ),
+    BackendPlanModel(
+      id: 12,
+      name: 'Just Scouting',
+      price: '14.99',
+      billingInterval: 'month',
+      resumeCount: 5,
+      interviewCount: 3,
+      askScoutCount: 20,
+      trialDays: 3,
+      isSubscription: true,
+    ),
+    BackendPlanModel(
+      id: 13,
+      name: 'Serious Seeker',
+      price: '24.99',
+      billingInterval: 'month',
+      resumeCount: 12,
+      interviewCount: 8,
+      askScoutCount: 45,
+      trialDays: 3,
+      isSubscription: true,
+      isRecommended: true,
+    ),
+    BackendPlanModel(
+      id: 14,
+      name: 'Job Hunter',
+      price: '49.99',
+      billingInterval: 'month',
+      resumeCount: 25,
+      interviewCount: 15,
+      askScoutCount: 100,
+      trialDays: 3,
+      isSubscription: true,
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
-    // Load plans mapping from backend when screen opens
+    WidgetsBinding.instance.addObserver(this);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Load Stripe subscription plans for candidate (role 1)
+      ref.read(stripeSubscriptionProvider.notifier).loadData(role: 1);
+      // Also load legacy IAP mapping so store packs stay operational
       ref.read(iapProvider.notifier).loadPlansMapping();
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
+    _iapPageController.dispose();
     super.dispose();
   }
 
-  Future<void> _onPlanSelected(PlanModel plan) async {
-    // Check if IAP is initialized
-    final iapState = ref.read(iapProvider);
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Re-check pending checkout or refresh subscription status upon returning
+      final pendingSessionId =
+          ref.read(stripeSubscriptionProvider).pendingSessionId;
+      if (pendingSessionId != null && pendingSessionId.isNotEmpty) {
+        ref
+            .read(stripeSubscriptionProvider.notifier)
+            .verifySession(pendingSessionId);
+      } else {
+        ref.read(stripeSubscriptionProvider.notifier).refreshSubscription();
+      }
+      ref.read(usageProvider.notifier).fetchUsageAllocation();
+    }
+  }
 
+  Future<void> _onStripePlanSelected(
+    BackendPlanModel plan,
+    StripeSubscriptionNotifier notifier,
+  ) async {
+    final stripeState = ref.read(stripeSubscriptionProvider);
+    final currentSub = stripeState.subscription;
+
+    if (currentSub != null && currentSub.isActiveOrTrial) {
+      if (currentSub.plan.id == plan.id) {
+        // Already on this plan
+        return;
+      }
+      // Upgrade or Downgrade confirmation dialog
+      final confirmed = await SubscriptionDialogs.showPlanChangeDialog(
+        context: context,
+        targetPlan: plan,
+        currentSubscription: currentSub,
+      );
+
+      if (confirmed == true && mounted) {
+        await notifier.updateSubscriptionPlan(context, plan);
+        ref.read(usageProvider.notifier).fetchUsageAllocation();
+      }
+    } else {
+      // Start Stripe Checkout flow in Safari View Controller / Custom Tabs
+      await notifier.startCheckout(context, plan);
+      ref.read(usageProvider.notifier).fetchUsageAllocation();
+    }
+  }
+
+  Future<void> _onIapPlanSelected(PlanModel plan) async {
+    final iapState = ref.read(iapProvider);
     if (!iapState.isInitialized) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -53,7 +165,6 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen> {
       return;
     }
 
-    // Map plan ID to product ID
     String productId;
     switch (plan.id) {
       case 'basic':
@@ -66,23 +177,39 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen> {
         productId = PurchaseProducts.premiumProductId;
         break;
       default:
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Invalid plan selected')),
-          );
-        }
         return;
     }
 
-    print('[PlansScreen] Initiating purchase for product: $productId');
-
-    // Initiate purchase
     await ref.read(iapProvider.notifier).purchaseProduct(productId);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Listen to IAP state changes for success/error messages
+    // Listen to Stripe subscription messages
+    ref.listen<StripeSubscriptionState>(stripeSubscriptionProvider,
+        (previous, next) {
+      if (next.successMessage != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.successMessage!),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        ref.read(stripeSubscriptionProvider.notifier).clearSuccessMessage();
+      } else if (next.error != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.error!),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        ref.read(stripeSubscriptionProvider.notifier).clearError();
+      }
+    });
+
+    // Listen to legacy IAP state
     ref.listen<IAPState>(iapProvider, (previous, next) {
       if (next.successMessage != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -92,13 +219,6 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen> {
           ),
         );
         ref.read(iapProvider.notifier).clearSuccessMessage();
-
-        // Close plans screen after successful purchase
-        Future.delayed(const Duration(milliseconds: 1500), () {
-          if (mounted) {
-            context.pop();
-          }
-        });
       } else if (next.error != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(next.error!), backgroundColor: Colors.red),
@@ -107,6 +227,7 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen> {
       }
     });
 
+    final stripeState = ref.watch(stripeSubscriptionProvider);
     final iapState = ref.watch(iapProvider);
 
     return Scaffold(
@@ -117,24 +238,90 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen> {
               gradient: AppColors.primaryGradientVertical,
             ),
             child: SafeArea(
-              child: Column(
-                children: [
-                  _buildHeaderWithTitleAndClose(context),
-                  _buildSubtitle(),
-                  Expanded(child: _buildPlansCarousel()),
-                  _buildPageIndicator(),
-                  const SizedBox(height: AppSizes.paddingL),
+              child: CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        _buildHeaderWithTitleAndClose(context),
+                        _buildSubtitle(),
+                        const SizedBox(height: 12),
+                        _buildTypeTabs(),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ),
+
+                  // Active Subscription Banner if user has one
+                  if (_selectedTab == 0 &&
+                      stripeState.hasActiveSubscription)
+                    SliverToBoxAdapter(
+                      child: ActiveSubscriptionCard(
+                        subscription: stripeState.subscription!,
+                        payments: stripeState.payments,
+                        isCanceling: stripeState.isCanceling,
+                        onCancelOrUndo: () async {
+                          final confirmed =
+                              await SubscriptionDialogs.showCancelConfirmationDialog(
+                            context: context,
+                            subscription: stripeState.subscription!,
+                          );
+                          if (confirmed == true && mounted) {
+                            await ref
+                                .read(stripeSubscriptionProvider.notifier)
+                                .cancelOrResumeSubscription(
+                                  undo: stripeState
+                                      .subscription!.cancelAtPeriodEnd,
+                                );
+                            ref
+                                .read(usageProvider.notifier)
+                                .fetchUsageAllocation();
+                          }
+                        },
+                        onOpenInvoice: (url) {
+                          ref
+                              .read(stripeSubscriptionProvider.notifier)
+                              .openInvoice(url);
+                        },
+                      ),
+                    ),
+
+                  // Plans Carousel
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 520,
+                      child: _selectedTab == 0
+                          ? _buildStripePlansCarousel(stripeState)
+                          : _buildIapPlansCarousel(iapState),
+                    ),
+                  ),
+
+                  // Page Indicator
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 8),
+                        _buildPageIndicator(stripeState),
+                        const SizedBox(height: 12),
+                        // Subscription Rules Section (Mandatory Rules from doc)
+                        if (_selectedTab == 0)
+                          const SubscriptionRulesWidget(isStudent: false),
+                        const SizedBox(height: AppSizes.paddingL),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
-          // Loading overlay during purchase verification
-          if (iapState.isPurchasing)
+
+          // Loading overlay during checkout verification (after returning from checkout sheet)
+          if (stripeState.isVerifying)
             Container(
-              color: Colors.black.withValues(alpha: 0.7),
+              color: Colors.black.withValues(alpha: 0.65),
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.all(32),
+                  padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
@@ -143,12 +330,12 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       CircularProgressIndicator(color: AppColors.primary),
-                      SizedBox(height: 20),
+                      SizedBox(height: 18),
                       Text(
-                        'Verifying your purchase...',
+                        'Verifying your Stripe subscription...',
                         style: TextStyle(
                           color: AppColors.textPrimary,
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -162,31 +349,185 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen> {
     );
   }
 
-  Widget _buildHeaderWithTitleAndClose(BuildContext context) {
-    return SizedBox(
-      height: 300,
-      child: Stack(
-        children: [
-          // Header Illustration - Centered and synced with current page
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 280,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              transitionBuilder: (child, animation) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-              child: Image.asset(
-                _getIconPathForPlan(PlanModel.allPlans[_currentPage].id),
-                key: ValueKey(_currentPage),
-                height: 280,
-                fit: BoxFit.contain,
+  Widget _buildTypeTabs() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.25),
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedTab = 0;
+                  });
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: _selectedTab == 0
+                        ? Colors.white
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    'Subscriptions (Stripe)',
+                    style: TextStyle(
+                      color: _selectedTab == 0
+                          ? AppColors.primary
+                          : Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
               ),
             ),
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedTab = 1;
+                  });
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: _selectedTab == 1
+                        ? Colors.white
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    'One-Time Packs',
+                    style: TextStyle(
+                      color: _selectedTab == 1
+                          ? AppColors.primary
+                          : Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStripePlansCarousel(StripeSubscriptionState state) {
+    final plans =
+        state.plans.isNotEmpty ? state.plans : _fallbackCandidatePlans;
+    final notifier = ref.read(stripeSubscriptionProvider.notifier);
+
+    return PageView.builder(
+      controller: _pageController,
+      onPageChanged: (index) {
+        setState(() {
+          _currentPage = index;
+        });
+      },
+      itemCount: plans.length,
+      itemBuilder: (context, index) {
+        final plan = plans[index];
+        final isPlanCheckingOut = state.checkingOutPlanId == plan.id;
+        return SubscriptionPlanCard(
+          plan: plan,
+          currentSubscription: state.subscription,
+          onSelect: () => _onStripePlanSelected(plan, notifier),
+          isLoading: isPlanCheckingOut || state.isUpdating,
+        );
+      },
+    );
+  }
+
+  Widget _buildIapPlansCarousel(IAPState iapState) {
+    return PageView.builder(
+      controller: _iapPageController,
+      onPageChanged: (index) {
+        setState(() {
+          _currentIapPage = index;
+        });
+      },
+      itemCount: PlanModel.allPlans.length,
+      itemBuilder: (context, index) {
+        final plan = PlanModel.allPlans[index];
+        return PlanCard(
+          plan: plan,
+          onTap: () => _onIapPlanSelected(plan),
+          isLoading:
+              iapState.isLoadingPlansMapping || iapState.isInitiatingCheckout,
+        );
+      },
+    );
+  }
+
+  String _getIconPathForPlan(String planId) {
+    switch (planId) {
+      case 'basic':
+        return 'assets/icons/basic.png';
+      case 'pro':
+        return 'assets/icons/pro.png';
+      case 'enterprise':
+        return 'assets/icons/enterprise.png';
+      default:
+        return 'assets/icons/fox-mascot.png';
+    }
+  }
+
+  Widget _buildHeaderWithTitleAndClose(BuildContext context) {
+    final isSubscriptions = _selectedTab == 0;
+
+    return SizedBox(
+      height: 260,
+      child: Stack(
+        children: [
+          // Header Illustration: Small skillresy logo with padding for Subscriptions,
+          // or previous basic/pro/enterprise images for One-Time Packs
+          Positioned(
+            top: 8,
+            left: 0,
+            right: 0,
+            height: 210,
+            child: isSubscriptions
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0,
+                        vertical: 20.0,
+                      ),
+                      child: Image.asset(
+                        'assets/icons/fox-mascot.png',
+                        height: 125,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  )
+                : AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                    child: Image.asset(
+                      _getIconPathForPlan(
+                        PlanModel.allPlans[_currentIapPage].id,
+                      ),
+                      key: ValueKey(_currentIapPage),
+                      height: 210,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
           ),
-          // Title - Bottom (overlapping with illustration)
           Positioned(
             bottom: 0,
             left: 0,
@@ -213,7 +554,6 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen> {
               ),
             ),
           ),
-          // Close Button - Top Right
           Positioned(
             top: 0,
             right: 20,
@@ -228,24 +568,23 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen> {
               ),
             ),
           ),
-          // Offer Badge - Top Left
           Positioned(
             top: 8,
             left: 20,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(AppSizes.radiusM),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('🎉', style: TextStyle(fontSize: 12)),
-                  SizedBox(width: 4),
+                  const Text('🎉', style: TextStyle(fontSize: 12)),
+                  const SizedBox(width: 4),
                   Text(
-                    'Limited Time Offer',
-                    style: TextStyle(
+                    isSubscriptions ? '3-Day Free Trial' : 'Limited Time Offer',
+                    style: const TextStyle(
                       color: AppColors.primary,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -260,71 +599,42 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen> {
     );
   }
 
-  String _getIconPathForPlan(String planId) {
-    switch (planId) {
-      case 'basic':
-        return 'assets/icons/basic.png';
-      case 'pro':
-        return 'assets/icons/pro.png';
-      case 'enterprise':
-        return 'assets/icons/enterprise.png';
-      default:
-        return 'assets/icons/fox-mascot.png';
-    }
-  }
-
   Widget _buildSubtitle() {
     return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: AppSizes.paddingL),
+      padding: EdgeInsets.symmetric(horizontal: AppSizes.paddingL, vertical: 4),
       child: Text(
         'Tap into AI tools that fine-tune your resume and interview skills for your dream job',
         textAlign: TextAlign.center,
         style: TextStyle(
           color: AppColors.white,
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: FontWeight.normal,
-          height: 1.5,
+          height: 1.4,
         ),
       ),
     );
   }
 
-  Widget _buildPlansCarousel() {
-    final iapState = ref.watch(iapProvider);
+  Widget _buildPageIndicator(StripeSubscriptionState state) {
+    final count = _selectedTab == 0
+        ? (state.plans.isNotEmpty
+            ? state.plans.length
+            : _fallbackCandidatePlans.length)
+        : PlanModel.allPlans.length;
+    final activeIndex = _selectedTab == 0 ? _currentPage : _currentIapPage;
 
-    return PageView.builder(
-      controller: _pageController,
-      onPageChanged: (index) {
-        setState(() {
-          _currentPage = index;
-        });
-      },
-      itemCount: PlanModel.allPlans.length,
-      itemBuilder: (context, index) {
-        final plan = PlanModel.allPlans[index];
-        return PlanCard(
-          plan: plan,
-          onTap: () => _onPlanSelected(plan),
-          isLoading:
-              iapState.isLoadingPlansMapping || iapState.isInitiatingCheckout,
-        );
-      },
-    );
-  }
-
-  Widget _buildPageIndicator() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
-        PlanModel.allPlans.length,
+        count,
         (index) => Container(
           margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: _currentPage == index ? 32 : 8,
+          width: activeIndex == index ? 28 : 8,
           height: 8,
           decoration: BoxDecoration(
-            color: _currentPage == index
+            color: activeIndex == index
                 ? AppColors.white
-                : AppColors.white.withValues(alpha: 0.3),
+                : AppColors.white.withValues(alpha: 0.35),
             borderRadius: BorderRadius.circular(4),
           ),
         ),
