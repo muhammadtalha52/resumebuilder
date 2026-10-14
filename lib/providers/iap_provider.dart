@@ -252,18 +252,22 @@ class IAPNotifier extends StateNotifier<IAPState> {
     // Fallback to hardcoded mapping
     print('[IAPProvider] Using fallback mapping for $productId');
 
-    if (productId.contains('candidate.basic')) {
-      return 1;
-    } else if (productId.contains('candidate.pro')) {
-      return 2;
-    } else if (productId.contains('candidate.enterprise')) {
-      return 3;
-    } else if (productId.contains('student.basic')) {
-      return 4;
-    } else if (productId.contains('student.pro')) {
-      return 5;
-    } else if (productId.contains('student.enterprise')) {
-      return 6;
+    if (productId.contains('weekend_warrior')) {
+      return 11;
+    } else if (productId.contains('just_scouting') || productId.contains('candidate.basic')) {
+      return 12;
+    } else if (productId.contains('serious_seeker') || productId.contains('candidate.pro')) {
+      return 13;
+    } else if (productId.contains('job_hunter') || productId.contains('candidate.enterprise')) {
+      return 14;
+    } else if (productId.contains('cram_session')) {
+      return 21;
+    } else if (productId.contains('basic_student') || productId.contains('student.basic')) {
+      return 22;
+    } else if (productId.contains('mid_student') || productId.contains('student.pro')) {
+      return 23;
+    } else if (productId.contains('nerd_out') || productId.contains('student.enterprise')) {
+      return 24;
     }
 
     print(

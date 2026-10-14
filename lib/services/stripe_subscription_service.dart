@@ -41,7 +41,18 @@ class StripeSubscriptionService {
       );
 
       if (response.statusCode == 200 && response.data != null) {
+        print('\n======================================================');
+        print('🔥 [BACKEND PLANS RAW RESPONSE /plan/plans/one-time/]:');
+        print('${response.data}');
+        print('======================================================\n');
+
         final plansResponse = PlansListResponse.fromJson(response.data);
+
+        for (final p in plansResponse.data) {
+          print(
+            '📦 [PLAN ITEM] id: ${p.id} | name: "${p.name}" | product_id: "${p.productId}" | is_subscription: ${p.isSubscription} | price: ${p.price}',
+          );
+        }
 
         // Keep only active plans that are subscriptions
         var plans = plansResponse.data

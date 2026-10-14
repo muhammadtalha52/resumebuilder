@@ -149,7 +149,7 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
     }
   }
 
-  Future<void> _onIapPlanSelected(PlanModel plan) async {
+  Future<void> _onIapPlanSelected(BackendPlanModel plan) async {
     final iapState = ref.read(iapProvider);
     if (!iapState.isInitialized) {
       if (mounted) {
@@ -165,21 +165,23 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
       return;
     }
 
-    String productId;
-    switch (plan.id) {
-      case 'basic':
+    String productId = plan.productId ?? '';
+    if (productId.isEmpty) {
+      final name = plan.name.toLowerCase();
+      if (name.contains('weekend')) {
+        productId = PurchaseProducts.weekendWarriorProductId;
+      } else if (name.contains('scouting') || name.contains('just')) {
+        productId = PurchaseProducts.justScoutingProductId;
+      } else if (name.contains('serious') || name.contains('seeker')) {
+        productId = PurchaseProducts.seriousSeekerProductId;
+      } else if (name.contains('hunter') || name.contains('job')) {
+        productId = PurchaseProducts.jobHunterProductId;
+      } else {
         productId = PurchaseProducts.basicProductId;
-        break;
-      case 'pro':
-        productId = PurchaseProducts.proProductId;
-        break;
-      case 'enterprise':
-        productId = PurchaseProducts.premiumProductId;
-        break;
-      default:
-        return;
+      }
     }
 
+    print('[PlansScreen] Initiating Store IAP purchase for product: $productId');
     await ref.read(iapProvider.notifier).purchaseProduct(productId);
   }
 
@@ -292,7 +294,7 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
                       height: 520,
                       child: _selectedTab == 0
                           ? _buildStripePlansCarousel(stripeState)
-                          : _buildIapPlansCarousel(iapState),
+                          : _buildIapPlansCarousel(iapState, stripeState),
                     ),
                   ),
 
@@ -451,7 +453,11 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
     );
   }
 
-  Widget _buildIapPlansCarousel(IAPState iapState) {
+  Widget _buildIapPlansCarousel(
+      IAPState iapState, StripeSubscriptionState stripeState) {
+    final plans =
+        stripeState.plans.isNotEmpty ? stripeState.plans : _fallbackCandidatePlans;
+
     return PageView.builder(
       controller: _iapPageController,
       onPageChanged: (index) {
@@ -459,74 +465,44 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
           _currentIapPage = index;
         });
       },
-      itemCount: PlanModel.allPlans.length,
+      itemCount: plans.length,
       itemBuilder: (context, index) {
-        final plan = PlanModel.allPlans[index];
-        return PlanCard(
+        final plan = plans[index];
+        return SubscriptionPlanCard(
           plan: plan,
-          onTap: () => _onIapPlanSelected(plan),
+          currentSubscription: stripeState.subscription,
+          onSelect: () => _onIapPlanSelected(plan),
           isLoading:
-              iapState.isLoadingPlansMapping || iapState.isInitiatingCheckout,
+              iapState.isLoadingPlansMapping || iapState.isPurchasing,
         );
       },
     );
   }
 
-  String _getIconPathForPlan(String planId) {
-    switch (planId) {
-      case 'basic':
-        return 'assets/icons/basic.png';
-      case 'pro':
-        return 'assets/icons/pro.png';
-      case 'enterprise':
-        return 'assets/icons/enterprise.png';
-      default:
-        return 'assets/icons/fox-mascot.png';
-    }
-  }
-
   Widget _buildHeaderWithTitleAndClose(BuildContext context) {
     final isSubscriptions = _selectedTab == 0;
-
     return SizedBox(
       height: 260,
       child: Stack(
         children: [
-          // Header Illustration: Small skillresy logo with padding for Subscriptions,
-          // or previous basic/pro/enterprise images for One-Time Packs
           Positioned(
             top: 8,
             left: 0,
             right: 0,
             height: 210,
-            child: isSubscriptions
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24.0,
-                        vertical: 20.0,
-                      ),
-                      child: Image.asset(
-                        'assets/icons/fox-mascot.png',
-                        height: 125,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  )
-                : AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    transitionBuilder: (child, animation) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                    child: Image.asset(
-                      _getIconPathForPlan(
-                        PlanModel.allPlans[_currentIapPage].id,
-                      ),
-                      key: ValueKey(_currentIapPage),
-                      height: 210,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 20.0,
+                ),
+                child: Image.asset(
+                  'assets/icons/fox-mascot.png',
+                  height: 125,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
           ),
           Positioned(
             bottom: 0,
@@ -616,11 +592,9 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
   }
 
   Widget _buildPageIndicator(StripeSubscriptionState state) {
-    final count = _selectedTab == 0
-        ? (state.plans.isNotEmpty
-            ? state.plans.length
-            : _fallbackCandidatePlans.length)
-        : PlanModel.allPlans.length;
+    final count = state.plans.isNotEmpty
+        ? state.plans.length
+        : _fallbackCandidatePlans.length;
     final activeIndex = _selectedTab == 0 ? _currentPage : _currentIapPage;
 
     return Row(

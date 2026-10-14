@@ -140,7 +140,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
     }
   }
 
-  Future<void> _onIapPlanSelected(StudentPlanModel plan) async {
+  Future<void> _onIapPlanSelected(BackendPlanModel plan) async {
     final iapState = ref.read(iapProvider);
     if (!iapState.isInitialized) {
       if (mounted) {
@@ -156,21 +156,23 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
       return;
     }
 
-    String productId;
-    switch (plan.id) {
-      case 'basic':
+    String productId = plan.productId ?? '';
+    if (productId.isEmpty) {
+      final name = plan.name.toLowerCase();
+      if (name.contains('cram')) {
+        productId = PurchaseProducts.cramSessionProductId;
+      } else if (name.contains('basic')) {
+        productId = PurchaseProducts.basicStudentProductId;
+      } else if (name.contains('mid')) {
+        productId = PurchaseProducts.midStudentProductId;
+      } else if (name.contains('nerd')) {
+        productId = PurchaseProducts.nerdOutProductId;
+      } else {
         productId = PurchaseProducts.studentBasicProductId;
-        break;
-      case 'pro':
-        productId = PurchaseProducts.studentProProductId;
-        break;
-      case 'enterprise':
-        productId = PurchaseProducts.studentEnterpriseProductId;
-        break;
-      default:
-        return;
+      }
     }
 
+    print('[StudentPlansScreen] Initiating Store IAP purchase for product: $productId');
     await ref.read(iapProvider.notifier).purchaseProduct(productId);
   }
 
@@ -281,7 +283,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
                       height: 520,
                       child: _selectedTab == 0
                           ? _buildStripePlansCarousel(stripeState)
-                          : _buildIapPlansCarousel(iapState),
+                          : _buildIapPlansCarousel(iapState, stripeState),
                     ),
                   ),
 
@@ -439,7 +441,11 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
     );
   }
 
-  Widget _buildIapPlansCarousel(IAPState iapState) {
+  Widget _buildIapPlansCarousel(
+      IAPState iapState, StripeSubscriptionState stripeState) {
+    final plans =
+        stripeState.plans.isNotEmpty ? stripeState.plans : _fallbackStudentPlans;
+
     return PageView.builder(
       controller: _iapPageController,
       onPageChanged: (index) {
@@ -447,74 +453,43 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
           _currentIapPage = index;
         });
       },
-      itemCount: StudentPlanModel.allStudentPlans.length,
+      itemCount: plans.length,
       itemBuilder: (context, index) {
-        final plan = StudentPlanModel.allStudentPlans[index];
-        return StudentPlanCard(
+        final plan = plans[index];
+        return SubscriptionPlanCard(
           plan: plan,
-          onTap: () => _onIapPlanSelected(plan),
+          currentSubscription: stripeState.subscription,
+          onSelect: () => _onIapPlanSelected(plan),
           isLoading:
-              iapState.isLoadingPlansMapping || iapState.isInitiatingCheckout,
+              iapState.isLoadingPlansMapping || iapState.isPurchasing,
         );
       },
     );
   }
 
-  String _getIconPathForPlan(String planId) {
-    switch (planId) {
-      case 'basic':
-        return 'assets/icons/basic.png';
-      case 'pro':
-        return 'assets/icons/pro.png';
-      case 'enterprise':
-        return 'assets/icons/enterprise.png';
-      default:
-        return 'assets/icons/fox-mascot.png';
-    }
-  }
-
   Widget _buildHeaderWithTitleAndClose(BuildContext context) {
-    final isSubscriptions = _selectedTab == 0;
-
     return SizedBox(
       height: 260,
       child: Stack(
         children: [
-          // Header Illustration: Small skillresy logo with padding for Subscriptions,
-          // or previous basic/pro/enterprise images for One-Time Packs
           Positioned(
             top: 8,
             left: 0,
             right: 0,
             height: 210,
-            child: isSubscriptions
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24.0,
-                        vertical: 20.0,
-                      ),
-                      child: Image.asset(
-                        'assets/icons/fox-mascot.png',
-                        height: 125,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  )
-                : AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    transitionBuilder: (child, animation) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                    child: Image.asset(
-                      _getIconPathForPlan(
-                        StudentPlanModel.allStudentPlans[_currentIapPage].id,
-                      ),
-                      key: ValueKey(_currentIapPage),
-                      height: 210,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 20.0,
+                ),
+                child: Image.asset(
+                  'assets/icons/fox-mascot.png',
+                  height: 125,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
           ),
           Positioned(
             bottom: 0,
@@ -578,11 +553,9 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
   }
 
   Widget _buildPageIndicator(StripeSubscriptionState state) {
-    final count = _selectedTab == 0
-        ? (state.plans.isNotEmpty
-            ? state.plans.length
-            : _fallbackStudentPlans.length)
-        : StudentPlanModel.allStudentPlans.length;
+    final count = state.plans.isNotEmpty
+        ? state.plans.length
+        : _fallbackStudentPlans.length;
     final activeIndex = _selectedTab == 0 ? _currentPage : _currentIapPage;
 
     return Row(

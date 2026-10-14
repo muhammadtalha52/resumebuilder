@@ -95,12 +95,32 @@ class PurchaseProduct {
 
 /// Predefined product configurations
 class PurchaseProducts {
-  // Candidate product IDs
+  // Candidate product IDs (New 8-tier plans)
+  static const String weekendWarriorProductId =
+      'com.skillresy.candidate.weekend_warrior';
+  static const String justScoutingProductId =
+      'com.skillresy.candidate.just_scouting';
+  static const String seriousSeekerProductId =
+      'com.skillresy.candidate.serious_seeker';
+  static const String jobHunterProductId =
+      'com.skillresy.candidate.job_hunter';
+
+  // Student product IDs (New 8-tier plans)
+  static const String cramSessionProductId =
+      'com.skillresy.student.cram_session';
+  static const String basicStudentProductId =
+      'com.skillresy.student.basic_student';
+  static const String midStudentProductId =
+      'com.skillresy.student.mid_student';
+  static const String nerdOutProductId =
+      'com.skillresy.student.nerd_out';
+
+  // Legacy Candidate product IDs
   static const String basicProductId = 'com.skillresy.candidate.basic';
   static const String proProductId = 'com.skillresy.candidate.pro';
   static const String premiumProductId = 'com.skillresy.candidate.enterprise';
 
-  // Student product IDs
+  // Legacy Student product IDs
   static const String studentBasicProductId = 'com.skillresy.student.basic';
   static const String studentProProductId = 'com.skillresy.student.pro';
   static const String studentEnterpriseProductId =
@@ -138,13 +158,22 @@ class PurchaseProducts {
 
   static const List<PurchaseProduct> allProducts = [basic, pro, premium];
 
-  // All product IDs including both candidate and student products
+  // All product IDs including both new and legacy products
   static List<String> get allProductIds => [
-    // Candidate product IDs
+    // New Candidate product IDs
+    weekendWarriorProductId,
+    justScoutingProductId,
+    seriousSeekerProductId,
+    jobHunterProductId,
+    // New Student product IDs
+    cramSessionProductId,
+    basicStudentProductId,
+    midStudentProductId,
+    nerdOutProductId,
+    // Legacy product IDs
     basicProductId,
     proProductId,
     premiumProductId,
-    // Student product IDs
     studentBasicProductId,
     studentProProductId,
     studentEnterpriseProductId,

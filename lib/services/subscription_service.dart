@@ -187,13 +187,21 @@ class SubscriptionService {
         '[SubscriptionService] Plans response status: ${response.statusCode}',
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.data != null) {
+        print('\n======================================================');
+        print('🔥 [STORE PLANS RAW RESPONSE /plan/plans/]:');
+        print('${response.data}');
+        print('======================================================\n');
+
         final plansResponse = PlansListResponse.fromJson(response.data);
         print('[SubscriptionService] Found ${plansResponse.data.length} plans');
 
         // Build productId -> planId mapping
         final Map<String, int> mapping = {};
         for (final plan in plansResponse.data) {
+          print(
+            '📦 [STORE PLAN ITEM] id: ${plan.id} | name: "${plan.name}" | product_id: "${plan.productId}" | is_active: ${plan.isActive}',
+          );
           if (plan.isActive &&
               plan.productId != null &&
               plan.productId!.isNotEmpty) {
