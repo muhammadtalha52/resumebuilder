@@ -162,7 +162,7 @@ final interviewServiceProvider = Provider<InterviewService>((ref) {
 final scoutChatProvider =
     StateNotifierProvider.autoDispose<ScoutChatNotifier, ScoutChatState>((ref) {
   final interviewService = ref.watch(interviewServiceProvider);
-  final isStudent = ref.watch(isStudentProvider);
+  final isStudent = ref.read(isStudentProvider);
   final stripeService = ref.watch(stripeSubscriptionServiceProvider);
 
   return ScoutChatNotifier(

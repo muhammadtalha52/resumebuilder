@@ -4,10 +4,12 @@ import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/app_router.dart';
 import '../main.dart';
 import '../models/signup_request.dart';
 import '../models/student_signup_request.dart';
 import '../models/user_model.dart';
+import '../services/notification_service.dart';
 import '../services/profile_service.dart';
 import '../services/resume_service.dart';
 import '../services/analytics_service.dart';
@@ -28,7 +30,6 @@ import 'profile_provider.dart';
 import 'quiz_history_provider.dart';
 import 'quiz_provider.dart';
 import 'resume_provider.dart';
-import 'scout_chat_provider.dart';
 import 'student_signup_provider.dart';
 import 'study_space_provider.dart';
 import 'subjects_provider.dart';
@@ -79,6 +80,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // Check if user data exists in storage
       if (appLogic.user != null && appLogic.accessToken.isNotEmpty) {
         state = state.copyWith(isAuthenticated: true, user: appLogic.user);
+        print('\n================================================================');
+        print('🔑 [AUTH TOKEN (SAVED SESSION)] COPY FOR SWAGGER:');
+        print('Token ${appLogic.accessToken}');
+        print('================================================================\n');
       }
     } catch (e) {
       // If there's any error, just continue with empty state
@@ -92,9 +97,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     try {
       final authService = _ref.read(authServiceProvider);
+      // Fetch device FCM token for push notifications
+      final fcmToken = await NotificationService.instance.getFcmToken();
+
       final loginResponse = await authService.login(
         email: email,
         password: password,
+        fcmToken: fcmToken,
       );
 
       if (loginResponse.status == 'success' && loginResponse.data != null) {
@@ -112,6 +121,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
           // Save to local storage
           await appLogic.box.write(AppKeys.accessToken, token);
           await appLogic.box.write(AppKeys.user, jsonEncode(user.toJson()));
+
+          print('\n================================================================');
+          print('🔑 [AUTH TOKEN (FRESH LOGIN)] COPY FOR SWAGGER:');
+          print('Token $token');
+          print('================================================================\n');
 
           state = state.copyWith(
             isLoading: false,
@@ -140,7 +154,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     try {
       final authService = _ref.read(authServiceProvider);
-      final registerResponse = await authService.register(request);
+      // Fetch device FCM token for push notifications
+      final fcmToken = await NotificationService.instance.getFcmToken();
+      final registerResponse = await authService.register(
+        request,
+        fcmToken: fcmToken,
+      );
 
       if (registerResponse.status == 'success' &&
           registerResponse.data != null) {
@@ -287,7 +306,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     try {
       final authService = _ref.read(authServiceProvider);
-      final registerResponse = await authService.registerStudent(request);
+      // Fetch device FCM token for push notifications
+      final fcmToken = await NotificationService.instance.getFcmToken();
+      final registerResponse = await authService.registerStudent(
+        request,
+        fcmToken: fcmToken,
+      );
 
       if (registerResponse.status == 'success' &&
           registerResponse.data != null) {
@@ -338,11 +362,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     try {
       final authService = _ref.read(authServiceProvider);
+      // Fetch device FCM token for push notifications
+      final fcmToken = await NotificationService.instance.getFcmToken();
       final registerResponse = await authService.registerWithEmailAndPassword(
         email: email,
         password: password,
         role: 1, // Candidate role
         heardAboutUs: heardAboutUs,
+        fcmToken: fcmToken,
       );
 
       if (registerResponse.status == 'success' &&
@@ -437,8 +464,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
     return true;
   }
 
-  void signOut() {
-    print('[LOGOUT] Starting logout - clearing all user data and providers');
+  Future<void> signOut() async {
+    print('[LOGOUT] Starting logout - notifying backend and clearing user data');
+
+    // Notify backend to remove device push token and invalidate session
+    try {
+      final fcmToken = await NotificationService.instance.getFcmToken();
+      final authService = _ref.read(authServiceProvider);
+      await authService.logout(fcmToken: fcmToken);
+    } catch (e) {
+      print('[LOGOUT] Error calling logout API: $e');
+    }
 
     // Clear app logic data
     appLogic.accessToken = '';
@@ -446,27 +482,35 @@ class AuthNotifier extends StateNotifier<AuthState> {
     appLogic.box.erase();
 
     // Invalidate all user-specific providers to ensure clean state for next login
-    // This automatically resets all providers to their initial state
-    _ref.invalidate(profileProvider);
-    _ref.invalidate(interviewSessionProvider);
-    _ref.invalidate(interviewSummaryProvider);
-    _ref.invalidate(meetingHistoryProvider);
-    _ref.invalidate(continuousTranscriptionProvider);
-    _ref.invalidate(dashboardStatsProvider);
-    _ref.invalidate(dashboardFilterProvider);
-    _ref.invalidate(resumeProvider);
-    _ref.invalidate(quizProvider);
-    _ref.invalidate(quizHistoryProvider);
-    _ref.invalidate(documentsProvider);
-    _ref.invalidate(studySpaceProvider);
-    _ref.invalidate(lecturesProvider);
-    _ref.invalidate(subjectsProvider);
-    _ref.invalidate(historyProvider);
-    _ref.invalidate(scoutChatProvider);
-    _ref.invalidate(onboardingProvider);
-    _ref.invalidate(studentSignupProvider);
-    _ref.invalidate(iapProvider);
-    _ref.invalidate(usageProvider);
+    final providersToInvalidate = [
+      profileProvider,
+      interviewSessionProvider,
+      interviewSummaryProvider,
+      meetingHistoryProvider,
+      continuousTranscriptionProvider,
+      dashboardStatsProvider,
+      dashboardFilterProvider,
+      resumeProvider,
+      quizProvider,
+      quizHistoryProvider,
+      documentsProvider,
+      studySpaceProvider,
+      lecturesProvider,
+      subjectsProvider,
+      historyProvider,
+      onboardingProvider,
+      studentSignupProvider,
+      iapProvider,
+      usageProvider,
+    ];
+
+    for (final provider in providersToInvalidate) {
+      try {
+        _ref.invalidate(provider);
+      } catch (e) {
+        print('[LOGOUT] Invalidate skipped for provider: $e');
+      }
+    }
 
     print(
       '[LOGOUT] All providers invalidated - clean state ready for next login',
@@ -474,6 +518,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     // Reset auth state
     state = const AuthState();
+
+    // Redirect to login screen
+    try {
+      appRouter.go('/login');
+    } catch (e) {
+      print('[LOGOUT] Navigation to /login failed: $e');
+    }
   }
 
   /// Delete user account and all associated data

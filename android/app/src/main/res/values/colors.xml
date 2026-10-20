@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand primary color for notification accent -->
+    <color name="primary">#8E2DE2</color>
+</resources>

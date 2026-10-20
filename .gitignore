@@ -88,3 +88,7 @@ sentry.properties
 
 .env.local
 .env.prod
+
+# Kotlin build error logs
+android/.kotlin/
+

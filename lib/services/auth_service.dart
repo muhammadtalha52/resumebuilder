@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../models/login_model.dart';
 import '../models/signup_request.dart';
 import '../models/student_signup_request.dart';
@@ -12,14 +13,35 @@ import 'api_client.dart';
 class AuthService {
   final APIClient _apiClient = APIClient();
 
+  /// Helper to get current app version string
+  Future<String> _getAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      return info.version;
+    } catch (_) {
+      return '1.0.10';
+    }
+  }
+
   Future<LoginModel> login({
     required String email,
     required String password,
+    String? fcmToken,
+    String? appVersion,
   }) async {
     try {
+      final currentPlatform = Platform.isIOS ? 'ios' : 'android';
+      final version = appVersion ?? await _getAppVersion();
+      final requestData = <String, dynamic>{
+        'email': email,
+        'password': password,
+        'platform': currentPlatform,
+        'app_version': version,
+        if (fcmToken != null && fcmToken.isNotEmpty) 'fcm_token': fcmToken,
+      };
       final response = await _apiClient.dio.post(
         ApiEndpoints.login,
-        data: {'email': email, 'password': password, 'platform': 'app'},
+        data: requestData,
       );
 
       if (response.statusCode == 200 && response.data != null) {
@@ -134,10 +156,14 @@ class AuthService {
     }
   }
 
-  Future<LoginModel> register(SignUpRequest request) async {
+  Future<LoginModel> register(SignUpRequest request, {String? fcmToken, String? appVersion}) async {
     try {
+      final currentPlatform = Platform.isIOS ? 'ios' : 'android';
+      final version = appVersion ?? await _getAppVersion();
       var requestData = {
-        'platform': Platform.isIOS ? 'ios' : 'android',
+        'platform': currentPlatform,
+        'app_version': version,
+        if (fcmToken != null && fcmToken.isNotEmpty) 'fcm_token': fcmToken,
         'email': request.email,
         'password': request.password,
         'confirm_password': request.confirmPassword,
@@ -299,10 +325,16 @@ class AuthService {
     }
   }
 
-  Future<LoginModel> registerStudent(StudentSignupRequest request) async {
+  Future<LoginModel> registerStudent(StudentSignupRequest request, {String? fcmToken, String? appVersion}) async {
     try {
+      final currentPlatform = Platform.isIOS ? 'ios' : 'android';
+      final version = appVersion ?? await _getAppVersion();
       final requestData = request.toJson();
-      requestData['platform'] = Platform.isIOS ? 'ios' : 'android';
+      requestData['platform'] = currentPlatform;
+      requestData['app_version'] = version;
+      if (fcmToken != null && fcmToken.isNotEmpty) {
+        requestData['fcm_token'] = fcmToken;
+      }
 
       debugPrint("==============================");
       debugPrint("API URL: ${_apiClient.dio.options.baseUrl}${ApiEndpoints.register}");
@@ -415,13 +447,19 @@ class AuthService {
     required String password,
     required int role,
     String? heardAboutUs,
+    String? fcmToken,
+    String? appVersion,
   }) async {
     try {
+      final currentPlatform = Platform.isIOS ? 'ios' : 'android';
+      final version = appVersion ?? await _getAppVersion();
       final requestData = {
         'email': email,
         'password': password,
         'role': role,
-        'platform': Platform.isIOS ? 'ios' : 'android',
+        'platform': currentPlatform,
+        'app_version': version,
+        if (fcmToken != null && fcmToken.isNotEmpty) 'fcm_token': fcmToken,
         if (heardAboutUs != null && heardAboutUs.isNotEmpty) 'heard_about_us': heardAboutUs,
       };
 
@@ -755,6 +793,58 @@ class AuthService {
     } catch (e) {
       if (e is Exception) rethrow;
       throw Exception('Failed to fetch invites');
+    }
+  }
+
+  /// Sends POST /api/auth/logout/ with fcm_token to remove device push token and invalidate session
+  Future<void> logout({String? fcmToken}) async {
+    try {
+      final requestData = <String, dynamic>{
+        if (fcmToken != null && fcmToken.isNotEmpty) 'fcm_token': fcmToken,
+      };
+      print('\n================================================================');
+      print('🚪 [AUTH SERVICE] CALLING LOGOUT API: ${ApiEndpoints.logout}');
+      print('📦 [PAYLOAD]: $requestData');
+      print('================================================================\n');
+
+      final response = await _apiClient.dio.post(
+        ApiEndpoints.logout,
+        data: requestData,
+        options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
+      );
+
+      print('\n================================================================');
+      print('✅ [LOGOUT API SUCCESS]');
+      print('Status Code: ${response.statusCode}');
+      print('Response: ${response.data}');
+      print('================================================================\n');
+    } catch (e) {
+      print('\n================================================================');
+      print('❌ [LOGOUT API ERROR]: $e');
+      print('================================================================\n');
+    }
+  }
+
+  /// Registers or updates device FCM token at POST /api/notifications/devices/
+  Future<void> registerDeviceToken({
+    required String token,
+    required String platform,
+    required String appVersion,
+  }) async {
+    try {
+      final requestData = {
+        'token': token,
+        'platform': platform,
+        'app_version': appVersion,
+      };
+      await _apiClient.dio.post(
+        ApiEndpoints.registerDevice,
+        data: requestData,
+        options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
+      );
+      debugPrint('[AuthService] Device token registered successfully on backend');
+    } catch (e) {
+      debugPrint('[AuthService] Error registering device token on backend: $e');
     }
   }
 }

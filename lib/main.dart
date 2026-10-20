@@ -16,18 +16,26 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:skillresy/firebase_options.dart';
+import 'package:skillresy/services/notification_service.dart';
 import 'package:skillresy/utils/custom_upgrade_alert.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase for Analytics and Google Ads tracking
+  // Initialize Firebase for Analytics, Messaging and Google Ads tracking
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  // Register top-level background message handler for FCM
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
   await GetStorage.init();
+
+  // Initialize unified push notification service
+  await NotificationService.instance.initialize();
   // Enable wakelock to keep screen on while app is open
   WakelockPlus.enable();
   // Load environment variables (API keys, etc.) - optional if file doesn't exist

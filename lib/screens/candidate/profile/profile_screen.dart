@@ -677,8 +677,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           );
 
           if (confirmed == true) {
-            ref.read(authProvider.notifier).signOut();
-            context.go('/login');
+            try {
+              await ref.read(authProvider.notifier).signOut();
+            } catch (e) {
+              print('[ProfileScreen] Error during signOut: $e');
+            } finally {
+              if (context.mounted) {
+                context.go('/login');
+              }
+            }
           }
         },
         style: ElevatedButton.styleFrom(
@@ -741,8 +748,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             );
 
             if (confirmed == true) {
-              ref.read(authProvider.notifier).signOut();
-              context.go('/login');
+              try {
+                await ref.read(authProvider.notifier).signOut();
+              } catch (e) {
+                print('[ProfileScreen] Error during signOut: $e');
+              } finally {
+                if (context.mounted) {
+                  context.go('/login');
+                }
+              }
             }
           } else if (value == 'delete_account') {
             // Show delete account confirmation dialog

@@ -5,6 +5,7 @@ import 'package:skillresy/screens/auth/forgot_password_screen.dart';
 import 'package:skillresy/screens/common/splash_screen.dart';
 
 import '../models/job_listing_model.dart';
+import '../utils/keys.dart';
 import '../models/meeting_history_response.dart';
 import '../screens/auth/onboarding_step_screen.dart';
 import '../screens/auth/simple_signup_screen.dart';
@@ -67,6 +68,7 @@ Page<dynamic> buildPageWithoutSwipeBack({
 }
 
 final GoRouter appRouter = GoRouter(
+  navigatorKey: AppKeys.navigatorKey,
   initialLocation: '/',
   routes: [
     GoRoute(

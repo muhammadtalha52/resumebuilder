@@ -36,6 +36,8 @@ class ApiEndpoints {
   static const String registerSimple = '/auth/registerWithEmailAndPassword/';
   static const String trackEvent = '/auth/track-event/';
   static const String login = '/auth/login/';
+  static const String logout = '/auth/logout/';
+  static const String registerDevice = '/notifications/devices/';
   static const String isEmailExists = '/auth/is_email_exists/';
   static const String forgotPassword = '/auth/forgot-password/';
   static const String profileUpdate = '/auth/profile/';
