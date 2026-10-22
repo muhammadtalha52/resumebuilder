@@ -13,6 +13,7 @@ import 'package:skillresy/config/app_theme.dart';
 import 'package:skillresy/constants/app_strings.dart';
 import 'package:skillresy/services/api_client.dart';
 import 'package:skillresy/services/app_logic.dart';
+import 'package:skillresy/services/analytics_service.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -176,6 +177,9 @@ class _SkillResyAppState extends ConsumerState<SkillResyApp> {
       if (status == TrackingStatus.notDetermined) {
         await AppTrackingTransparency.requestTrackingAuthorization();
       }
+      final finalStatus = await AppTrackingTransparency.trackingAuthorizationStatus;
+      final isAuthorized = finalStatus == TrackingStatus.authorized;
+      await AnalyticsService.setAdvertiserTracking(isAuthorized);
     }
   }
 

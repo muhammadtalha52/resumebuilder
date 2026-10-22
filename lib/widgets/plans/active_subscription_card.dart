@@ -349,7 +349,7 @@ class ActiveSubscriptionCard extends StatelessWidget {
                                   Icons.receipt_long_outlined,
                                   color: AppColors.primary,
                                 ),
-                                tooltip: 'View Stripe Invoice',
+                                tooltip: 'View Invoice',
                                 onPressed: () {
                                   onOpenInvoice(p.invoiceUrl!);
                                 },

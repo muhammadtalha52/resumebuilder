@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -31,7 +32,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
       PageController(viewportFraction: 0.92);
   int _currentPage = 0;
   int _currentIapPage = 0;
-  int _selectedTab = 0; // 0 = Subscriptions (Stripe), 1 = One-Time Packs
+  int _selectedTab = Platform.isIOS ? 1 : 0; // On iOS force Store IAP only, on Android allow both
 
   // Documented fallback plans for Student (role 2)
   static const List<BackendPlanModel> _fallbackStudentPlans = [
@@ -86,9 +87,11 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (appLogic.accessToken.isNotEmpty) {
-        // Load Stripe subscription plans for Student (role 2)
-        ref.read(stripeSubscriptionProvider.notifier).loadData(role: 2);
-        // Load legacy IAP mapping
+        // Load Stripe subscription plans only on Android
+        if (!Platform.isIOS) {
+          ref.read(stripeSubscriptionProvider.notifier).loadData(role: 2);
+        }
+        // Always load store IAP mapping
         ref.read(iapProvider.notifier).loadPlansMapping();
       }
     });
@@ -276,15 +279,17 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
                       children: [
                         _buildHeaderWithTitleAndClose(context),
                         _buildSubtitle(),
-                        const SizedBox(height: 12),
-                        _buildTypeTabs(),
-                        const SizedBox(height: 8),
+                        if (!Platform.isIOS) ...[
+                          const SizedBox(height: 12),
+                          _buildTypeTabs(),
+                          const SizedBox(height: 8),
+                        ],
                       ],
                     ),
                   ),
 
                   // Active Subscription Banner if user has one
-                  if (_selectedTab == 0 &&
+                  if (!Platform.isIOS && _selectedTab == 0 &&
                       stripeState.hasActiveSubscription)
                     SliverToBoxAdapter(
                       child: ActiveSubscriptionCard(
@@ -321,7 +326,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
                   SliverToBoxAdapter(
                     child: SizedBox(
                       height: 520,
-                      child: _selectedTab == 0
+                      child: (!Platform.isIOS && _selectedTab == 0)
                           ? _buildStripePlansCarousel(stripeState)
                           : _buildIapPlansCarousel(iapState, stripeState),
                     ),
@@ -409,7 +414,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    'Subscriptions (Stripe)',
+                    'Subscriptions',
                     style: TextStyle(
                       color: _selectedTab == 0
                           ? AppColors.primary

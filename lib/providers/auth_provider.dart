@@ -80,10 +80,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // Check if user data exists in storage
       if (appLogic.user != null && appLogic.accessToken.isNotEmpty) {
         state = state.copyWith(isAuthenticated: true, user: appLogic.user);
-        print('\n================================================================');
-        print('🔑 [AUTH TOKEN (SAVED SESSION)] COPY FOR SWAGGER:');
-        print('Token ${appLogic.accessToken}');
-        print('================================================================\n');
+        // print('\n================================================================');
+        // print('🔑 [AUTH TOKEN (SAVED SESSION)] COPY FOR SWAGGER:');
+        // print('Token ${appLogic.accessToken}');
+        // print('================================================================\n');
       }
     } catch (e) {
       // If there's any error, just continue with empty state

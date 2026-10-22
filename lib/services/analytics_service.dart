@@ -7,6 +7,16 @@ import 'api_client.dart';
 import '../utils/endpoint_headers.dart';
 
 class AnalyticsService {
+  /// Enable or disable advertiser tracking on iOS (ATT)
+  static Future<void> setAdvertiserTracking(bool enabled) async {
+    try {
+      await _fb.setAdvertiserTracking(enabled: enabled);
+      debugPrint("📘 [META iOS] Advertiser tracking set to: $enabled");
+    } catch (e) {
+      debugPrint("❌ Failed to set advertiser tracking: $e");
+    }
+  }
+
   static final _fb = FacebookAppEvents();
   static final _ga = FirebaseAnalytics.instance;
 
