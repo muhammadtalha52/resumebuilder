@@ -129,23 +129,41 @@ class _SkillResyAppState extends ConsumerState<SkillResyApp> {
     );
   }
 
-  /// Navigates to the correct paywall screen based on the incoming link path.
+  /// Navigates to the correct paywall screen based on the incoming link path
+  /// and the user's logged-in role.
   void _handleDeepLink(Uri uri) {
     final path = uri.path;
     debugPrint('[DeepLink] Handling path: $path');
 
+    if (path != '/plans' && path != '/student/plans') {
+      debugPrint('[DeepLink] Unknown path $path — ignoring');
+      return;
+    }
+
     // Wait for router to be ready before navigating
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // 1. If user is logged in, automatically route to their registered role's plans
+      if (appLogic.accessToken.isNotEmpty && appLogic.user != null) {
+        final userRole = appLogic.user?.role;
+        debugPrint('[DeepLink] Logged-in user detected with role: $userRole');
+        if (userRole == 2) {
+          debugPrint('[DeepLink] Student user → enforcing /student/plans');
+          appRouter.go('/student/plans');
+          return;
+        } else if (userRole == 1) {
+          debugPrint('[DeepLink] Candidate user → enforcing /plans');
+          appRouter.go('/plans');
+          return;
+        }
+      }
+
+      // 2. If logged out (or role not determined), follow the incoming ad link
       if (path == '/plans') {
-        // Job Seeker paywall
         debugPrint('[DeepLink] Navigating to Job Seeker plans → /plans');
         appRouter.go('/plans');
       } else if (path == '/student/plans') {
-        // Student paywall
         debugPrint('[DeepLink] Navigating to Student plans → /student/plans');
         appRouter.go('/student/plans');
-      } else {
-        debugPrint('[DeepLink] Unknown path $path — ignoring');
       }
     });
   }
