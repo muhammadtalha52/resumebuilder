@@ -100,11 +100,13 @@ class AnalyticsService {
   /// Event 5: Paywall Shown
   static Future<void> logPaywallShown({required String trigger}) async {
     try {
-      debugPrint("📘 META PIXEL EVENT: paywall_shown | params: {trigger: $trigger}");
+      debugPrint("🚀 [META SDK TRIGGERED] Event: paywall_shown | trigger: $trigger");
       await _fb.logEvent(
         name: 'paywall_shown',
         parameters: {'trigger': trigger},
       );
+      await _fb.flush();
+      debugPrint("✅ [META SDK FLUSHED] paywall_shown successfully sent to Meta servers!");
     } catch (e) {
       debugPrint('❌ Failed to log Meta paywall shown event: $e');
     }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../main.dart';
+import '../../services/analytics_service.dart';
 import '../../constants/app_colors.dart';
 import '../../constants/app_sizes.dart';
 import '../../models/backend_plan_model.dart';
@@ -81,6 +82,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    AnalyticsService.logPaywallShown(trigger: 'student_plans_screen');
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (appLogic.accessToken.isNotEmpty) {
