@@ -4,5 +4,10 @@
 <dict>
 	<key>aps-environment</key>
 	<string>development</string>
+	<!-- Universal Links — allows app.skillresy.com/plans and /student/plans to open this app -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:app.skillresy.com</string>
+	</array>
 </dict>
 </plist>

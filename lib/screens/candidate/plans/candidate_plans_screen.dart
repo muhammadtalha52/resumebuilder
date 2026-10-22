@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../main.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_sizes.dart';
 import '../../../models/backend_plan_model.dart';
@@ -119,10 +120,42 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
     }
   }
 
+  Future<bool> _ensureAuthenticated() async {
+    if (appLogic.accessToken.isNotEmpty) return true;
+    final shouldLogin = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Account Required', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('Please log in or create an account to subscribe to this plan.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Log In / Sign Up'),
+          ),
+        ],
+      ),
+    );
+    if (shouldLogin == true && mounted) {
+      context.push('/login');
+    }
+    return false;
+  }
+
   Future<void> _onStripePlanSelected(
     BackendPlanModel plan,
     StripeSubscriptionNotifier notifier,
   ) async {
+    if (!await _ensureAuthenticated()) return;
+    if (!mounted) return;
     final stripeState = ref.read(stripeSubscriptionProvider);
     final currentSub = stripeState.subscription;
 
@@ -150,6 +183,8 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
   }
 
   Future<void> _onIapPlanSelected(BackendPlanModel plan) async {
+    if (!await _ensureAuthenticated()) return;
+    if (!mounted) return;
     final iapState = ref.read(iapProvider);
     if (!iapState.isInitialized) {
       if (mounted) {
@@ -540,7 +575,13 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
               ),
               child: IconButton(
                 icon: const Icon(Icons.close, color: AppColors.primary),
-                onPressed: () => context.pop(),
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go(appLogic.accessToken.isNotEmpty ? '/home' : '/welcome');
+                  }
+                },
               ),
             ),
           ),

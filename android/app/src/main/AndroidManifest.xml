@@ -58,6 +58,29 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- App Links for deep linking — opens app on paywall screens from ads/emails -->
+            <!-- Job Seeker paywall: https://app.skillresy.com/plans -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="app.skillresy.com"
+                    android:pathPrefix="/plans" />
+            </intent-filter>
+
+            <!-- Student paywall: https://app.skillresy.com/student/plans -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="app.skillresy.com"
+                    android:pathPrefix="/student/plans" />
+            </intent-filter>
         </activity>
 
         <!-- UCropActivity for image_cropper plugin -->

@@ -1,5 +1,6 @@
 
 import 'dart:io' show Platform;
+import 'package:app_links/app_links.dart';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -87,10 +88,66 @@ class SkillResyApp extends ConsumerStatefulWidget {
 }
 
 class _SkillResyAppState extends ConsumerState<SkillResyApp> {
+  final AppLinks _appLinks = AppLinks();
+
   @override
   void initState() {
     super.initState();
     _initAppTracking();
+    _initDeepLinks();
+  }
+
+  /// Handles incoming deep links for paywall navigation.
+  ///
+  /// Two scenarios:
+  /// 1. Cold start — app was killed, opened via link → getInitialLink()
+  /// 2. Warm start — app running/background, link tapped → uriLinkStream
+  ///
+  /// Supported links:
+  ///   https://app.skillresy.com/plans         → Job Seeker paywall
+  ///   https://app.skillresy.com/student/plans → Student paywall
+  void _initDeepLinks() {
+    // 1. Cold start — app launched from a deep link while killed
+    _appLinks.getInitialLink().then((uri) {
+      if (uri != null) {
+        debugPrint('[DeepLink] Cold start link: $uri');
+        _handleDeepLink(uri);
+      }
+    }).catchError((e) {
+      debugPrint('[DeepLink] Error getting initial link: $e');
+    });
+
+    // 2. Warm start — app already running or in background
+    _appLinks.uriLinkStream.listen(
+      (uri) {
+        debugPrint('[DeepLink] Warm start link: $uri');
+        _handleDeepLink(uri);
+      },
+      onError: (e) {
+        debugPrint('[DeepLink] Stream error: $e');
+      },
+    );
+  }
+
+  /// Navigates to the correct paywall screen based on the incoming link path.
+  void _handleDeepLink(Uri uri) {
+    final path = uri.path;
+    debugPrint('[DeepLink] Handling path: $path');
+
+    // Wait for router to be ready before navigating
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (path == '/plans') {
+        // Job Seeker paywall
+        debugPrint('[DeepLink] Navigating to Job Seeker plans → /plans');
+        appRouter.go('/plans');
+      } else if (path == '/student/plans') {
+        // Student paywall
+        debugPrint('[DeepLink] Navigating to Student plans → /student/plans');
+        appRouter.go('/student/plans');
+      } else {
+        debugPrint('[DeepLink] Unknown path $path — ignoring');
+      }
+    });
   }
 
   Future<void> _initAppTracking() async {
