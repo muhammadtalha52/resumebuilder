@@ -88,10 +88,12 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
     WidgetsBinding.instance.addObserver(this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Load Stripe subscription plans for candidate (role 1)
-      ref.read(stripeSubscriptionProvider.notifier).loadData(role: 1);
-      // Also load legacy IAP mapping so store packs stay operational
-      ref.read(iapProvider.notifier).loadPlansMapping();
+      if (appLogic.accessToken.isNotEmpty) {
+        // Load Stripe subscription plans for candidate (role 1)
+        ref.read(stripeSubscriptionProvider.notifier).loadData(role: 1);
+        // Also load legacy IAP mapping so store packs stay operational
+        ref.read(iapProvider.notifier).loadPlansMapping();
+      }
     });
   }
 
@@ -106,6 +108,7 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      if (appLogic.accessToken.isEmpty) return;
       // Re-check pending checkout or refresh subscription status upon returning
       final pendingSessionId =
           ref.read(stripeSubscriptionProvider).pendingSessionId;

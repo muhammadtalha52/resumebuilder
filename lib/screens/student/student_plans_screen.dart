@@ -83,10 +83,12 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
     WidgetsBinding.instance.addObserver(this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Load Stripe subscription plans for Student (role 2)
-      ref.read(stripeSubscriptionProvider.notifier).loadData(role: 2);
-      // Load legacy IAP mapping
-      ref.read(iapProvider.notifier).loadPlansMapping();
+      if (appLogic.accessToken.isNotEmpty) {
+        // Load Stripe subscription plans for Student (role 2)
+        ref.read(stripeSubscriptionProvider.notifier).loadData(role: 2);
+        // Load legacy IAP mapping
+        ref.read(iapProvider.notifier).loadPlansMapping();
+      }
     });
   }
 
@@ -101,6 +103,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      if (appLogic.accessToken.isEmpty) return;
       final pendingSessionId =
           ref.read(stripeSubscriptionProvider).pendingSessionId;
       if (pendingSessionId != null && pendingSessionId.isNotEmpty) {
