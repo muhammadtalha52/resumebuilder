@@ -19,6 +19,8 @@ class AnalyticsService {
         name: 'fb_mobile_complete_registration',
         parameters: {'fb_registration_method': userType},
       );
+      await _fb.flush();
+      debugPrint("✅ [META SDK FLUSHED] fb_mobile_complete_registration sent!");
     } catch (e) {
       debugPrint('❌ Failed to log Meta registration event: $e');
     }
@@ -39,6 +41,8 @@ class AnalyticsService {
         name: 'credits_spent',
         parameters: {'amount_spent': amount},
       );
+      await _fb.flush();
+      debugPrint("✅ [META SDK FLUSHED] credits_spent sent!");
     } catch (e) {
       debugPrint('❌ Failed to log Meta credits spent event: $e');
     }
@@ -59,6 +63,8 @@ class AnalyticsService {
     try {
       debugPrint("📘 META PIXEL EVENT: credit_limit_hit");
       await _fb.logEvent(name: 'credit_limit_hit');
+      await _fb.flush();
+      debugPrint("✅ [META SDK FLUSHED] credit_limit_hit sent!");
     } catch (e) {
       debugPrint('❌ Failed to log Meta credit limit hit event: $e');
     }
@@ -81,6 +87,8 @@ class AnalyticsService {
     try {
       debugPrint("📘 META PIXEL EVENT: Purchase | params: {amount: $value, currency: $currency}");
       await _fb.logPurchase(amount: value, currency: currency);
+      await _fb.flush();
+      debugPrint("✅ [META SDK FLUSHED] Purchase sent!");
     } catch (e) {
       debugPrint('❌ Failed to log Meta purchase event: $e');
     }
