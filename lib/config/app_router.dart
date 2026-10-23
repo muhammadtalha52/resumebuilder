@@ -28,6 +28,8 @@ import '../screens/candidate/profile/edit_work_experience_screen.dart';
 
 import '../screens/candidate/invite/invite_friends_screen.dart';
 import '../screens/candidate/plans/candidate_plans_screen.dart';
+import '../screens/candidate/plans/thank_you_screen.dart';
+import '../models/backend_plan_model.dart';
 import '../screens/candidate/resume/job_apply_webview_screen.dart';
 import '../screens/candidate/resume/job_detail_screen.dart';
 import '../screens/candidate/resume/matching_jobs_screen.dart';
@@ -356,6 +358,23 @@ final GoRouter appRouter = GoRouter(
         child: const QuizHistoryScreen(),
         key: state.pageKey,
       ),
+    ),
+    GoRoute(
+      path: '/thank-you',
+      pageBuilder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        final plan = extra?['plan'] as BackendPlanModel?;
+        final sessionId = extra?['sessionId'] as String?;
+        final isTrial = extra?['isTrial'] as bool? ?? true;
+        return buildPageWithoutSwipeBack(
+          child: ThankYouScreen(
+            plan: plan,
+            sessionId: sessionId,
+            isTrial: isTrial,
+          ),
+          key: state.pageKey,
+        );
+      },
     ),
     GoRoute(
       path: '/plans',

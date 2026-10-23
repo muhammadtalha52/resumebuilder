@@ -1,3 +1,4 @@
+import '../services/onboarding_funnel_service.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -181,6 +182,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
           // Clear onboarding state after successful account creation
           _ref.read(onboardingProvider.notifier).reset();
 
+          // Prepare brand-new signup for onboarding guided tour
+          await OnboardingFunnelService.instance.prepareNewSignupForTour();
+
           state = state.copyWith(
             isLoading: false,
             isAuthenticated: true,
@@ -333,6 +337,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
           // Clear student signup state after successful account creation
           _ref.read(studentSignupProvider.notifier).reset();
 
+          // Prepare brand-new signup for onboarding guided tour
+          await OnboardingFunnelService.instance.prepareNewSignupForTour();
+
           state = state.copyWith(
             isLoading: false,
             isAuthenticated: true,
@@ -388,6 +395,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
           // Save to local storage
           await appLogic.box.write(AppKeys.accessToken, token);
           await appLogic.box.write(AppKeys.user, jsonEncode(user.toJson()));
+
+          // Prepare brand-new signup for onboarding guided tour
+          await OnboardingFunnelService.instance.prepareNewSignupForTour();
 
           state = state.copyWith(
             isLoading: false,

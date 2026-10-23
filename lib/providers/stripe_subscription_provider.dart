@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/backend_plan_model.dart';
 import '../models/stripe_subscription_model.dart';
 import '../services/stripe_subscription_service.dart';
+import '../services/analytics_service.dart';
 import 'api_provider.dart';
 
 class StripeSubscriptionState extends Equatable {
@@ -250,6 +251,28 @@ class StripeSubscriptionNotifier
         successMessage: 'Subscription activated successfully!',
         clearPendingSessionId: true,
       );
+
+      // Log Purchase / Trial Event to Meta SDK, GA4 (gtag), and Backend
+      final sub = result.subscription;
+      final priceVal = double.tryParse(sub?.plan.price ?? '0') ?? 0.0;
+      final isTrial = sub?.inTrial ?? false;
+
+      if (isTrial) {
+        AnalyticsService.logTrialStartedStrictOnce(
+          planName: sub?.plan.name ?? 'Subscription',
+          value: priceVal,
+          currency: 'USD',
+          sessionId: sessionId,
+        );
+      } else {
+        AnalyticsService.logPurchase(
+          transactionId: sessionId,
+          value: priceVal,
+          currency: 'USD',
+          planName: sub?.plan.name,
+          productId: sub?.plan.id.toString(),
+        );
+      }
     } on CheckoutNotFinishedException {
       // User closed the sheet without paying: show nothing new, let them try again
       log('[StripeProvider] Checkout was closed without finishing payment');

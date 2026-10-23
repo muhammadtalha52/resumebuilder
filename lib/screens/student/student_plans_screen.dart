@@ -224,14 +224,8 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
     ref.listen<StripeSubscriptionState>(stripeSubscriptionProvider,
         (previous, next) {
       if (next.successMessage != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.successMessage!),
-            backgroundColor: AppColors.success,
-            duration: const Duration(seconds: 4),
-          ),
-        );
         ref.read(stripeSubscriptionProvider.notifier).clearSuccessMessage();
+        context.go('/thank-you', extra: {'isTrial': false});
       } else if (next.error != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -246,13 +240,8 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
 
     ref.listen<IAPState>(iapProvider, (previous, next) {
       if (next.successMessage != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.successMessage!),
-            backgroundColor: Colors.green,
-          ),
-        );
         ref.read(iapProvider.notifier).clearSuccessMessage();
+        context.go('/thank-you', extra: {'isTrial': false});
       } else if (next.error != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(next.error!), backgroundColor: Colors.red),
