@@ -464,7 +464,13 @@ class IAPNotifier extends StateNotifier<IAPState> {
     state = state.copyWith(isInitiatingCheckout: true, error: null);
 
     try {
-      final product = _iapService.getProductById(productId);
+      var product = _iapService.getProductById(productId);
+
+      if (product == null) {
+        print('[IAPProvider] Product $productId not in cache, attempting reload from store...');
+        await _iapService.loadProducts();
+        product = _iapService.getProductById(productId);
+      }
 
       if (product == null) {
         print('[IAPProvider] ERROR: Product not found: $productId');
@@ -536,6 +542,25 @@ class IAPNotifier extends StateNotifier<IAPState> {
   /// Clear error message
   void clearError() {
     state = state.copyWith(error: null);
+  }
+
+  /// Reload products from store if needed
+  Future<void> reloadProducts() async {
+    if (!mounted) return;
+    try {
+      final isAvailable = await _iapService.initialize();
+      if (!isAvailable) return;
+      final productsLoaded = await _iapService.loadProducts();
+      if (productsLoaded && mounted) {
+        state = state.copyWith(
+          isInitialized: true,
+          products: _iapService.products,
+          error: null,
+        );
+      }
+    } catch (e) {
+      print('[IAPProvider] Error reloading products: $e');
+    }
   }
 
   /// Load plans mapping from backend

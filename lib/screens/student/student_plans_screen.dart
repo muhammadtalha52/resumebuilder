@@ -39,42 +39,46 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
     BackendPlanModel(
       id: 21,
       name: 'Cram Session',
+      productId: PurchaseProducts.cramSessionProductId,
       price: '3.99',
-      billingInterval: 'week',
+      billingInterval: null,
       quizCount: 12,
       documentUploadCount: 25,
       trialDays: 0,
-      isSubscription: true,
+      isSubscription: false,
     ),
     BackendPlanModel(
       id: 22,
       name: 'Basic Student',
+      productId: PurchaseProducts.basicStudentProductId,
       price: '5.00',
-      billingInterval: 'month',
+      billingInterval: null,
       quizCount: 10,
       documentUploadCount: 20,
       trialDays: 0,
-      isSubscription: true,
+      isSubscription: false,
     ),
     BackendPlanModel(
       id: 23,
       name: 'Mid Student',
+      productId: PurchaseProducts.midStudentProductId,
       price: '10.00',
-      billingInterval: 'month',
+      billingInterval: null,
       quizCount: 25,
       documentUploadCount: 50,
       trialDays: 0,
-      isSubscription: true,
+      isSubscription: false,
     ),
     BackendPlanModel(
       id: 24,
       name: 'Nerd Out',
+      productId: PurchaseProducts.nerdOutProductId,
       price: '15.00',
-      billingInterval: 'month',
+      billingInterval: null,
       quizCount: 50,
       documentUploadCount: 100,
       trialDays: 0,
-      isSubscription: true,
+      isSubscription: false,
       isRecommended: true,
     ),
   ];
@@ -88,10 +92,11 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (appLogic.accessToken.isNotEmpty) {
         // Load Stripe subscription plans only on Android
-        if (!Platform.isIOS) {
+        if (true) {
           ref.read(stripeSubscriptionProvider.notifier).loadData(role: 2);
         }
         // Always load store IAP mapping
+        ref.read(iapProvider.notifier).reloadProducts();
         ref.read(iapProvider.notifier).loadPlansMapping();
       }
     });
@@ -186,6 +191,9 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
     if (!mounted) return;
     final iapState = ref.read(iapProvider);
     if (!iapState.isInitialized) {
+      await ref.read(iapProvider.notifier).reloadProducts();
+    }
+    if (false) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -211,7 +219,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
       } else if (name.contains('nerd')) {
         productId = PurchaseProducts.nerdOutProductId;
       } else {
-        productId = PurchaseProducts.studentBasicProductId;
+        productId = PurchaseProducts.cramSessionProductId;
       }
     }
 
@@ -339,8 +347,25 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
                         const SizedBox(height: 8),
                         _buildPageIndicator(stripeState),
                         const SizedBox(height: 12),
-                        if (_selectedTab == 0)
+                        if (!Platform.isIOS && _selectedTab == 0)
                           const SubscriptionRulesWidget(isStudent: true),
+                        if (Platform.isIOS) ...[
+                          const SizedBox(height: 12),
+                          TextButton.icon(
+                            onPressed: () => context.push('/plans'),
+                            icon: const Icon(Icons.work_outline, color: Colors.white, size: 16),
+                            label: const Text(
+                              'Looking for Job & Resume Plans? View Candidate Plans →',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                decoration: TextDecoration.underline,
+                                decorationColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: AppSizes.paddingL),
                       ],
                     ),
@@ -504,6 +529,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
         return SubscriptionPlanCard(
           plan: plan,
           currentSubscription: stripeState.subscription,
+          customButtonText: 'Get Plan',
           onSelect: () => _onIapPlanSelected(plan),
           isLoading:
               iapState.isLoadingPlansMapping || iapState.isPurchasing,

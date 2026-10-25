@@ -6,7 +6,7 @@ class PurchaseProduct {
   final String price;
   final int resumeCredits;
   final int interviewCredits;
-  final String tier; // 'basic', 'pro', 'premium'
+  final String tier; // 'weekend_warrior', 'just_scouting', etc.
 
   const PurchaseProduct({
     required this.id,
@@ -115,68 +115,110 @@ class PurchaseProducts {
   static const String nerdOutProductId =
       'com.skillresy.student.nerd_out';
 
-  // Legacy Candidate product IDs
-  static const String basicProductId = 'com.skillresy.candidate.basic';
-  static const String proProductId = 'com.skillresy.candidate.pro';
-  static const String premiumProductId = 'com.skillresy.candidate.enterprise';
-
-  // Legacy Student product IDs
-  static const String studentBasicProductId = 'com.skillresy.student.basic';
-  static const String studentProProductId = 'com.skillresy.student.pro';
-  static const String studentEnterpriseProductId =
-      'com.skillresy.student.enterprise';
-
-  static const PurchaseProduct basic = PurchaseProduct(
-    id: basicProductId,
-    name: 'Basic Plan',
-    description: '3 Resume Generations + 1 Interview Session',
-    price: '\$20.99',
+  // Candidate Purchase Products
+  static const PurchaseProduct weekendWarrior = PurchaseProduct(
+    id: weekendWarriorProductId,
+    name: 'Weekend Warrior',
+    description: '3 Resumes, 3 Interviews, 10 Ask Scout',
+    price: '\$10.99',
     resumeCredits: 3,
-    interviewCredits: 1,
-    tier: 'basic',
+    interviewCredits: 3,
+    tier: 'weekend_warrior',
   );
 
-  static const PurchaseProduct pro = PurchaseProduct(
-    id: proProductId,
-    name: 'Pro Plan',
-    description: '6 Resume Generations + 5 Interview Sessions',
-    price: '\$30.99',
-    resumeCredits: 6,
-    interviewCredits: 5,
-    tier: 'pro',
+  static const PurchaseProduct justScouting = PurchaseProduct(
+    id: justScoutingProductId,
+    name: 'Just Scouting',
+    description: '5 Resumes, 3 Interviews, 20 Ask Scout',
+    price: '\$14.99',
+    resumeCredits: 5,
+    interviewCredits: 3,
+    tier: 'just_scouting',
   );
 
-  static const PurchaseProduct premium = PurchaseProduct(
-    id: premiumProductId,
-    name: 'Premium Plan',
-    description: '10 Resume Generations + 10 Interview Sessions',
-    price: '\$40.99',
-    resumeCredits: 10,
-    interviewCredits: 10,
-    tier: 'premium',
+  static const PurchaseProduct seriousSeeker = PurchaseProduct(
+    id: seriousSeekerProductId,
+    name: 'Serious Seeker',
+    description: '12 Resumes, 8 Interviews, 45 Ask Scout',
+    price: '\$24.99',
+    resumeCredits: 12,
+    interviewCredits: 8,
+    tier: 'serious_seeker',
   );
 
-  static const List<PurchaseProduct> allProducts = [basic, pro, premium];
+  static const PurchaseProduct jobHunter = PurchaseProduct(
+    id: jobHunterProductId,
+    name: 'Job Hunter',
+    description: '25 Resumes, 15 Interviews, 100 Ask Scout',
+    price: '\$49.99',
+    resumeCredits: 25,
+    interviewCredits: 15,
+    tier: 'job_hunter',
+  );
 
-  // All product IDs including both new and legacy products
+  // Student Purchase Products
+  static const PurchaseProduct cramSession = PurchaseProduct(
+    id: cramSessionProductId,
+    name: 'Cram Session',
+    description: '12 Quizzes, 25 Document Uploads',
+    price: '\$3.99',
+    resumeCredits: 0,
+    interviewCredits: 0,
+    tier: 'cram_session',
+  );
+
+  static const PurchaseProduct basicStudent = PurchaseProduct(
+    id: basicStudentProductId,
+    name: 'Basic Student',
+    description: '10 Quizzes, 20 Document Uploads',
+    price: '\$5.00',
+    resumeCredits: 0,
+    interviewCredits: 0,
+    tier: 'basic_student',
+  );
+
+  static const PurchaseProduct midStudent = PurchaseProduct(
+    id: midStudentProductId,
+    name: 'Mid Student',
+    description: '25 Quizzes, 50 Document Uploads',
+    price: '\$10.00',
+    resumeCredits: 0,
+    interviewCredits: 0,
+    tier: 'mid_student',
+  );
+
+  static const PurchaseProduct nerdOut = PurchaseProduct(
+    id: nerdOutProductId,
+    name: 'Nerd Out',
+    description: '50 Quizzes, 100 Document Uploads',
+    price: '\$15.00',
+    resumeCredits: 0,
+    interviewCredits: 0,
+    tier: 'nerd_out',
+  );
+
+  // All 8 Active Products for iOS StoreKit
+  static const List<PurchaseProduct> allProducts = [
+    weekendWarrior,
+    justScouting,
+    seriousSeeker,
+    jobHunter,
+    cramSession,
+    basicStudent,
+    midStudent,
+    nerdOut,
+  ];
+
+  // Active product IDs for StoreKit query
   static List<String> get allProductIds => [
-    // New Candidate product IDs
     weekendWarriorProductId,
     justScoutingProductId,
     seriousSeekerProductId,
     jobHunterProductId,
-    // New Student product IDs
     cramSessionProductId,
     basicStudentProductId,
     midStudentProductId,
     nerdOutProductId,
-    // Legacy product IDs
-    basicProductId,
-    proProductId,
-    premiumProductId,
-    studentBasicProductId,
-    studentProProductId,
-    studentEnterpriseProductId,
   ];
 
   static PurchaseProduct? getProductById(String id) {

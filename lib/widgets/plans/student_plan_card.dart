@@ -47,11 +47,11 @@ class StudentPlanCard extends StatelessWidget {
             _buildPlanTitle(),
             const SizedBox(height: 4),
             _buildPlanDescription(),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             _buildPriceSection(),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             _buildFeaturesList(),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             _buildActionButton(context),
           ],
         ),
@@ -113,36 +113,9 @@ class StudentPlanCard extends StatelessWidget {
         Text(
           '\$${plan.price.toStringAsFixed(2)}',
           style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 16,
-            fontWeight: FontWeight.normal,
-            decoration: TextDecoration.lineThrough,
-            decorationColor: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          '\$${plan.discountedPrice.toStringAsFixed(2)}',
-          style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 32,
             fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-          decoration: BoxDecoration(
-            color: const Color(0xFF22C55E).withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            'Save \$${StudentPlanModel.discountAmount.toStringAsFixed(0)}',
-            style: const TextStyle(
-              color: Color(0xFF22C55E),
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
           ),
         ),
       ],
@@ -220,16 +193,6 @@ class StudentPlanCard extends StatelessWidget {
                       ),
               ),
             ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'First-time buyers get +1 bonus quiz',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 12,
-            fontWeight: FontWeight.normal,
           ),
         ),
       ],

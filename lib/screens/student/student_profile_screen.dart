@@ -12,6 +12,7 @@ import '../../widgets/invite_friends_card.dart';
 import '../../widgets/profile_card.dart';
 import '../../widgets/common/web_app_banner.dart';
 import '../../widgets/profile_header.dart';
+import '../../widgets/plans/premium_plan_profile_tile.dart';
 
 class StudentProfileScreen extends ConsumerWidget {
   const StudentProfileScreen({super.key});
@@ -40,6 +41,8 @@ class StudentProfileScreen extends ConsumerWidget {
                 const InviteFriendsCard(isStudent: true),
                 const SizedBox(height: 16),
                 const ProfileHeader(),
+                const SizedBox(height: 16),
+                const PremiumPlanProfileTile(isStudent: true),
                 const SizedBox(height: 16),
                 const WebAppProfileTile(),
                 const SizedBox(height: 16),

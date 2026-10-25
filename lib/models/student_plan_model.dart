@@ -6,11 +6,6 @@ class StudentPlanModel {
   final List<String> features;
   final bool isRecommended;
 
-  // Promotional pricing
-  static const double discountAmount = 5.0;
-
-  double get discountedPrice => price - discountAmount;
-
   const StudentPlanModel({
     required this.id,
     required this.name,
@@ -22,33 +17,43 @@ class StudentPlanModel {
 
   static const List<StudentPlanModel> allStudentPlans = [
     StudentPlanModel(
-      id: 'basic',
-      name: 'Basic Plan',
-      description: 'For Students who want to Ace their Academic Careers',
-      price: 20.99,
+      id: 'cram_session',
+      name: 'Cram Session',
+      description: 'Quick exam preparation & revision',
+      price: 3.99,
       features: [
-        '1 Guided Study Session with Custom Quiz',
-        'Ability to upload 5 documents',
+        '12 Guided Study Sessions & Quizzes',
+        '25 Document Uploads',
       ],
     ),
     StudentPlanModel(
-      id: 'pro',
-      name: 'Pro Plan',
-      description: 'For Students who want to Ace their Academic Careers',
-      price: 30.99,
+      id: 'basic_student',
+      name: 'Basic Student',
+      description: 'For steady academic support',
+      price: 5.00,
       features: [
-        '3 Guided Study Sessions with Custom Quizzes',
-        'Ability to upload 10 documents',
+        '10 Guided Study Sessions & Quizzes',
+        '20 Document Uploads',
       ],
     ),
     StudentPlanModel(
-      id: 'enterprise',
-      name: 'Enterprise Plan',
-      description: 'For Students who want to Ace their Academic Careers',
-      price: 40.99,
+      id: 'mid_student',
+      name: 'Mid Student',
+      description: 'Ideal for semester projects & regular study',
+      price: 10.00,
       features: [
-        '9 Guided Study Sessions with Custom Quizzes',
-        'Ability to upload 20 documents',
+        '25 Guided Study Sessions & Quizzes',
+        '50 Document Uploads',
+      ],
+    ),
+    StudentPlanModel(
+      id: 'nerd_out',
+      name: 'Nerd Out',
+      description: 'Maximum power for serious academics',
+      price: 15.00,
+      features: [
+        '50 Guided Study Sessions & Quizzes',
+        '100 Document Uploads',
       ],
       isRecommended: true,
     ),

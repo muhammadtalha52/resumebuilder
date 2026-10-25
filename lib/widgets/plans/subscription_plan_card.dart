@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../models/backend_plan_model.dart';
@@ -8,6 +9,8 @@ class SubscriptionPlanCard extends StatelessWidget {
   final StripeSubscription? currentSubscription;
   final VoidCallback onSelect;
   final bool isLoading;
+  final String? customButtonText;
+  final String? customPrice;
 
   const SubscriptionPlanCard({
     super.key,
@@ -15,6 +18,8 @@ class SubscriptionPlanCard extends StatelessWidget {
     this.currentSubscription,
     required this.onSelect,
     this.isLoading = false,
+    this.customButtonText,
+    this.customPrice,
   });
 
   bool get isCurrentPlan =>
@@ -171,7 +176,7 @@ class SubscriptionPlanCard extends StatelessWidget {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                '\$${plan.price.replaceAll('\$', '')}',
+                customPrice ?? '\$${plan.price.replaceAll('\$', '')}',
                 style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
@@ -179,19 +184,29 @@ class SubscriptionPlanCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              Text(
-                'a ${plan.formattedBillingInterval}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
+              if (!Platform.isIOS && plan.billingInterval != null && plan.billingInterval!.isNotEmpty)
+                Text(
+                  'a ${plan.formattedBillingInterval}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
+                )
+              else
+                const Text(
+                  'one-time pack',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-              ),
             ],
           ),
 
-          // Trial callout (for candidates)
-          if (plan.hasTrial && !hasActiveSub) ...[
+          // Trial callout (for candidates on Android Stripe only)
+          if (!Platform.isIOS && plan.hasTrial && !hasActiveSub) ...[
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -223,7 +238,7 @@ class SubscriptionPlanCard extends StatelessWidget {
                 children: [
                   Container(
                     margin: const EdgeInsets.only(top: 2),
-                    padding: const EdgeInsets.all(2),
+                    padding: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
@@ -305,7 +320,11 @@ class SubscriptionPlanCard extends StatelessWidget {
     }
 
     String buttonText;
-    if (hasActiveSub) {
+    if (customButtonText != null && customButtonText!.isNotEmpty) {
+      buttonText = customButtonText!;
+    } else if (Platform.isIOS) {
+      buttonText = 'Get Plan';
+    } else if (hasActiveSub) {
       buttonText = isNextPendingPlan ? 'Change Plan' : 'Switch to this Plan';
     } else if (plan.hasTrial) {
       buttonText = 'Start 3-Day Free Trial';

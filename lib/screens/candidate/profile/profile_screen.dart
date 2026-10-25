@@ -15,6 +15,7 @@ import '../../../widgets/invite_friends_card.dart';
 import '../../../widgets/profile_card.dart';
 import '../../../widgets/common/web_app_banner.dart';
 import '../../../widgets/profile_header.dart';
+import '../../../widgets/plans/premium_plan_profile_tile.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -66,6 +67,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const ProfileCompletionBanner(isProfileScreen: true),
                 const SizedBox(height: 16),
                 const ProfileHeader(),
+                const SizedBox(height: 16),
+                const PremiumPlanProfileTile(isStudent: false),
                 const SizedBox(height: 16),
                 const WebAppProfileTile(),
                 const SizedBox(height: 16),
