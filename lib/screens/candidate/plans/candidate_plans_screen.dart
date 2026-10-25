@@ -7,13 +7,13 @@ import '../../../services/analytics_service.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_sizes.dart';
 import '../../../models/backend_plan_model.dart';
-import '../../../models/plan_model.dart';
+
 import '../../../models/purchase_product_model.dart';
 import '../../../providers/iap_provider.dart';
 import '../../../providers/stripe_subscription_provider.dart';
 import '../../../providers/usage_provider.dart';
 import '../../../widgets/plans/active_subscription_card.dart';
-import '../../../widgets/plans/plan_card.dart';
+
 import '../../../widgets/plans/subscription_dialogs.dart';
 import '../../../widgets/plans/subscription_plan_card.dart';
 import '../../../widgets/plans/subscription_rules_widget.dart';
@@ -202,19 +202,6 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
     if (!iapState.isInitialized) {
       await ref.read(iapProvider.notifier).reloadProducts();
     }
-    if (false) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              iapState.error ?? 'In-app purchases are not available',
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
 
     String productId = plan.productId ?? '';
     if (productId.isEmpty) {
@@ -350,23 +337,6 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
                         // Subscription Rules Section (Mandatory Rules from doc)
                         if (!Platform.isIOS && _selectedTab == 0)
                           const SubscriptionRulesWidget(isStudent: false),
-                        if (Platform.isIOS) ...[
-                          const SizedBox(height: 12),
-                          TextButton.icon(
-                            onPressed: () => context.push('/student/plans'),
-                            icon: const Icon(Icons.school, color: Colors.white, size: 16),
-                            label: const Text(
-                              'Looking for Student Plans? View Student Study Plans →',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                decoration: TextDecoration.underline,
-                                decorationColor: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
                         const SizedBox(height: AppSizes.paddingL),
                       ],
                     ),
@@ -500,12 +470,6 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
       },
       itemCount: plans.length,
       itemBuilder: (context, index) {
-        final iapPlan = plans[index].copyWith(
-          isSubscription: false,
-          trialDays: 0,
-          billingInterval: null,
-        );
-        // stripe plan
         final plan = plans[index];
         final isPlanCheckingOut = state.checkingOutPlanId == plan.id;
         return SubscriptionPlanCard(

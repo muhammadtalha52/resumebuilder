@@ -64,97 +64,105 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
   int _selectedTab = Platform.isIOS ? 1 : 0; // On iOS force Store IAP, on Android allow both
   bool _isProcessing = false;
 
-  // Fallback plans for Candidate (Job Seeker)
+  // Fallback plans for Candidate (Job Seeker) - strictly aligned with StoreKit consumable products
   static const List<BackendPlanModel> _candidatePlans = [
     BackendPlanModel(
       id: 11,
       name: 'Weekend Warrior',
+      productId: PurchaseProducts.weekendWarriorProductId,
       price: '10.99',
-      billingInterval: 'week',
+      billingInterval: null,
       resumeCount: 3,
       interviewCount: 3,
       askScoutCount: 10,
-      trialDays: 3,
-      isSubscription: true,
+      trialDays: 0,
+      isSubscription: false,
     ),
     BackendPlanModel(
       id: 12,
       name: 'Just Scouting',
+      productId: PurchaseProducts.justScoutingProductId,
       price: '14.99',
-      billingInterval: 'month',
+      billingInterval: null,
       resumeCount: 5,
       interviewCount: 3,
       askScoutCount: 20,
-      trialDays: 3,
-      isSubscription: true,
+      trialDays: 0,
+      isSubscription: false,
     ),
     BackendPlanModel(
       id: 13,
       name: 'Serious Seeker',
+      productId: PurchaseProducts.seriousSeekerProductId,
       price: '24.99',
-      billingInterval: 'month',
+      billingInterval: null,
       resumeCount: 12,
       interviewCount: 8,
       askScoutCount: 45,
-      trialDays: 3,
-      isSubscription: true,
+      trialDays: 0,
+      isSubscription: false,
       isRecommended: true,
     ),
     BackendPlanModel(
       id: 14,
       name: 'Job Hunter',
+      productId: PurchaseProducts.jobHunterProductId,
       price: '49.99',
-      billingInterval: 'month',
+      billingInterval: null,
       resumeCount: 25,
       interviewCount: 15,
       askScoutCount: 100,
-      trialDays: 3,
-      isSubscription: true,
+      trialDays: 0,
+      isSubscription: false,
     ),
   ];
 
-  // Fallback plans for Student
+  // Fallback plans for Student - strictly aligned with StoreKit consumable products
   static const List<BackendPlanModel> _studentPlans = [
     BackendPlanModel(
       id: 21,
       name: 'Cram Session',
+      productId: PurchaseProducts.cramSessionProductId,
       price: '3.99',
-      billingInterval: 'week',
+      billingInterval: null,
       quizCount: 12,
       documentUploadCount: 25,
       trialDays: 0,
-      isSubscription: true,
+      isSubscription: false,
     ),
     BackendPlanModel(
       id: 22,
       name: 'Basic Student',
-      price: '9.99',
-      billingInterval: 'month',
-      quizCount: 30,
-      documentUploadCount: 50,
+      productId: PurchaseProducts.basicStudentProductId,
+      price: '5.00',
+      billingInterval: null,
+      quizCount: 10,
+      documentUploadCount: 20,
       trialDays: 0,
-      isSubscription: true,
+      isSubscription: false,
     ),
     BackendPlanModel(
       id: 23,
       name: 'Mid Student',
-      price: '14.99',
-      billingInterval: 'month',
-      quizCount: 60,
-      documentUploadCount: 100,
+      productId: PurchaseProducts.midStudentProductId,
+      price: '10.00',
+      billingInterval: null,
+      quizCount: 25,
+      documentUploadCount: 50,
       trialDays: 0,
-      isSubscription: true,
-      isRecommended: true,
+      isSubscription: false,
     ),
     BackendPlanModel(
       id: 24,
       name: 'Nerd Out',
-      price: '24.99',
-      billingInterval: 'month',
-      quizCount: 120,
-      documentUploadCount: 200,
+      productId: PurchaseProducts.nerdOutProductId,
+      price: '15.00',
+      billingInterval: null,
+      quizCount: 50,
+      documentUploadCount: 100,
       trialDays: 0,
-      isSubscription: true,
+      isSubscription: false,
+      isRecommended: true,
     ),
   ];
 
@@ -167,6 +175,7 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final role = widget.isStudent ? 2 : 1;
       ref.read(stripeSubscriptionProvider.notifier).loadData(role: role);
+      ref.read(iapProvider.notifier).reloadProducts();
       ref.read(iapProvider.notifier).loadPlansMapping();
     });
   }
@@ -209,6 +218,11 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
   }
 
   Future<void> _purchaseStoreKitOrPlayIAP(BackendPlanModel plan) async {
+    final iapState = ref.read(iapProvider);
+    if (!iapState.isInitialized) {
+      await ref.read(iapProvider.notifier).reloadProducts();
+    }
+
     String productId = plan.productId ?? '';
     if (productId.isEmpty) {
       final name = plan.name.toLowerCase();
@@ -225,18 +239,19 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
       } else {
         if (name.contains('weekend')) {
           productId = PurchaseProducts.weekendWarriorProductId;
-        } else if (name.contains('scouting')) {
+        } else if (name.contains('scouting') || name.contains('just')) {
           productId = PurchaseProducts.justScoutingProductId;
         } else if (name.contains('serious') || name.contains('seeker')) {
           productId = PurchaseProducts.seriousSeekerProductId;
-        } else if (name.contains('hunter')) {
+        } else if (name.contains('hunter') || name.contains('job')) {
           productId = PurchaseProducts.jobHunterProductId;
         } else {
-          productId = PurchaseProducts.basicProductId;
+          productId = PurchaseProducts.weekendWarriorProductId;
         }
       }
     }
 
+    debugPrint('[PaywallModal] Initiating Store IAP purchase for product: $productId');
     await ref.read(iapProvider.notifier).purchaseProduct(productId);
   }
 
@@ -248,6 +263,14 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
         ref.read(stripeSubscriptionProvider.notifier).clearSuccessMessage();
         Navigator.of(context).pop();
         context.go('/thank-you', extra: {'isTrial': !widget.isStudent});
+      } else if (next.error != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.error!),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        ref.read(stripeSubscriptionProvider.notifier).clearError();
       }
     });
 
@@ -256,6 +279,14 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
         ref.read(iapProvider.notifier).clearSuccessMessage();
         Navigator.of(context).pop();
         context.go('/thank-you', extra: {'isTrial': false});
+      } else if (next.error != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.error!),
+            backgroundColor: Colors.red,
+          ),
+        );
+        ref.read(iapProvider.notifier).clearError();
       }
     });
 
@@ -271,12 +302,10 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
 
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    final modalHeight = widget.isStudent
-        ? (screenHeight * 0.82).clamp(580.0, 680.0)
-        : (screenHeight * 0.92).clamp(650.0, 780.0);
-    final carouselHeight = widget.isStudent
-        ? (screenHeight * 0.40).clamp(325.0, 345.0)
-        : (screenHeight * 0.49).clamp(395.0, 420.0);
+    final modalHeight = (screenHeight * 0.92).clamp(660.0, 820.0);
+    final carouselHeight = (screenHeight * 0.52).clamp(415.0, 445.0);
+
+    final bool isOneTime = Platform.isIOS || _selectedTab == 1;
 
     return Container(
       height: modalHeight,
@@ -306,7 +335,7 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
                   ),
                 ),
 
-                // Top Badge Pill
+                // Top Badge Pill (Apple StoreKit compliant)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
@@ -319,11 +348,15 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
                       const Text('🎉', style: TextStyle(fontSize: 12)),
                       const SizedBox(width: 5),
                       Text(
-                        (!Platform.isIOS && _selectedTab == 1)
-                            ? 'Google Play Billing • Instant Activation'
-                            : (widget.isStudent
-                                ? 'Student Special Access'
-                                : '3-Day Free Trial Included'),
+                        Platform.isIOS
+                            ? (widget.isStudent
+                                ? 'Student Learning Packs • Instant Activation'
+                                : 'One-Time Packs • Instant Activation')
+                            : (_selectedTab == 1
+                                ? 'Google Play Billing • Instant Activation'
+                                : (widget.isStudent
+                                    ? 'Student Special Access'
+                                    : '3-Day Free Trial Included')),
                         style: TextStyle(
                           color: (!Platform.isIOS && _selectedTab == 1)
                               ? const Color(0xFF01875F)
@@ -406,21 +439,31 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
                         });
                       },
                       itemBuilder: (context, index) {
-                        final plan = activePlans[index];
+                        final rawPlan = activePlans[index];
                         final isPlanCheckingOut =
-                            stripeState.checkingOutPlanId == plan.id;
+                            stripeState.checkingOutPlanId == rawPlan.id;
+
+                        // On iOS or Store IAP, enforce one-time consumable presentation
+                        final plan = isOneTime
+                            ? rawPlan.copyWith(
+                                isSubscription: false,
+                                trialDays: 0,
+                                billingInterval: null,
+                              )
+                            : rawPlan;
 
                         return Align(
                           alignment: Alignment.topCenter,
                           child: SubscriptionPlanCard(
                             plan: plan,
                             currentSubscription: stripeState.subscription,
-                            isGooglePlay: !Platform.isIOS && _selectedTab == 1,
+                            isOneTime: isOneTime,
+                            customButtonText: isOneTime ? 'Get Plan' : null,
                             onSelect: () => _handlePlanSelected(plan),
-                          isLoading: _isProcessing ||
-                              isPlanCheckingOut ||
-                              stripeState.isUpdating ||
-                              iapState.isPurchasing,
+                            isLoading: _isProcessing ||
+                                isPlanCheckingOut ||
+                                stripeState.isUpdating ||
+                                iapState.isPurchasing,
                           ),
                         );
                       },
@@ -439,7 +482,9 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
                   child: Text(
-                    'Credits renew each period. Unused credits expire. Cancel anytime before trial ends with zero charge.',
+                    isOneTime
+                        ? 'One-time purchase. Credits are added instantly to your account.'
+                        : 'Credits renew each period. Unused credits expire. Cancel anytime before trial ends with zero charge.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 11,

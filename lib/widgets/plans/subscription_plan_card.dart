@@ -203,7 +203,7 @@ class SubscriptionPlanCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                    if (isGooglePlay) ...[
+                    if (isOneTime && !Platform.isIOS) ...[
                       const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -350,6 +350,9 @@ class SubscriptionPlanCard extends StatelessWidget {
               height: 46,
               child: _buildActionButton(hasActiveSub),
             ),
+            const SizedBox(height: 8),
+      
+            
           ],
         ),
       ),

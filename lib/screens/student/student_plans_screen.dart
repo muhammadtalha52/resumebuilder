@@ -8,12 +8,12 @@ import '../../constants/app_colors.dart';
 import '../../constants/app_sizes.dart';
 import '../../models/backend_plan_model.dart';
 import '../../models/purchase_product_model.dart';
-import '../../models/student_plan_model.dart';
+
 import '../../providers/iap_provider.dart';
 import '../../providers/stripe_subscription_provider.dart';
 import '../../providers/usage_provider.dart';
 import '../../widgets/plans/active_subscription_card.dart';
-import '../../widgets/plans/student_plan_card.dart';
+
 import '../../widgets/plans/subscription_dialogs.dart';
 import '../../widgets/plans/subscription_plan_card.dart';
 import '../../widgets/plans/subscription_rules_widget.dart';
@@ -193,19 +193,6 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
     if (!iapState.isInitialized) {
       await ref.read(iapProvider.notifier).reloadProducts();
     }
-    if (false) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              iapState.error ?? 'In-app purchases are not available',
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
 
     String productId = plan.productId ?? '';
     if (productId.isEmpty) {
@@ -338,23 +325,6 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
                         const SizedBox(height: 12),
                         if (!Platform.isIOS && _selectedTab == 0)
                           const SubscriptionRulesWidget(isStudent: true),
-                        if (Platform.isIOS) ...[
-                          const SizedBox(height: 12),
-                          TextButton.icon(
-                            onPressed: () => context.push('/plans'),
-                            icon: const Icon(Icons.work_outline, color: Colors.white, size: 16),
-                            label: const Text(
-                              'Looking for Job & Resume Plans? View Candidate Plans →',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                decoration: TextDecoration.underline,
-                                decorationColor: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
                         const SizedBox(height: AppSizes.paddingL),
                       ],
                     ),
