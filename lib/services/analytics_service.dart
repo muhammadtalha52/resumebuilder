@@ -1,3 +1,4 @@
+import 'package:get_storage/get_storage.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -87,34 +88,74 @@ class AnalyticsService {
     }
   }
 
-  /// Event 4: Purchase
+  /// Event 4: Purchase (Logged to Meta Pixel/SDK, GA4/gtag, and Backend)
   static Future<void> logPurchase({
     required String transactionId,
     required double value,
     String currency = 'USD',
+    String? planName,
+    String? productId,
   }) async {
-    // Meta: Purchase (standard event)
+    // Strictly deduplicate by transaction/session id so retries don't log duplicate purchases
+    final box = GetStorage();
+    final dedupKey = 'purchase_tracked_$transactionId';
+    if (transactionId.isNotEmpty && transactionId != 'unknown' && box.read(dedupKey) == true) {
+      debugPrint("ℹ️ [DEDUP] Purchase already tracked for transaction: $transactionId — skipping duplicate");
+      return;
+    }
+    if (transactionId.isNotEmpty && transactionId != 'unknown') {
+      await box.write(dedupKey, true);
+    }
+
+    // 1. Meta Pixel / App Events: Standard Purchase event
     try {
-      debugPrint("📘 META PIXEL EVENT: Purchase | params: {amount: $value, currency: $currency}");
-      await _fb.logPurchase(amount: value, currency: currency);
+      final metaParams = <String, dynamic>{
+        'transaction_id': transactionId,
+      };
+      if (planName != null) metaParams['content_name'] = planName;
+      if (productId != null) metaParams['content_id'] = productId;
+      debugPrint("📘 META PIXEL EVENT: Purchase | amount: $value, currency: $currency, params: $metaParams");
+      await _fb.logPurchase(
+        amount: value,
+        currency: currency,
+        parameters: metaParams,
+      );
       await _fb.flush();
       debugPrint("✅ [META SDK FLUSHED] Purchase sent!");
     } catch (e) {
       debugPrint('❌ Failed to log Meta purchase event: $e');
     }
-    // GA4: purchase (recommended event)
+
+    // 2. GA4 / Firebase Analytics (Google gtag Purchase Event)
     try {
-      debugPrint("🟢 GA4 EVENT: purchase | params: {transaction_id: $transactionId, value: $value, currency: $currency}");
-      await _ga.logEvent(name: 'purchase', parameters: {
-        'transaction_id': transactionId,
-        'value': value,
-        'currency': currency,
-      });
+      debugPrint("🟢 GA4/GTAG EVENT: purchase | params: {transaction_id: $transactionId, value: $value, currency: $currency, item: $planName}");
+      await _ga.logPurchase(
+        currency: currency,
+        value: value,
+        transactionId: transactionId,
+        items: [
+          AnalyticsEventItem(
+            itemName: planName ?? 'Subscription Plan',
+            itemId: productId ?? transactionId,
+            price: value,
+            quantity: 1,
+          ),
+        ],
+      );
     } catch (e) {
       debugPrint('❌ Failed to log GA purchase event: $e');
     }
-  }
 
+    // 3. Backend Event
+    final backendProps = <String, dynamic>{
+      'transaction_id': transactionId,
+      'value': value,
+      'currency': currency,
+    };
+    if (planName != null) backendProps['plan_name'] = planName;
+    if (productId != null) backendProps['product_id'] = productId;
+    logBackendEvent('purchase', properties: backendProps);
+  }
   /// Event 5: Paywall Shown
   static Future<void> logPaywallShown({required String trigger}) async {
     try {
@@ -165,5 +206,115 @@ class AnalyticsService {
     } catch (e) {
       debugPrint('❌ Failed to construct Backend event: $eventName - Error: $e');
     }
+  }
+
+  /// Tour Event: tour_started
+  static Future<void> logTourStarted({String audience = 'b2c'}) async {
+    final params = {'audience': audience};
+    try {
+      debugPrint("🚀 [TOUR] tour_started: $params");
+      await _fb.logEvent(name: 'tour_started', parameters: params);
+      await _fb.flush();
+      await _ga.logEvent(name: 'tour_started', parameters: params);
+    } catch (e) {
+      debugPrint("❌ Error logging tour_started: $e");
+    }
+    logBackendEvent('tour_started', properties: params);
+  }
+
+  /// Tour Event: tour_completed
+  static Future<void> logTourCompleted({int stepsCompleted = 4}) async {
+    final params = {'steps_completed': stepsCompleted};
+    try {
+      debugPrint("🚀 [TOUR] tour_completed: $params");
+      await _fb.logEvent(name: 'tour_completed', parameters: params);
+      await _fb.flush();
+      await _ga.logEvent(name: 'tour_completed', parameters: params);
+    } catch (e) {
+      debugPrint("❌ Error logging tour_completed: $e");
+    }
+    logBackendEvent('tour_completed', properties: params);
+  }
+
+  /// Tour Event: tour_skipped
+  static Future<void> logTourSkipped({required int stepNumber}) async {
+    final params = {'step_number': stepNumber};
+    try {
+      debugPrint("🚀 [TOUR] tour_skipped: $params");
+      await _fb.logEvent(name: 'tour_skipped', parameters: params);
+      await _fb.flush();
+      await _ga.logEvent(name: 'tour_skipped', parameters: params);
+    } catch (e) {
+      debugPrint("❌ Error logging tour_skipped: $e");
+    }
+    logBackendEvent('tour_skipped', properties: params);
+  }
+
+  /// Paywall Event: paywall_dismissed
+  static Future<void> logPaywallDismissed({required String reason}) async {
+    final params = {'reason': reason};
+    try {
+      debugPrint("🚀 [PAYWALL] paywall_dismissed: $params");
+      await _fb.logEvent(name: 'paywall_dismissed', parameters: params);
+      await _fb.flush();
+      await _ga.logEvent(name: 'paywall_dismissed', parameters: params);
+    } catch (e) {
+      debugPrint("❌ Error logging paywall_dismissed: $e");
+    }
+    logBackendEvent('paywall_dismissed', properties: params);
+  }
+
+  /// Paywall Event: trial_start_clicked
+  static Future<void> logTrialStartClicked({
+    required int planId,
+    required String planName,
+    required dynamic price,
+  }) async {
+    final params = {
+      'plan_id': planId,
+      'plan_name': planName,
+      'price': price.toString(),
+    };
+    try {
+      debugPrint("🚀 [PAYWALL] trial_start_clicked: $params");
+      await _fb.logEvent(name: 'trial_start_clicked', parameters: params);
+      await _fb.flush();
+      await _ga.logEvent(name: 'trial_start_clicked', parameters: params);
+    } catch (e) {
+      debugPrint("❌ Error logging trial_start_clicked: $e");
+    }
+    logBackendEvent('trial_start_clicked', properties: params);
+  }
+
+  /// Thank-You Event: trial_started (Strictly deduplicated)
+  static Future<void> logTrialStartedStrictOnce({
+    required String planName,
+    required double value,
+    String currency = 'USD',
+    required String sessionId,
+  }) async {
+    final box = GetStorage();
+    final dedupKey = 'trial_started_tracked_$sessionId';
+    if (box.read(dedupKey) == true) {
+      debugPrint("ℹ️ [DEDUP] trial_started already tracked for session: $sessionId — skipping");
+      return;
+    }
+    await box.write(dedupKey, true);
+
+    final params = {
+      'plan_name': planName,
+      'value': value,
+      'currency': currency,
+      'session_id': sessionId,
+    };
+    try {
+      debugPrint("🚀 [TRIAL] trial_started: $params");
+      await _fb.logEvent(name: 'trial_started', parameters: params);
+      await _fb.flush();
+      await _ga.logEvent(name: 'trial_started', parameters: params);
+    } catch (e) {
+      debugPrint("❌ Error logging trial_started: $e");
+    }
+    logBackendEvent('trial_started', properties: params);
   }
 }

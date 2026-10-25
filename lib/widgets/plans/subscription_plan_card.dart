@@ -74,9 +74,18 @@ class SubscriptionPlanCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasActiveSub = currentSubscription?.isActiveOrTrial ?? false;
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      padding: const EdgeInsets.all(22),
+      margin: EdgeInsets.symmetric(
+        horizontal: screenWidth * 0.03,
+        vertical: (screenHeight * 0.006).clamp(4.0, 8.0),
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: screenWidth * 0.045,
+        vertical: (screenHeight * 0.014).clamp(10.0, 15.0),
+      ),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20),
@@ -98,116 +107,144 @@ class SubscriptionPlanCard extends StatelessWidget {
           width: isCurrentPlan || plan.isRecommended ? 2 : 1,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header: Icon + Badges
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Image.asset(
-                'assets/icons/fox-mascot.png',
-                height: 42,
-                errorBuilder: (_, _, _) => Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.auto_awesome,
-                    color: AppColors.primary,
-                    size: 24,
+      child: SingleChildScrollView(
+        physics: const ClampingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header: Icon + Badges
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Image.asset(
+                  'assets/icons/fox-mascot.png',
+                  height: 38,
+                  errorBuilder: (_, _, _) => Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
                   ),
                 ),
-              ),
-              Row(
-                children: [
-                  if (isCurrentPlan)
-                    Container(
-                      margin: const EdgeInsets.only(left: 6),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.success),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.check, size: 14, color: AppColors.success),
-                          SizedBox(width: 4),
-                          Text(
-                            'Current Plan',
-                            style: TextStyle(
-                              color: AppColors.success,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
+                Row(
+                  children: [
+                    if (isCurrentPlan)
+                      Container(
+                        margin: const EdgeInsets.only(left: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.success),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.check, size: 13, color: AppColors.success),
+                            SizedBox(width: 4),
+                            Text(
+                              'Current Plan',
+                              style: TextStyle(
+                                color: AppColors.success,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
+                          ],
+                        ),
+                      )
+                    else if (isNextPendingPlan)
+                      Container(
+                        margin: const EdgeInsets.only(left: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.info.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.info),
+                        ),
+                        child: const Text(
+                          'Starts Next Renewal',
+                          style: TextStyle(
+                            color: AppColors.info,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ],
-                      ),
-                    )
-                  else if (isNextPendingPlan)
-                    Container(
-                      margin: const EdgeInsets.only(left: 6),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.info.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.info),
-                      ),
-                      child: const Text(
-                        'Starts Next Renewal',
-                        style: TextStyle(
-                          color: AppColors.info,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    else if (plan.isRecommended)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: AppColors.primaryGradientHorizontal,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'Best Value',
+                          style: TextStyle(
+                            color: AppColors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    )
-                  else if (plan.isRecommended)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: AppColors.primaryGradientHorizontal,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        'Best Value',
-                        style: TextStyle(
-                          color: AppColors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+                    if (isGooglePlay) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF01875F).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFF01875F).withValues(alpha: 0.35)),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.shop, size: 11, color: Color(0xFF01875F)),
+                            SizedBox(width: 3),
+                            Text(
+                              'Play Store',
+                              style: TextStyle(
+                                color: Color(0xFF01875F),
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Plan Name
-          Text(
-            plan.name,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+                    ],
+                  ],
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 6),
+            const SizedBox(height: 8),
+
+            // Plan Name
+            Text(
+              plan.name,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
 
           // Price & Billing interval
           Row(
@@ -264,9 +301,9 @@ class SubscriptionPlanCard extends StatelessWidget {
             ),
           ],
 
-          const SizedBox(height: 16),
-          const Divider(height: 1, color: AppColors.border),
-          const SizedBox(height: 14),
+            const SizedBox(height: 10),
+            const Divider(height: 1, color: AppColors.border),
+            const SizedBox(height: 10),
 
           // Features List
           ...cardFeatures.map(
@@ -305,15 +342,16 @@ class SubscriptionPlanCard extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
-          // Action Button
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: _buildActionButton(hasActiveSub),
-          ),
-        ],
+            // Action Button
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: _buildActionButton(hasActiveSub),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -394,9 +432,10 @@ class SubscriptionPlanCard extends StatelessWidget {
         ),
         child: Text(
           buttonText,
+          textAlign: TextAlign.center,
           style: const TextStyle(
             color: AppColors.white,
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: FontWeight.bold,
           ),
         ),

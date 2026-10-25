@@ -340,6 +340,8 @@ class IAPNotifier extends StateNotifier<IAPState> {
             transactionId: purchase.purchaseID ?? 'unknown',
             value: value,
             currency: 'USD',
+            planName: product?.name ?? purchase.productID,
+            productId: purchase.productID,
           );
           
           // Complete the purchase
@@ -403,6 +405,8 @@ class IAPNotifier extends StateNotifier<IAPState> {
             transactionId: purchase.purchaseID ?? 'unknown',
             value: value,
             currency: 'USD',
+            planName: product?.name ?? purchase.productID,
+            productId: purchase.productID,
           );
 
           // Complete the purchase

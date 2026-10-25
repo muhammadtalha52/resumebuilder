@@ -1,6 +1,8 @@
+import '../../../services/onboarding_funnel_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../common/main_screen.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../providers/auth_provider.dart';
@@ -83,6 +85,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 _buildSkillsCard(context, ref),
                 const SizedBox(height: 16),
                 _buildOthersCard(context, ref),
+                const SizedBox(height: 16),
+                _buildTourGuideCard(context, ref),
                 const SizedBox(height: 16),
                 _buildLogoutButton(context, ref),
                 const SizedBox(height: 20),
@@ -663,6 +667,82 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  Widget _buildTourGuideCard(BuildContext context, WidgetRef ref) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () async {
+            await OnboardingFunnelService.instance.resetTour();
+            ref.read(navigationIndexProvider.notifier).state = 0;
+            ref.read(forceTourTriggerProvider.notifier).state++;
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.explore,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Take Guided Tour',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Learn how to get the most out of the app',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  size: 14,
+                  color: AppColors.textSecondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildLogoutButton(BuildContext context, WidgetRef ref) {
     return Container(
       width: double.infinity,
@@ -739,6 +819,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
         onSelected: (value) async {
+          if (value == 'take_tour') {
+            await OnboardingFunnelService.instance.resetTour();
+            ref.read(navigationIndexProvider.notifier).state = 0;
+            ref.read(forceTourTriggerProvider.notifier).state++;
+            return;
+          }
           if (value == 'logout') {
             // Show logout confirmation dialog
             final confirmed = await showConfirmationDialog(
@@ -843,6 +929,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           }
         },
         itemBuilder: (context) => [
+          const PopupMenuItem<String>(
+            value: 'take_tour',
+            child: Row(
+              children: [
+                Icon(Icons.explore_outlined, size: 18, color: AppColors.primary),
+                SizedBox(width: 12),
+                Text(
+                  'Take Guided Tour',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
           const PopupMenuItem<String>(
             value: 'logout',
             child: Row(
