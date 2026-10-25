@@ -11,6 +11,7 @@ class SubscriptionPlanCard extends StatelessWidget {
   final bool isLoading;
   final String? customButtonText;
   final String? customPrice;
+  final bool isOneTime;
 
   const SubscriptionPlanCard({
     super.key,
@@ -20,6 +21,7 @@ class SubscriptionPlanCard extends StatelessWidget {
     this.isLoading = false,
     this.customButtonText,
     this.customPrice,
+    this.isOneTime = false,
   });
 
   bool get isCurrentPlan =>
@@ -30,6 +32,43 @@ class SubscriptionPlanCard extends StatelessWidget {
   bool get isNextPendingPlan =>
       currentSubscription != null &&
       currentSubscription!.nextPlan?.id == plan.id;
+
+  List<String> get cardFeatures {
+    final list = <String>[];
+    final intervalStr = (isOneTime || !plan.isSubscription || plan.billingInterval == null || plan.billingInterval!.isEmpty)
+        ? ''
+        : (plan.isWeekly ? ' a week' : ' a month');
+
+    // Candidate features
+    if (plan.resumeCount > 0) {
+      list.add('${plan.resumeCount} Resumes$intervalStr');
+    }
+    if (plan.interviewCount > 0) {
+      list.add('${plan.interviewCount} Live Sessions$intervalStr');
+    }
+    if (plan.askScoutCount > 0) {
+      list.add('${plan.askScoutCount} Ask Scout questions$intervalStr');
+    }
+
+    // Student features
+    if (plan.quizCount > 0) {
+      list.add(
+        '${plan.quizCount} Guided Study Sessions (with Custom Quiz)$intervalStr',
+      );
+    }
+    if (plan.documentUploadCount > 0) {
+      list.add('${plan.documentUploadCount} Document uploads$intervalStr');
+    }
+
+    // Trial or student extras
+    if (plan.quizCount > 0 || plan.documentUploadCount > 0) {
+      list.add('Quiz history & progress tracking included');
+    } else if (!isOneTime && plan.isSubscription && plan.hasTrial) {
+      list.add('${plan.trialDays}-day free trial included');
+    }
+
+    return list;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -184,7 +223,7 @@ class SubscriptionPlanCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              if (!Platform.isIOS && plan.billingInterval != null && plan.billingInterval!.isNotEmpty)
+              if (!isOneTime && !Platform.isIOS && plan.isSubscription && plan.billingInterval != null && plan.billingInterval!.isNotEmpty)
                 Text(
                   'a ${plan.formattedBillingInterval}',
                   style: const TextStyle(
@@ -205,8 +244,8 @@ class SubscriptionPlanCard extends StatelessWidget {
             ],
           ),
 
-          // Trial callout (for candidates on Android Stripe only)
-          if (!Platform.isIOS && plan.hasTrial && !hasActiveSub) ...[
+          // Trial callout (only for subscriptions with trial, NEVER for one-time packs)
+          if (!isOneTime && !Platform.isIOS && plan.isSubscription && plan.hasTrial && !hasActiveSub) ...[
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -230,7 +269,7 @@ class SubscriptionPlanCard extends StatelessWidget {
           const SizedBox(height: 14),
 
           // Features List
-          ...plan.features.map(
+          ...cardFeatures.map(
             (feature) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Row(

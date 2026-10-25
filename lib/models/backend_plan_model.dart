@@ -38,6 +38,46 @@ class BackendPlanModel {
     this.isRecommended = false,
   });
 
+  BackendPlanModel copyWith({
+    int? id,
+    String? name,
+    String? planType,
+    String? productId,
+    String? price,
+    String? billingInterval,
+    int? resumeCount,
+    int? interviewCount,
+    int? quizCount,
+    int? documentUploadCount,
+    int? askScoutCount,
+    int? trialDays,
+    int? trialResumeCount,
+    int? trialInterviewCount,
+    bool? isSubscription,
+    bool? isActive,
+    bool? isRecommended,
+  }) {
+    return BackendPlanModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      planType: planType ?? this.planType,
+      productId: productId ?? this.productId,
+      price: price ?? this.price,
+      billingInterval: billingInterval ?? this.billingInterval,
+      resumeCount: resumeCount ?? this.resumeCount,
+      interviewCount: interviewCount ?? this.interviewCount,
+      quizCount: quizCount ?? this.quizCount,
+      documentUploadCount: documentUploadCount ?? this.documentUploadCount,
+      askScoutCount: askScoutCount ?? this.askScoutCount,
+      trialDays: trialDays ?? this.trialDays,
+      trialResumeCount: trialResumeCount ?? this.trialResumeCount,
+      trialInterviewCount: trialInterviewCount ?? this.trialInterviewCount,
+      isSubscription: isSubscription ?? this.isSubscription,
+      isActive: isActive ?? this.isActive,
+      isRecommended: isRecommended ?? this.isRecommended,
+    );
+  }
+
   bool get isWeekly => billingInterval?.toLowerCase() == 'week';
   bool get isMonthly => billingInterval?.toLowerCase() == 'month';
   bool get hasTrial => trialDays > 0;
@@ -59,7 +99,9 @@ class BackendPlanModel {
   /// Generates dynamic feature list according to documentation
   List<String> get features {
     final list = <String>[];
-    final intervalStr = isWeekly ? 'a week' : 'a month';
+    final intervalStr = (!isSubscription || billingInterval == null || billingInterval!.isEmpty)
+        ? ''
+        : (isWeekly ? ' a week' : ' a month');
 
     // Candidate features
     if (resumeCount > 0) {
@@ -85,7 +127,7 @@ class BackendPlanModel {
     // Trial or student extras
     if (quizCount > 0 || documentUploadCount > 0) {
       list.add('Quiz history & progress tracking included');
-    } else if (hasTrial) {
+    } else if (hasTrial && isSubscription) {
       list.add('$trialDays-day free trial included');
     }
 

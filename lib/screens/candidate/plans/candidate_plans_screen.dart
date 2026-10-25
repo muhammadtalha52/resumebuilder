@@ -511,9 +511,16 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
       },
       itemCount: plans.length,
       itemBuilder: (context, index) {
+        final iapPlan = plans[index].copyWith(
+          isSubscription: false,
+          trialDays: 0,
+          billingInterval: null,
+        );
+        // stripe plan
         final plan = plans[index];
         final isPlanCheckingOut = state.checkingOutPlanId == plan.id;
         return SubscriptionPlanCard(
+
           plan: plan,
           currentSubscription: state.subscription,
           onSelect: () => _onStripePlanSelected(plan, notifier),
@@ -537,12 +544,18 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
       },
       itemCount: plans.length,
       itemBuilder: (context, index) {
-        final plan = plans[index];
+        final iapPlan = plans[index].copyWith(
+          isSubscription: false,
+          trialDays: 0,
+          billingInterval: null,
+        );
         return SubscriptionPlanCard(
-          plan: plan,
+
+          plan: iapPlan,
           currentSubscription: stripeState.subscription,
+          isOneTime: true,
           customButtonText: 'Get Plan',
-          onSelect: () => _onIapPlanSelected(plan),
+          onSelect: () => _onIapPlanSelected(iapPlan),
           isLoading:
               iapState.isLoadingPlansMapping || iapState.isPurchasing,
         );

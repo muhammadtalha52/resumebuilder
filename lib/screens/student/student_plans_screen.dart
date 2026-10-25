@@ -529,6 +529,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
         return SubscriptionPlanCard(
           plan: plan,
           currentSubscription: stripeState.subscription,
+          isOneTime: true,
           customButtonText: 'Get Plan',
           onSelect: () => _onIapPlanSelected(plan),
           isLoading:
