@@ -518,6 +518,12 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
 
   Widget _buildHeaderWithTitleAndClose(BuildContext context) {
     final isSubscriptions = _selectedTab == 0;
+    final stripeState = ref.watch(stripeSubscriptionProvider);
+    final trialPlan = stripeState.plans.cast<BackendPlanModel?>().firstWhere(
+      (p) => p != null && p.hasTrial,
+      orElse: () => null,
+    );
+    final trialDaysCount = trialPlan?.trialDays ?? 7;
     return SizedBox(
       height: 260,
       child: Stack(
@@ -602,7 +608,7 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
                   const Text('🎉', style: TextStyle(fontSize: 12)),
                   const SizedBox(width: 4),
                   Text(
-                    isSubscriptions ? '3-Day Free Trial' : 'Limited Time Offer',
+                    isSubscriptions ? '$trialDaysCount-Day Free Trial' : 'Limited Time Offer',
                     style: const TextStyle(
                       color: AppColors.primary,
                       fontSize: 12,

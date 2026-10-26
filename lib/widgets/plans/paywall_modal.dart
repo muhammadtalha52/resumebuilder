@@ -306,6 +306,11 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
     final carouselHeight = (screenHeight * 0.52).clamp(415.0, 445.0);
 
     final bool isOneTime = Platform.isIOS || _selectedTab == 1;
+    final trialPlan = activePlans.cast<BackendPlanModel?>().firstWhere(
+      (p) => p != null && p.hasTrial,
+      orElse: () => null,
+    );
+    final trialDaysCount = trialPlan?.trialDays ?? 7;
 
     return Container(
       height: modalHeight,
@@ -356,7 +361,7 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
                                 ? 'Google Play Billing • Instant Activation'
                                 : (widget.isStudent
                                     ? 'Student Special Access'
-                                    : '3-Day Free Trial Included')),
+                                    : '$trialDaysCount-Day Free Trial Included')),
                         style: TextStyle(
                           color: (!Platform.isIOS && _selectedTab == 1)
                               ? const Color(0xFF01875F)

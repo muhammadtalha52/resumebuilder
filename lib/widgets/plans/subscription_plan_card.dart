@@ -407,7 +407,7 @@ class SubscriptionPlanCard extends StatelessWidget {
     } else if (hasActiveSub) {
       buttonText = isNextPendingPlan ? 'Change Plan' : 'Switch to this Plan';
     } else if (plan.hasTrial) {
-      buttonText = 'Start 3-Day Free Trial';
+      buttonText = 'Start ${plan.trialDays}-Day Free Trial';
     } else {
       buttonText = 'Subscribe Now';
     }
