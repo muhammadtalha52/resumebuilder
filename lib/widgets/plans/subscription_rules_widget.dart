@@ -94,20 +94,12 @@ class _SubscriptionRulesWidgetState extends State<SubscriptionRulesWidget> {
                           'A full set of credits arrives every week (weekly plans) or month. Unused credits expire at the end of the period and do not carry over.',
                     ),
                     const SizedBox(height: 12),
-                    if (!widget.isStudent)
-                      _buildRuleItem(
-                        icon: Icons.star_border_rounded,
-                        title: 'Candidate 3-Day Trial',
-                        description:
-                          'Candidate plans include 3 days free with a card on file. The first charge occurs on day 4. The trial gives 2 resumes and 1 interview. Cancelling and subscribing again does not give a second trial.',
-                      )
-                    else
-                      _buildRuleItem(
-                        icon: Icons.school_outlined,
-                        title: 'Student Plans',
-                        description:
-                          'Students get no trial and no Ask Scout. Every student plan includes full quiz history and academic progress tracking.',
-                      ),
+                    _buildRuleItem(
+                      icon: Icons.star_border_rounded,
+                      title: '7-Day Free Trial',
+                      description:
+                          'Job seeker and student plans include 7 days free with a card on file. The first charge occurs on day 8. Job seekers get 3 tailored resumes and 2 live sessions; students get 5 guided study sessions and 10 document uploads. Cancelling and subscribing again does not give a second trial.',
+                    ),
                     const SizedBox(height: 12),
                     _buildRuleItem(
                       icon: Icons.swap_horiz_rounded,

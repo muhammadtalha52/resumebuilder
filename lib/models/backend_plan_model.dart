@@ -14,6 +14,8 @@ class BackendPlanModel {
   final int trialDays;
   final int trialResumeCount;
   final int trialInterviewCount;
+  final int trialQuizCount;
+  final int trialDocumentUploadCount;
   final bool isSubscription;
   final bool isActive;
   final bool isRecommended;
@@ -33,6 +35,8 @@ class BackendPlanModel {
     this.trialDays = 0,
     this.trialResumeCount = 0,
     this.trialInterviewCount = 0,
+    this.trialQuizCount = 0,
+    this.trialDocumentUploadCount = 0,
     this.isSubscription = false,
     this.isActive = true,
     this.isRecommended = false,
@@ -53,6 +57,8 @@ class BackendPlanModel {
     int? trialDays,
     int? trialResumeCount,
     int? trialInterviewCount,
+    int? trialQuizCount,
+    int? trialDocumentUploadCount,
     bool? isSubscription,
     bool? isActive,
     bool? isRecommended,
@@ -72,6 +78,9 @@ class BackendPlanModel {
       trialDays: trialDays ?? this.trialDays,
       trialResumeCount: trialResumeCount ?? this.trialResumeCount,
       trialInterviewCount: trialInterviewCount ?? this.trialInterviewCount,
+      trialQuizCount: trialQuizCount ?? this.trialQuizCount,
+      trialDocumentUploadCount:
+          trialDocumentUploadCount ?? this.trialDocumentUploadCount,
       isSubscription: isSubscription ?? this.isSubscription,
       isActive: isActive ?? this.isActive,
       isRecommended: isRecommended ?? this.isRecommended,
@@ -124,10 +133,12 @@ class BackendPlanModel {
       list.add('$documentUploadCount Document uploads $intervalStr');
     }
 
-    // Trial or student extras
+    // Student extras
     if (quizCount > 0 || documentUploadCount > 0) {
       list.add('Quiz history & progress tracking included');
-    } else if (hasTrial && isSubscription) {
+    }
+    // Trial line for every plan with hasTrial
+    if (hasTrial && isSubscription) {
       list.add('$trialDays-day free trial included');
     }
 
@@ -159,6 +170,9 @@ class BackendPlanModel {
       trialResumeCount: (json['trial_resume_count'] as num?)?.toInt() ?? 0,
       trialInterviewCount:
           (json['trial_interview_count'] as num?)?.toInt() ?? 0,
+      trialQuizCount: (json['trial_quiz_count'] as num?)?.toInt() ?? 0,
+      trialDocumentUploadCount:
+          (json['trial_document_upload_count'] as num?)?.toInt() ?? 0,
       isSubscription: json['is_subscription'] as bool? ?? false,
       isActive: json['is_active'] as bool? ?? true,
       isRecommended: isRec,
@@ -181,6 +195,8 @@ class BackendPlanModel {
       'trial_days': trialDays,
       'trial_resume_count': trialResumeCount,
       'trial_interview_count': trialInterviewCount,
+      'trial_quiz_count': trialQuizCount,
+      'trial_document_upload_count': trialDocumentUploadCount,
       'is_subscription': isSubscription,
       'is_active': isActive,
     };

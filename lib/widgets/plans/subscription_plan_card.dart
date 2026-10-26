@@ -63,7 +63,8 @@ class SubscriptionPlanCard extends StatelessWidget {
     // Trial or student extras
     if (plan.quizCount > 0 || plan.documentUploadCount > 0) {
       list.add('Quiz history & progress tracking included');
-    } else if (!isOneTime && plan.isSubscription && plan.hasTrial) {
+    }
+    if (!isOneTime && plan.isSubscription && plan.hasTrial) {
       list.add('${plan.trialDays}-day free trial included');
     }
 

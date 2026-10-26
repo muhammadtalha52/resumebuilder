@@ -1,5 +1,5 @@
 import 'package:intl/intl.dart';
-import 'backend_plan_model.dart';
+
 
 /// Current status of the Stripe subscription
 enum StripeSubscriptionStatus {
@@ -47,12 +47,14 @@ class SubscriptionPlanSummary {
   final String name;
   final String price;
   final String? billingInterval;
+  final int trialDays;
 
   const SubscriptionPlanSummary({
     required this.id,
     required this.name,
     required this.price,
     this.billingInterval,
+    this.trialDays = 7,
   });
 
   bool get isWeekly => billingInterval?.toLowerCase() == 'week';
@@ -70,6 +72,7 @@ class SubscriptionPlanSummary {
       name: json['name']?.toString() ?? '',
       price: json['price']?.toString() ?? '0.00',
       billingInterval: json['billing_interval']?.toString(),
+      trialDays: (json['trial_days'] as num?)?.toInt() ?? 7,
     );
   }
 

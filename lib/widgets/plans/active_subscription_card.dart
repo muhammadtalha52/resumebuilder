@@ -32,7 +32,8 @@ class ActiveSubscriptionCard extends StatelessWidget {
       badgeText = 'Canceling at Period End';
     } else if (isTrial) {
       badgeColor = AppColors.accent;
-      badgeText = '3-Day Free Trial';
+      final days = subscription.plan.trialDays > 0 ? subscription.plan.trialDays : 7;
+      badgeText = '$days-Day Free Trial';
     } else if (subscription.status == StripeSubscriptionStatus.active) {
       badgeColor = AppColors.success;
       badgeText = 'Active Plan';

@@ -41,44 +41,52 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
       name: 'Cram Session',
       productId: PurchaseProducts.cramSessionProductId,
       price: '3.99',
-      billingInterval: null,
+      billingInterval: 'week',
       quizCount: 12,
       documentUploadCount: 25,
-      trialDays: 0,
-      isSubscription: false,
+      trialDays: 7,
+      trialQuizCount: 5,
+      trialDocumentUploadCount: 10,
+      isSubscription: true,
     ),
     BackendPlanModel(
       id: 22,
       name: 'Basic Student',
       productId: PurchaseProducts.basicStudentProductId,
       price: '5.00',
-      billingInterval: null,
+      billingInterval: 'month',
       quizCount: 10,
       documentUploadCount: 20,
-      trialDays: 0,
-      isSubscription: false,
+      trialDays: 7,
+      trialQuizCount: 5,
+      trialDocumentUploadCount: 10,
+      isSubscription: true,
     ),
     BackendPlanModel(
       id: 23,
       name: 'Mid Student',
       productId: PurchaseProducts.midStudentProductId,
       price: '10.00',
-      billingInterval: null,
+      billingInterval: 'month',
       quizCount: 25,
       documentUploadCount: 50,
-      trialDays: 0,
-      isSubscription: false,
+      trialDays: 7,
+      trialQuizCount: 5,
+      trialDocumentUploadCount: 10,
+      isSubscription: true,
     ),
     BackendPlanModel(
       id: 24,
       name: 'Nerd Out',
       productId: PurchaseProducts.nerdOutProductId,
       price: '15.00',
-      billingInterval: null,
+      billingInterval: 'month',
       quizCount: 50,
       documentUploadCount: 100,
-      trialDays: 0,
-      isSubscription: false,
+      trialDays: 7,
+      trialQuizCount: 5,
+      trialDocumentUploadCount: 10,
+      isSubscription: true,
       isRecommended: true,
     ),
   ];
@@ -499,6 +507,13 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
   }
 
   Widget _buildHeaderWithTitleAndClose(BuildContext context) {
+    final isSubscriptions = _selectedTab == 0;
+    final stripeState = ref.watch(stripeSubscriptionProvider);
+    final trialPlan = stripeState.plans.cast<BackendPlanModel?>().firstWhere(
+      (p) => p != null && p.hasTrial,
+      orElse: () => null,
+    );
+    final trialDaysCount = trialPlan?.trialDays ?? 7;
     return SizedBox(
       height: 260,
       child: Stack(
@@ -519,6 +534,32 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
                   height: 125,
                   fit: BoxFit.contain,
                 ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 8,
+            left: 20,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppSizes.radiusM),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('🎉', style: TextStyle(fontSize: 12)),
+                  const SizedBox(width: 4),
+                  Text(
+                    isSubscriptions ? '$trialDaysCount-Day Free Trial' : 'Limited Time Offer',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
