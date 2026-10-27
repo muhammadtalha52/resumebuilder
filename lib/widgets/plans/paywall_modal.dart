@@ -321,7 +321,6 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
     final modalHeight = (screenHeight * 0.92).clamp(660.0, 820.0);
     final carouselHeight = (screenHeight * 0.52).clamp(415.0, 445.0);
 
-    final bool isOneTime = Platform.isIOS || _selectedTab == 1;
     final trialPlan = activePlans.cast<BackendPlanModel?>().firstWhere(
       (p) => p != null && p.hasTrial,
       orElse: () => null,
@@ -460,26 +459,16 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
                         });
                       },
                       itemBuilder: (context, index) {
-                        final rawPlan = activePlans[index];
+                        final plan = activePlans[index];
                         final isPlanCheckingOut =
-                            stripeState.checkingOutPlanId == rawPlan.id;
-
-                        // On iOS or Store IAP, enforce one-time consumable presentation
-                        final plan = isOneTime
-                            ? rawPlan.copyWith(
-                                isSubscription: false,
-                                trialDays: 0,
-                                billingInterval: null,
-                              )
-                            : rawPlan;
+                            stripeState.checkingOutPlanId == plan.id;
 
                         return Align(
                           alignment: Alignment.topCenter,
                           child: SubscriptionPlanCard(
                             plan: plan,
                             currentSubscription: stripeState.subscription,
-                            isOneTime: isOneTime,
-                            customButtonText: isOneTime ? 'Get Plan' : null,
+                            isOneTime: false,
                             onSelect: () => _handlePlanSelected(plan),
                             isLoading: _isProcessing ||
                                 isPlanCheckingOut ||
@@ -503,9 +492,7 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
                   child: Text(
-                    isOneTime
-                        ? 'One-time purchase. Credits are added instantly to your account.'
-                        : 'Credits renew each period. Unused credits expire. Cancel anytime before trial ends with zero charge.',
+                    'Credits renew each period. Unused credits expire. Cancel anytime before trial ends with zero charge.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 11,

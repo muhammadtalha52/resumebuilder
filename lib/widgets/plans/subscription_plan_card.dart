@@ -282,8 +282,8 @@ class SubscriptionPlanCard extends StatelessWidget {
             ],
           ),
 
-          // Trial callout (only for subscriptions with trial, NEVER for one-time packs)
-          if (!isOneTime && !Platform.isIOS && plan.isSubscription && plan.hasTrial && !hasActiveSub) ...[
+          // Trial callout (only for subscriptions with trial, and only for users who never had a subscription)
+          if (!isOneTime && plan.isSubscription && plan.hasTrial && !hasActiveSub && currentSubscription == null) ...[
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -403,10 +403,11 @@ class SubscriptionPlanCard extends StatelessWidget {
     String buttonText;
     if (customButtonText != null && customButtonText!.isNotEmpty) {
       buttonText = customButtonText!;
-    } else if (Platform.isIOS) {
-      buttonText = 'Get Plan';
     } else if (hasActiveSub) {
       buttonText = isNextPendingPlan ? 'Change Plan' : 'Switch to this Plan';
+    } else if (currentSubscription != null) {
+      // User has already subscribed before - no second free trial
+      buttonText = 'Subscribe Now';
     } else if (plan.hasTrial) {
       buttonText = 'Start ${plan.trialDays}-Day Free Trial';
     } else {

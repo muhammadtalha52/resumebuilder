@@ -281,8 +281,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
                   ),
 
                   // Active Subscription Banner if user has one
-                  if (!Platform.isIOS && _selectedTab == 0 &&
-                      stripeState.hasActiveSubscription)
+                  if (stripeState.hasActiveSubscription)
                     SliverToBoxAdapter(
                       child: ActiveSubscriptionCard(
                         subscription: stripeState.subscription!,
@@ -496,8 +495,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
         return SubscriptionPlanCard(
           plan: plan,
           currentSubscription: stripeState.subscription,
-          isOneTime: true,
-          customButtonText: 'Get Plan',
+          isOneTime: false,
           onSelect: () => _onIapPlanSelected(plan),
           isLoading:
               iapState.isLoadingPlansMapping || iapState.isPurchasing,
@@ -507,7 +505,6 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
   }
 
   Widget _buildHeaderWithTitleAndClose(BuildContext context) {
-    final isSubscriptions = _selectedTab == 0;
     final stripeState = ref.watch(stripeSubscriptionProvider);
     final trialPlan = stripeState.plans.cast<BackendPlanModel?>().firstWhere(
       (p) => p != null && p.hasTrial,
@@ -552,7 +549,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
                   const Text('🎉', style: TextStyle(fontSize: 12)),
                   const SizedBox(width: 4),
                   Text(
-                    isSubscriptions ? '$trialDaysCount-Day Free Trial' : 'Limited Time Offer',
+                    '$trialDaysCount-Day Free Trial',
                     style: const TextStyle(
                       color: AppColors.primary,
                       fontSize: 12,

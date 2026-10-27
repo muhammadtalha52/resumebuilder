@@ -95,25 +95,25 @@ class PurchaseProduct {
 
 /// Predefined product configurations
 class PurchaseProducts {
-  // Candidate product IDs (New 8-tier plans)
+  // Candidate product IDs (Unified Store Subscriptions)
   static const String weekendWarriorProductId =
-      'com.skillresy.candidate.weekend_warrior';
+      'com.skillresy.weekend_warrior_sub';
   static const String justScoutingProductId =
-      'com.skillresy.candidate.just_scouting';
+      'com.skillresy.just_scouting_sub';
   static const String seriousSeekerProductId =
-      'com.skillresy.candidate.serious_seeker';
+      'com.skillresy.serious_seeker_sub';
   static const String jobHunterProductId =
-      'com.skillresy.candidate.job_hunter';
+      'com.skillresy.job_hunter_sub';
 
-  // Student product IDs (New 8-tier plans)
+  // Student product IDs (Unified Store Subscriptions)
   static const String cramSessionProductId =
-      'com.skillresy.student.cram_session';
+      'com.skillresy.cram_session_sub';
   static const String basicStudentProductId =
-      'com.skillresy.student.basic_student';
+      'com.skillresy.basic_student_sub';
   static const String midStudentProductId =
-      'com.skillresy.student.mid_student';
+      'com.skillresy.mid_student_sub';
   static const String nerdOutProductId =
-      'com.skillresy.student.nerd_out';
+      'com.skillresy.nerd_out_sub';
 
   // Candidate Purchase Products
   static const PurchaseProduct weekendWarrior = PurchaseProduct(
@@ -197,7 +197,23 @@ class PurchaseProducts {
     tier: 'nerd_out',
   );
 
-  // All 8 Active Products for iOS StoreKit
+  // Candidate only products
+  static const List<PurchaseProduct> candidateProducts = [
+    weekendWarrior,
+    justScouting,
+    seriousSeeker,
+    jobHunter,
+  ];
+
+  // Student only products
+  static const List<PurchaseProduct> studentProducts = [
+    cramSession,
+    basicStudent,
+    midStudent,
+    nerdOut,
+  ];
+
+  // All 8 Active Products for Store Subscriptions
   static const List<PurchaseProduct> allProducts = [
     weekendWarrior,
     justScouting,
@@ -209,12 +225,26 @@ class PurchaseProducts {
     nerdOut,
   ];
 
-  // Active product IDs for StoreKit query
+  // Active product IDs for Store query
   static List<String> get allProductIds => [
     weekendWarriorProductId,
     justScoutingProductId,
     seriousSeekerProductId,
     jobHunterProductId,
+    cramSessionProductId,
+    basicStudentProductId,
+    midStudentProductId,
+    nerdOutProductId,
+  ];
+
+  static List<String> get candidateProductIds => [
+    weekendWarriorProductId,
+    justScoutingProductId,
+    seriousSeekerProductId,
+    jobHunterProductId,
+  ];
+
+  static List<String> get studentProductIds => [
     cramSessionProductId,
     basicStudentProductId,
     midStudentProductId,

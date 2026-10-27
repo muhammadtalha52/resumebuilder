@@ -95,13 +95,17 @@ class IAPService {
         productDetails: product,
       );
 
-      // All products are consumable
-      final bool success = await _iap.buyConsumable(
-        purchaseParam: purchaseParam,
-      );
+      // Subscriptions must use buyNonConsumable; one-off packs use buyConsumable
+      final bool isSubscription = product.id.endsWith('_sub') ||
+          PurchaseProducts.allProductIds.contains(product.id);
+
+      final bool success = isSubscription
+          ? await _iap.buyNonConsumable(purchaseParam: purchaseParam)
+          : await _iap.buyConsumable(purchaseParam: purchaseParam);
 
       return success;
     } catch (e) {
+      print('[IAPService] Exception purchasing product: $e');
       return false;
     }
   }

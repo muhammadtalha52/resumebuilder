@@ -292,8 +292,7 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
                   ),
 
                   // Active Subscription Banner if user has one
-                  if (!Platform.isIOS && _selectedTab == 0 &&
-                      stripeState.hasActiveSubscription)
+                  if (stripeState.hasActiveSubscription)
                     SliverToBoxAdapter(
                       child: ActiveSubscriptionCard(
                         subscription: stripeState.subscription!,
@@ -505,18 +504,12 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
       },
       itemCount: plans.length,
       itemBuilder: (context, index) {
-        final iapPlan = plans[index].copyWith(
-          isSubscription: false,
-          trialDays: 0,
-          billingInterval: null,
-        );
+        final plan = plans[index];
         return SubscriptionPlanCard(
-
-          plan: iapPlan,
+          plan: plan,
           currentSubscription: stripeState.subscription,
-          isOneTime: true,
-          customButtonText: 'Get Plan',
-          onSelect: () => _onIapPlanSelected(iapPlan),
+          isOneTime: false,
+          onSelect: () => _onIapPlanSelected(plan),
           isLoading:
               iapState.isLoadingPlansMapping || iapState.isPurchasing,
         );
@@ -525,7 +518,6 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
   }
 
   Widget _buildHeaderWithTitleAndClose(BuildContext context) {
-    final isSubscriptions = _selectedTab == 0;
     final stripeState = ref.watch(stripeSubscriptionProvider);
     final trialPlan = stripeState.plans.cast<BackendPlanModel?>().firstWhere(
       (p) => p != null && p.hasTrial,
@@ -616,7 +608,7 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
                   const Text('🎉', style: TextStyle(fontSize: 12)),
                   const SizedBox(width: 4),
                   Text(
-                    isSubscriptions ? '$trialDaysCount-Day Free Trial' : 'Limited Time Offer',
+                    '$trialDaysCount-Day Free Trial',
                     style: const TextStyle(
                       color: AppColors.primary,
                       fontSize: 12,

@@ -7,6 +7,7 @@ class UsageAllocation {
   final int remainingInterviewCount;
   final int remainingQuizCount;
   final int remainingDocumentUploadCount;
+  final int remainingAskScoutCount;
   final DateTime lastUpdated;
 
   UsageAllocation({
@@ -18,6 +19,7 @@ class UsageAllocation {
     required this.remainingInterviewCount,
     required this.remainingQuizCount,
     required this.remainingDocumentUploadCount,
+    this.remainingAskScoutCount = 0,
     required this.lastUpdated,
   });
 
@@ -32,6 +34,8 @@ class UsageAllocation {
       remainingQuizCount: json['remaining_quiz_count'] as int? ?? 0,
       remainingDocumentUploadCount:
           json['remaining_document_upload_count'] as int? ?? 0,
+      remainingAskScoutCount:
+          json['remaining_ask_scout_count'] as int? ?? 0,
       lastUpdated: json['last_updated'] != null
           ? DateTime.parse(json['last_updated'] as String)
           : DateTime.now(),
@@ -48,6 +52,7 @@ class UsageAllocation {
       'remaining_interview_count': remainingInterviewCount,
       'remaining_quiz_count': remainingQuizCount,
       'remaining_document_upload_count': remainingDocumentUploadCount,
+      'remaining_ask_scout_count': remainingAskScoutCount,
       'last_updated': lastUpdated.toIso8601String(),
     };
   }
