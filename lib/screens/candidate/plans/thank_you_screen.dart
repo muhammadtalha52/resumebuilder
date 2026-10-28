@@ -153,7 +153,7 @@ class _ThankYouScreenState extends ConsumerState<ThankYouScreen> {
                 // Subtitle
                 Text(
                   widget.isTrial
-                      ? 'Welcome to unlimited AI intelligence. Enjoy 3 days of full access to refine your resumes and conquer interviews.'
+                      ? 'Welcome to SkillResy. Enjoy your 7-day free trial to build tailored resumes and practice interviews.'
                       : 'Thank you for upgrading! Your credits and AI features are now unlocked and ready to use.',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
@@ -184,7 +184,7 @@ class _ThankYouScreenState extends ConsumerState<ThankYouScreen> {
                       _buildDetailRow(
                         icon: Icons.verified_outlined,
                         label: 'Status',
-                        value: widget.isTrial ? 'Active (3-Day Free Trial)' : 'Active Plan',
+                        value: widget.isTrial ? 'Active (7-Day Free Trial)' : 'Active Plan',
                         valueColor: Colors.green.shade700,
                       ),
                       const Divider(height: 24, color: AppColors.border),
@@ -192,7 +192,7 @@ class _ThankYouScreenState extends ConsumerState<ThankYouScreen> {
                         icon: Icons.event_repeat_rounded,
                         label: widget.isTrial ? 'First Charge' : 'Renewal',
                         value: widget.isTrial
-                            ? 'Day 4 (Cancel anytime)'
+                            ? 'Day 8 (Cancel anytime)'
                             : 'Renews automatically',
                       ),
                     ],

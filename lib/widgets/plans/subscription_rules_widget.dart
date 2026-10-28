@@ -112,15 +112,9 @@ class _SubscriptionRulesWidgetState extends State<SubscriptionRulesWidget> {
                       icon: Icons.cancel_outlined,
                       title: 'Cancel Any Time',
                       description:
-                          'In a trial, cancellation ends at once and trial credits are removed. After a trial, the plan and credits remain active until the end of the paid period.',
+                          'Cancelling during a trial stops the day 8 charge, and your trial credits stay usable until the trial ends. After a trial, the plan and credits remain active until the end of the paid period.',
                     ),
-                    const SizedBox(height: 12),
-                    _buildRuleItem(
-                      icon: Icons.card_giftcard_rounded,
-                      title: 'Free for Everyone',
-                      description:
-                          'Every account gets 2 resumes, 1 interview, and recommended job matches at no cost.',
-                    ),
+
                   ],
                 ),
               ),
