@@ -9,6 +9,7 @@ import '../services/iap_service.dart';
 import '../services/subscription_service.dart';
 import '../services/api_client.dart';
 import 'usage_provider.dart';
+import 'stripe_subscription_provider.dart';
 
 // IAP State
 class IAPState extends Equatable {
@@ -253,21 +254,21 @@ class IAPNotifier extends StateNotifier<IAPState> {
     print('[IAPProvider] Using fallback mapping for $productId');
 
     if (productId.contains('weekend_warrior')) {
-      return 11;
-    } else if (productId.contains('just_scouting') || productId.contains('candidate.basic')) {
       return 12;
-    } else if (productId.contains('serious_seeker') || productId.contains('candidate.pro')) {
+    } else if (productId.contains('just_scouting') || productId.contains('candidate.basic')) {
       return 13;
-    } else if (productId.contains('job_hunter') || productId.contains('candidate.enterprise')) {
+    } else if (productId.contains('serious_seeker') || productId.contains('candidate.pro')) {
       return 14;
+    } else if (productId.contains('job_hunter') || productId.contains('candidate.enterprise')) {
+      return 15;
     } else if (productId.contains('cram_session')) {
-      return 21;
+      return 16;
     } else if (productId.contains('basic_student') || productId.contains('student.basic')) {
-      return 22;
+      return 17;
     } else if (productId.contains('mid_student') || productId.contains('student.pro')) {
-      return 23;
+      return 18;
     } else if (productId.contains('nerd_out') || productId.contains('student.enterprise')) {
-      return 24;
+      return 19;
     }
 
     print(
@@ -357,6 +358,7 @@ class IAPNotifier extends StateNotifier<IAPState> {
 
           // Refresh usage allocation from backend
           await _ref.read(usageProvider.notifier).fetchUsageAllocation();
+          await _ref.read(stripeSubscriptionProvider.notifier).refreshSubscription();
         } else {
           state = state.copyWith(
             isPurchasing: false,
@@ -422,6 +424,7 @@ class IAPNotifier extends StateNotifier<IAPState> {
 
           // Refresh usage allocation from backend
           await _ref.read(usageProvider.notifier).fetchUsageAllocation();
+          await _ref.read(stripeSubscriptionProvider.notifier).refreshSubscription();
         } else {
           state = state.copyWith(
             isPurchasing: false,

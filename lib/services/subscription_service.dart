@@ -192,13 +192,14 @@ class SubscriptionService {
       } catch (_) {}
 
       if (responseData == null) {
-        final fallbackRes = await apiClient.dio.get(
-          ApiEndpoints.plans,
-          options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
-        );
-        if (fallbackRes.statusCode == 200 && fallbackRes.data != null) {
-          responseData = fallbackRes.data;
-        }
+        try {
+          final fallbackRes = await apiClient.dio.get(
+            ApiEndpoints.plans,
+          );
+          if (fallbackRes.statusCode == 200 && fallbackRes.data != null) {
+            responseData = fallbackRes.data;
+          }
+        } catch (_) {}
       }
 
       if (responseData != null) {
@@ -242,6 +243,32 @@ class SubscriptionService {
         print(
           '[SubscriptionService] Plans mapping created with ${mapping.length} entries: $mapping',
         );
+        if (mapping.isEmpty) {
+          mapping[PurchaseProducts.weekendWarriorProductId] = 12;
+          mapping['com.skillresy.weekend_warrior_sub'] = 12;
+          mapping['weekend_warrior_sub'] = 12;
+          mapping[PurchaseProducts.justScoutingProductId] = 13;
+          mapping['com.skillresy.just_scouting_sub'] = 13;
+          mapping['just_scouting_sub'] = 13;
+          mapping[PurchaseProducts.seriousSeekerProductId] = 14;
+          mapping['com.skillresy.serious_seeker_sub'] = 14;
+          mapping['serious_seeker_sub'] = 14;
+          mapping[PurchaseProducts.jobHunterProductId] = 15;
+          mapping['com.skillresy.job_hunter_sub'] = 15;
+          mapping['job_hunter_sub'] = 15;
+          mapping[PurchaseProducts.cramSessionProductId] = 16;
+          mapping['com.skillresy.cram_session_sub'] = 16;
+          mapping['cram_session_sub'] = 16;
+          mapping[PurchaseProducts.basicStudentProductId] = 17;
+          mapping['com.skillresy.basic_student_sub'] = 17;
+          mapping['basic_student_sub'] = 17;
+          mapping[PurchaseProducts.midStudentProductId] = 18;
+          mapping['com.skillresy.mid_student_sub'] = 18;
+          mapping['mid_student_sub'] = 18;
+          mapping[PurchaseProducts.nerdOutProductId] = 19;
+          mapping['com.skillresy.nerd_out_sub'] = 19;
+          mapping['nerd_out_sub'] = 19;
+        }
         return mapping;
       } else {
         print('[SubscriptionService] Failed to fetch plans for mapping');
