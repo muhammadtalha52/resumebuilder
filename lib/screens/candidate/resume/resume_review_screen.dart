@@ -25,7 +25,9 @@ import '../../../widgets/common/custom_button.dart' as button;
 import '../../../widgets/common/custom_dropdown.dart';
 import '../../../widgets/common/custom_text_field.dart';
 import '../../../widgets/common/tag_field.dart';
+import '../../../providers/stripe_subscription_provider.dart';
 import '../../../widgets/dialogs/confirmation_dialog.dart';
+import '../../../widgets/plans/paywall_modal.dart';
 import '../../../widgets/resume_edit_modal.dart';
 
 class WorkExperienceEntry {
@@ -2176,6 +2178,21 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
         if (remainingResumes <= 0) {
           // Show dialog and redirect to plans
           if (mounted) {
+            final hasActiveSub =
+                ref.read(stripeSubscriptionProvider).hasActiveSubscription;
+            if (!hasActiveSub) {
+              AnalyticsService.logPaywallShown(trigger: 'first_action_trial');
+              await PaywallModal.show(
+                context,
+                isStudent: false,
+                triggerReason: 'first_action_trial',
+              );
+              if (mounted) {
+                await ref.read(usageProvider.notifier).fetchUsageAllocation();
+              }
+              return;
+            }
+
             AnalyticsService.logCreditLimitHit();
             AnalyticsService.logPaywallShown(trigger: 'resume_generation_blocked');
             final shouldBuyPlan = await showConfirmationDialog(

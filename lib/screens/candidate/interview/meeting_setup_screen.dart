@@ -12,6 +12,8 @@ import '../../../providers/history_provider.dart';
 import '../../../providers/interview_session_provider.dart';
 import '../../../providers/resume_provider.dart';
 import '../../../providers/usage_provider.dart';
+import '../../../providers/stripe_subscription_provider.dart';
+import '../../../widgets/plans/paywall_modal.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/custom_button.dart';
 import '../../../widgets/common/custom_picker_field.dart';
@@ -152,6 +154,21 @@ class _State extends ConsumerState<MeetingSetupScreen> {
       if (remainingInterviews <= 0) {
         // Show dialog and redirect to plans
         if (mounted) {
+          final hasActiveSub =
+              ref.read(stripeSubscriptionProvider).hasActiveSubscription;
+          if (!hasActiveSub) {
+            AnalyticsService.logPaywallShown(trigger: 'first_action_trial');
+            await PaywallModal.show(
+              context,
+              isStudent: false,
+              triggerReason: 'first_action_trial',
+            );
+            if (mounted) {
+              await ref.read(usageProvider.notifier).fetchUsageAllocation();
+            }
+            return;
+          }
+
           AnalyticsService.logCreditLimitHit();
           AnalyticsService.logPaywallShown(trigger: 'new_session_blocked');
           final shouldBuyPlan = await showConfirmationDialog(

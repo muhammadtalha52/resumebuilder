@@ -13,6 +13,8 @@ import '../../providers/documents_provider.dart';
 import '../../providers/quiz_provider.dart';
 import '../../providers/resume_provider.dart';
 import '../../providers/usage_provider.dart';
+import '../../providers/stripe_subscription_provider.dart';
+import '../../widgets/plans/paywall_modal.dart';
 import '../../services/api_client.dart';
 import '../../services/subscription_service.dart';
 import '../../utils/date_helpers.dart';
@@ -634,6 +636,21 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       if (remainingUploads <= 0) {
         // Show dialog and redirect to student plans
         if (context.mounted) {
+          final hasActiveSub =
+              ref.read(stripeSubscriptionProvider).hasActiveSubscription;
+          if (!hasActiveSub) {
+            AnalyticsService.logPaywallShown(trigger: 'first_action_trial');
+            await PaywallModal.show(
+              context,
+              isStudent: true,
+              triggerReason: 'first_action_trial',
+            );
+            if (context.mounted) {
+              await ref.read(usageProvider.notifier).fetchUsageAllocation();
+            }
+            return;
+          }
+
           AnalyticsService.logCreditLimitHit();
           AnalyticsService.logPaywallShown(trigger: 'credits_exhausted');
           final shouldBuyPlan = await showConfirmationDialog(
@@ -849,6 +866,21 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       if (remainingQuizCount <= 0) {
         // Show dialog and redirect to student plans
         if (context.mounted) {
+          final hasActiveSub =
+              ref.read(stripeSubscriptionProvider).hasActiveSubscription;
+          if (!hasActiveSub) {
+            AnalyticsService.logPaywallShown(trigger: 'first_action_trial');
+            await PaywallModal.show(
+              context,
+              isStudent: true,
+              triggerReason: 'first_action_trial',
+            );
+            if (context.mounted) {
+              await ref.read(usageProvider.notifier).fetchUsageAllocation();
+            }
+            return;
+          }
+
           AnalyticsService.logCreditLimitHit();
           AnalyticsService.logPaywallShown(trigger: 'credits_exhausted');
           final shouldBuyPlan = await showConfirmationDialog(

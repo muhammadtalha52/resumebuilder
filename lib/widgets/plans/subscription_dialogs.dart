@@ -134,14 +134,16 @@ class SubscriptionDialogs {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            title: const Text('Undo Cancellation?'),
-            content: const Text(
-              'Your subscription will continue renewing as scheduled at the end of the current billing cycle.',
+            title: Text(inTrial ? 'Keep My Trial?' : 'Undo Cancellation?'),
+            content: Text(
+              inTrial
+                  ? 'Your trial will continue and renew as scheduled after ${subscription.formattedTrialEnd}.'
+                  : 'Your subscription will continue renewing as scheduled at the end of the current billing cycle.',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Keep Canceled'),
+                child: const Text('Leave Canceled'),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
@@ -149,7 +151,7 @@ class SubscriptionDialogs {
                   backgroundColor: AppColors.primary,
                   foregroundColor: AppColors.white,
                 ),
-                child: const Text('Resume Subscription'),
+                child: Text(inTrial ? 'Keep My Trial' : 'Resume Subscription'),
               ),
             ],
           );
@@ -169,7 +171,7 @@ class SubscriptionDialogs {
             children: [
               if (inTrial) ...[
                 _buildBullet(
-                  'In a trial, cancellation ends at once and trial credits are removed.',
+                  'Your trial runs until ${subscription.formattedTrialEnd}. Your credits stay usable and you won\'t be charged.',
                 ),
                 _buildBullet(
                   'Cancelling and subscribing again does NOT give a second trial.',

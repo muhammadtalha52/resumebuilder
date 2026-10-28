@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../models/purchase_verification_model.dart';
 import '../models/backend_plan_model.dart';
+import '../models/purchase_product_model.dart';
 import '../utils/endpoint_headers.dart';
 import 'api_client.dart';
 
@@ -178,22 +179,35 @@ class SubscriptionService {
     try {
       print('[SubscriptionService] Fetching plans from backend...');
 
-      final response = await apiClient.dio.get(
-        ApiEndpoints.plans,
-        options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
-      );
+      // Query oneTimePlans first (contains new subscription plans), fallback to plans
+      dynamic responseData;
+      try {
+        final response = await apiClient.dio.get(
+          ApiEndpoints.oneTimePlans,
+          options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
+        );
+        if (response.statusCode == 200 && response.data != null) {
+          responseData = response.data;
+        }
+      } catch (_) {}
 
-      print(
-        '[SubscriptionService] Plans response status: ${response.statusCode}',
-      );
+      if (responseData == null) {
+        final fallbackRes = await apiClient.dio.get(
+          ApiEndpoints.plans,
+          options: Options(headers: {WAInterceptorHeaders.requiresToken: true}),
+        );
+        if (fallbackRes.statusCode == 200 && fallbackRes.data != null) {
+          responseData = fallbackRes.data;
+        }
+      }
 
-      if (response.statusCode == 200 && response.data != null) {
+      if (responseData != null) {
         print('\n======================================================');
-        print('🔥 [STORE PLANS RAW RESPONSE /plan/plans/]:');
-        print('${response.data}');
+        print('🔥 [STORE PLANS RAW RESPONSE FOR MAPPING]:');
+        print('$responseData');
         print('======================================================\n');
 
-        final plansResponse = PlansListResponse.fromJson(response.data);
+        final plansResponse = PlansListResponse.fromJson(responseData);
         print('[SubscriptionService] Found ${plansResponse.data.length} plans');
 
         // Build productId -> planId mapping
@@ -202,24 +216,35 @@ class SubscriptionService {
           print(
             '📦 [STORE PLAN ITEM] id: ${plan.id} | name: "${plan.name}" | product_id: "${plan.productId}" | is_active: ${plan.isActive}',
           );
-          if (plan.isActive &&
-              plan.productId != null &&
-              plan.productId!.isNotEmpty) {
-            mapping[plan.productId!] = plan.id;
-            print(
-              '[SubscriptionService] Mapped: ${plan.productId} -> ${plan.id}',
-            );
+          if (plan.isActive) {
+            if (plan.productId != null && plan.productId!.isNotEmpty) {
+              mapping[plan.productId!] = plan.id;
+              if (plan.productId!.startsWith('com.')) {
+                mapping[plan.productId!.substring(4)] = plan.id;
+              } else {
+                mapping['com.${plan.productId!}'] = plan.id;
+              }
+            }
+
+            // Also map by plan name to ensure exact backend ID alignment
+            final nameLower = plan.name.toLowerCase();
+            if (nameLower.contains('weekend')) mapping[PurchaseProducts.weekendWarriorProductId] = plan.id;
+            if (nameLower.contains('scouting')) mapping[PurchaseProducts.justScoutingProductId] = plan.id;
+            if (nameLower.contains('seeker')) mapping[PurchaseProducts.seriousSeekerProductId] = plan.id;
+            if (nameLower.contains('hunter')) mapping[PurchaseProducts.jobHunterProductId] = plan.id;
+            if (nameLower.contains('cram')) mapping[PurchaseProducts.cramSessionProductId] = plan.id;
+            if (nameLower.contains('basic')) mapping[PurchaseProducts.basicStudentProductId] = plan.id;
+            if (nameLower.contains('mid')) mapping[PurchaseProducts.midStudentProductId] = plan.id;
+            if (nameLower.contains('nerd')) mapping[PurchaseProducts.nerdOutProductId] = plan.id;
           }
         }
 
         print(
-          '[SubscriptionService] Plans mapping created with ${mapping.length} entries',
+          '[SubscriptionService] Plans mapping created with ${mapping.length} entries: $mapping',
         );
         return mapping;
       } else {
-        print(
-          '[SubscriptionService] Failed to fetch plans: ${response.statusCode}',
-        );
+        print('[SubscriptionService] Failed to fetch plans for mapping');
         return {};
       }
     } on DioException catch (e) {

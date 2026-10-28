@@ -11,8 +11,6 @@ class InviteFriendsCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final rewardText = isStudent ? 'FREE Study Session!' : 'FREE Resume!';
-
     return GestureDetector(
       onTap: () => context.push('/invite-friends'),
       child: Container(
@@ -36,7 +34,7 @@ class InviteFriendsCard extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
-                Icons.card_giftcard,
+                Icons.people_outline,
                 color: Colors.white,
                 size: 20,
               ),
@@ -44,7 +42,7 @@ class InviteFriendsCard extends ConsumerWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Help friends and family succeed invite them today!',
+                'Help friends and family succeed – invite them today!',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,

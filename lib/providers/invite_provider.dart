@@ -8,7 +8,6 @@ class InviteState {
   final String? error;
   final List<String> sentEmails;
   final int invitesSent;
-  final String? reward;
 
   const InviteState({
     this.isLoading = false,
@@ -16,7 +15,6 @@ class InviteState {
     this.error,
     this.sentEmails = const [],
     this.invitesSent = 0,
-    this.reward,
   });
 
   InviteState copyWith({
@@ -25,7 +23,6 @@ class InviteState {
     String? error,
     List<String>? sentEmails,
     int? invitesSent,
-    String? reward,
   }) {
     return InviteState(
       isLoading: isLoading ?? this.isLoading,
@@ -33,7 +30,6 @@ class InviteState {
       error: error,
       sentEmails: sentEmails ?? this.sentEmails,
       invitesSent: invitesSent ?? this.invitesSent,
-      reward: reward,
     );
   }
 }
@@ -95,14 +91,11 @@ class InviteNotifier extends StateNotifier<InviteState> {
           data?['total_invites_sent'] as int? ??
           data?['invite_count'] as int? ??
           state.invitesSent + 1;
-      final reward = data?['reward'] as String?;
-
       final updatedEmails = [...state.sentEmails, email];
       state = state.copyWith(
         isLoading: false,
         sentEmails: updatedEmails,
         invitesSent: totalInvites,
-        reward: reward,
         error: null,
       );
     } catch (e) {
@@ -115,10 +108,6 @@ class InviteNotifier extends StateNotifier<InviteState> {
 
   void clearError() {
     state = state.copyWith(error: null);
-  }
-
-  void clearReward() {
-    state = state.copyWith(reward: null);
   }
 }
 

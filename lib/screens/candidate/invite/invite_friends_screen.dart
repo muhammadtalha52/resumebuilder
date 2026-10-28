@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../constants/app_colors.dart';
-import '../../../providers/auth_provider.dart';
 import '../../../providers/invite_provider.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../utils/validators.dart';
@@ -55,119 +54,13 @@ class _InviteFriendsScreenState extends ConsumerState<InviteFriendsScreen> {
           message: 'Invitation sent to $email',
         );
         _emailController.clear();
-
-        // Check if a reward was granted
-        if (inviteState.reward != null) {
-          _showRewardDialog();
-        }
       }
     }
-  }
-
-  void _showRewardDialog() {
-    final authState = ref.read(authProvider);
-    final isStudent = authState.user?.role == 2;
-    final rewardMessage = isStudent
-        ? 'You\'ve unlocked a FREE study session! Keep learning and growing with SkillResy.'
-        : 'You\'ve unlocked a FREE resume! Create your next professional resume on us.';
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: AppColors.success,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.celebration,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Congratulations!',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                rewardMessage,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: GestureDetector(
-                  onTap: () {
-                    ref.read(inviteProvider.notifier).clearReward();
-                    Navigator.of(dialogContext).pop();
-                    if (context.mounted) {
-                      context.pushReplacement('/usage');
-                    }
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'Awesome!',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final inviteState = ref.watch(inviteProvider);
-    final authState = ref.watch(authProvider);
-    final isStudent = authState.user?.role == 2;
-
-    // Check if user still needs to invite friends for reward
-    final invitesSent = inviteState.sentEmails.length;
-    final invitesRemaining = 3 - invitesSent;
-    final showRewardText = invitesRemaining > 0;
-    final rewardType = isStudent ? 'study session' : 'resume';
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
@@ -255,13 +148,9 @@ class _InviteFriendsScreenState extends ConsumerState<InviteFriendsScreen> {
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                showRewardText
-                                    ? invitesSent == 0
-                                          ? 'Invite 3 friends and get a FREE $rewardType!'
-                                          : 'Invite $invitesRemaining more ${invitesRemaining == 1 ? 'friend' : 'friends'} and get a FREE $rewardType!'
-                                    : 'Help friends and family succeed - invite them today!',
-                                style: const TextStyle(
+                              const Text(
+                                'Help friends and family succeed – invite them today!',
+                                style: TextStyle(
                                   fontSize: 13,
                                   color: Colors.black54,
                                 ),

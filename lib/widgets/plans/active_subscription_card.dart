@@ -142,6 +142,35 @@ class ActiveSubscriptionCard extends StatelessWidget {
             const SizedBox(height: 6),
           ],
 
+          // In-trial cancellation notice
+          if (isTrial && isCancelingAtPeriodEnd && subscription.trialEnd != null) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.info.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, size: 18, color: AppColors.info),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Your trial ends on ${subscription.formattedTrialEnd}. You won\'t be charged.',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           // Next Plan downgrade alert
           if (nextPlan != null) ...[
             const SizedBox(height: 6),
@@ -200,7 +229,7 @@ class ActiveSubscriptionCard extends StatelessWidget {
                         )
                       : Text(
                           isCancelingAtPeriodEnd
-                              ? 'Undo Cancellation'
+                              ? (isTrial ? 'Keep My Trial' : 'Keep Subscription')
                               : 'Cancel Subscription',
                           style: const TextStyle(fontSize: 13),
                         ),
