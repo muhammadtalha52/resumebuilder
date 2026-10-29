@@ -10,6 +10,8 @@ import '../../../providers/user_provider.dart';
 import '../../../widgets/common/custom_app_bar.dart';
 import '../../../widgets/common/custom_button.dart';
 import '../../../widgets/invite_friends_card.dart';
+import '../../../widgets/plans/active_subscription_card.dart';
+import '../../../widgets/plans/subscription_dialogs.dart';
 
 class UsageScreen extends ConsumerStatefulWidget {
   const UsageScreen({super.key});
@@ -32,9 +34,10 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
   @override
   void activate() {
     super.activate();
-    // Refresh usage data when coming back to this screen
+    // Refresh usage and subscription data when coming back to this screen
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(usageProvider.notifier).fetchUsageAllocation();
+      ref.read(stripeSubscriptionProvider.notifier).refreshSubscription();
     });
   }
 
@@ -167,6 +170,7 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
   Widget _buildUsageContent(BuildContext context, BoxConstraints constraints) {
     final usage = ref.watch(usageProvider).usageAllocation!;
     final isStudent = ref.watch(isStudentProvider);
+    final stripeState = ref.watch(stripeSubscriptionProvider);
 
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -174,7 +178,44 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
         constraints: BoxConstraints(minHeight: constraints.maxHeight),
         child: Padding(
           padding: const EdgeInsets.all(20),
-          child: Container(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Active Subscription Card if user has an active plan / trial
+              if (stripeState.hasActiveSubscription) ...[
+                ActiveSubscriptionCard(
+                  margin: EdgeInsets.zero,
+                  subscription: stripeState.subscription!,
+                  payments: stripeState.payments,
+                  isCanceling: stripeState.isCanceling,
+                  onCancelOrUndo: () async {
+                    final confirmed =
+                        await SubscriptionDialogs.showCancelConfirmationDialog(
+                      context: context,
+                      subscription: stripeState.subscription!,
+                    );
+                    if (confirmed == true && mounted) {
+                      await ref
+                          .read(stripeSubscriptionProvider.notifier)
+                          .cancelOrResumeSubscription(
+                            undo: stripeState
+                                .subscription!.cancelAtPeriodEnd,
+                          );
+                      ref
+                          .read(usageProvider.notifier)
+                          .fetchUsageAllocation();
+                    }
+                  },
+                  onOpenInvoice: (url) {
+                    ref
+                        .read(stripeSubscriptionProvider.notifier)
+                        .openInvoice(url);
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: AppColors.white,
@@ -340,7 +381,7 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
 
                 // Get more button
                 CustomButton(
-                  text: 'Buy More',
+                  text: stripeState.hasActiveSubscription ? 'Upgrade or Change Plan' : 'Buy More',
                   onPressed: () async {
                     // Route to correct plans screen based on user type
                     final plansRoute = isStudent ? '/student/plans' : '/plans';
@@ -348,6 +389,7 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
                     // Refresh usage data when returning from plans
                     if (mounted) {
                       ref.read(usageProvider.notifier).fetchUsageAllocation();
+                      ref.read(stripeSubscriptionProvider.notifier).refreshSubscription();
                     }
                   },
                 ),
@@ -355,6 +397,8 @@ class _UsageScreenState extends ConsumerState<UsageScreen> {
                 const SizedBox(height: 12),
               ],
             ),
+          ),
+            ],
           ),
         ),
       ),

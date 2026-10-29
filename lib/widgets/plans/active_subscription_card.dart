@@ -8,6 +8,7 @@ class ActiveSubscriptionCard extends StatelessWidget {
   final VoidCallback onCancelOrUndo;
   final Function(String) onOpenInvoice;
   final bool isCanceling;
+  final EdgeInsetsGeometry? margin;
 
   const ActiveSubscriptionCard({
     super.key,
@@ -16,6 +17,7 @@ class ActiveSubscriptionCard extends StatelessWidget {
     required this.onCancelOrUndo,
     required this.onOpenInvoice,
     this.isCanceling = false,
+    this.margin,
   });
 
   @override
@@ -46,7 +48,7 @@ class ActiveSubscriptionCard extends StatelessWidget {
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      margin: margin ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.white,
