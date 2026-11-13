@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skillresy/screens/auth/login_screen.dart';
 import 'package:skillresy/screens/auth/forgot_password_screen.dart';
@@ -72,6 +73,15 @@ Page<dynamic> buildPageWithoutSwipeBack({
 final GoRouter appRouter = GoRouter(
   navigatorKey: AppKeys.navigatorKey,
   initialLocation: '/',
+  errorBuilder: (context, state) {
+    debugPrint('[GoRouter] Route not found: ${state.uri}. Falling back to home/login.');
+    final box = GetStorage();
+    final token = box.read(AppKeys.accessToken);
+    if (token == null || (token is String && token.isEmpty)) {
+      return const LoginScreen();
+    }
+    return const MainScreen();
+  },
   routes: [
     GoRoute(
       path: '/',

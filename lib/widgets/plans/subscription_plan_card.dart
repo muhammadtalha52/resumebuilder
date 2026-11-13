@@ -35,7 +35,7 @@ class SubscriptionPlanCard extends StatelessWidget {
 
   List<String> get cardFeatures {
     final list = <String>[];
-    final intervalStr = (isOneTime || !plan.isSubscription || plan.billingInterval == null || plan.billingInterval!.isEmpty)
+    final intervalStr = isOneTime
         ? ''
         : (plan.isWeekly ? ' a week' : ' a month');
 
@@ -64,7 +64,7 @@ class SubscriptionPlanCard extends StatelessWidget {
     if (plan.quizCount > 0 || plan.documentUploadCount > 0) {
       list.add('Quiz history & progress tracking included');
     }
-    if (!isOneTime && plan.isSubscription && plan.hasTrial) {
+    if (!isOneTime && plan.hasTrial) {
       list.add('${plan.trialDays}-day free trial included');
     }
 
@@ -260,30 +260,22 @@ class SubscriptionPlanCard extends StatelessWidget {
                   color: AppColors.textPrimary,
                 ),
               ),
-              const SizedBox(width: 4),
-              if (!isOneTime && !Platform.isIOS && plan.isSubscription && plan.billingInterval != null && plan.billingInterval!.isNotEmpty)
-                Text(
-                  'a ${plan.formattedBillingInterval}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
-                  ),
-                )
-              else
-                const Text(
-                  'one-time pack',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
-                  ),
+              const SizedBox(width: 6),
+              Text(
+                isOneTime
+                    ? 'one-time pack'
+                    : (plan.isWeekly ? 'per week' : 'per month'),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
                 ),
+              ),
             ],
           ),
 
           // Trial callout (only for subscriptions with trial, and only for users who never had a subscription)
-          if (!isOneTime && plan.isSubscription && plan.hasTrial && !hasActiveSub && currentSubscription == null) ...[
+          if (!isOneTime && plan.hasTrial && !hasActiveSub && currentSubscription == null) ...[
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

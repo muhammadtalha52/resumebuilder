@@ -57,12 +57,22 @@ class SubscriptionPlanSummary {
     this.trialDays = 7,
   });
 
-  bool get isWeekly => billingInterval?.toLowerCase() == 'week';
-  bool get isMonthly => billingInterval?.toLowerCase() == 'month';
+  bool get isWeekly {
+    final interval = billingInterval?.toLowerCase();
+    if (interval == 'week') return true;
+    if (interval == 'month') return false;
+    final nameLower = name.toLowerCase();
+    return nameLower.contains('weekend') ||
+        nameLower.contains('cram') ||
+        id == 11 ||
+        id == 21;
+  }
+
+  bool get isMonthly => !isWeekly;
 
   String get formattedPrice {
     final cleanPrice = price.replaceAll('\$', '');
-    final interval = isWeekly ? 'week' : (isMonthly ? 'month' : billingInterval ?? 'month');
+    final interval = isWeekly ? 'week' : 'month';
     return '\$$cleanPrice/$interval';
   }
 

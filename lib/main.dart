@@ -94,7 +94,7 @@ class _SkillResyAppState extends ConsumerState<SkillResyApp> {
   @override
   void initState() {
     super.initState();
-    _initAppTracking();
+    _initPermissionsAndTracking();
     _initDeepLinks();
   }
 
@@ -169,17 +169,45 @@ class _SkillResyAppState extends ConsumerState<SkillResyApp> {
     });
   }
 
-  Future<void> _initAppTracking() async {
+  /// Sequentially requests permissions on iOS to avoid native modal dialog collisions:
+  /// 1. App Tracking Transparency (ATT) - required by Meta for iOS 14.5+ attribution
+  /// 2. Push Notifications - presented after ATT has concluded
+  Future<void> _initPermissionsAndTracking() async {
     if (Platform.isIOS) {
-      // Delay slightly so the UI is ready
+      // Delay slightly so Flutter UI and root UIViewController are active
       await Future.delayed(const Duration(milliseconds: 1000));
-      final status = await AppTrackingTransparency.trackingAuthorizationStatus;
-      if (status == TrackingStatus.notDetermined) {
-        await AppTrackingTransparency.requestTrackingAuthorization();
+
+      // Step 1: App Tracking Transparency
+      try {
+        final trackingStatus =
+            await AppTrackingTransparency.trackingAuthorizationStatus;
+        if (trackingStatus == TrackingStatus.notDetermined) {
+          debugPrint('[Permissions] Requesting ATT authorization...');
+          await AppTrackingTransparency.requestTrackingAuthorization();
+        }
+        final finalStatus =
+            await AppTrackingTransparency.trackingAuthorizationStatus;
+        final isAuthorized = finalStatus == TrackingStatus.authorized;
+        await AnalyticsService.setAdvertiserTracking(isAuthorized);
+        debugPrint('[Permissions] ATT finalized: $finalStatus (Authorized: $isAuthorized)');
+      } catch (e) {
+        debugPrint('[Permissions] Error in ATT authorization: $e');
+        await AnalyticsService.setAdvertiserTracking(false);
       }
-      final finalStatus = await AppTrackingTransparency.trackingAuthorizationStatus;
-      final isAuthorized = finalStatus == TrackingStatus.authorized;
-      await AnalyticsService.setAdvertiserTracking(isAuthorized);
+
+      // Step 2: Push Notifications (sequenced after ATT to avoid modal collision)
+      try {
+        await Future.delayed(const Duration(milliseconds: 500));
+        await NotificationService.instance.requestPermissions();
+        // Retrieve and sync token once permissions have been determined
+        await NotificationService.instance.getFcmToken();
+        await NotificationService.instance.syncDeviceTokenWithBackend();
+      } catch (e) {
+        debugPrint('[Permissions] Error in notification request: $e');
+      }
+    } else {
+      // Non-iOS platforms do not require ATT
+      await AnalyticsService.setAdvertiserTracking(true);
     }
   }
 

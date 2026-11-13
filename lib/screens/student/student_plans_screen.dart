@@ -243,6 +243,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
 
     ref.listen<IAPState>(iapProvider, (previous, next) {
       if (next.successMessage != null && mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ref.read(iapProvider.notifier).clearSuccessMessage();
         context.go('/thank-you', extra: {'isTrial': false});
       } else if (next.error != null && mounted) {
@@ -433,7 +434,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    'One-Time Packs',
+                    Platform.isIOS ? 'Apple Pay' : 'Google Pay',
                     style: TextStyle(
                       color: _selectedTab == 1
                           ? AppColors.primary

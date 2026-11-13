@@ -87,30 +87,34 @@ class BackendPlanModel {
     );
   }
 
-  bool get isWeekly => billingInterval?.toLowerCase() == 'week';
-  bool get isMonthly => billingInterval?.toLowerCase() == 'month';
+  bool get isWeekly {
+    final interval = billingInterval?.toLowerCase();
+    if (interval == 'week') return true;
+    if (interval == 'month') return false;
+    final nameLower = name.toLowerCase();
+    final pId = productId?.toLowerCase() ?? '';
+    return nameLower.contains('weekend') ||
+        nameLower.contains('cram') ||
+        pId.contains('weekend') ||
+        pId.contains('cram') ||
+        id == 11 ||
+        id == 21;
+  }
+
+  bool get isMonthly => !isWeekly;
   bool get hasTrial => trialDays > 0;
 
-  String get formattedBillingInterval {
-    if (isWeekly) return 'week';
-    if (isMonthly) return 'month';
-    return billingInterval ?? 'month';
-  }
+  String get formattedBillingInterval => isWeekly ? 'week' : 'month';
 
   String get formattedPrice {
     final cleanPrice = price.replaceAll('\$', '');
-    if (billingInterval != null && billingInterval!.isNotEmpty) {
-      return '\$$cleanPrice / $formattedBillingInterval';
-    }
-    return '\$$cleanPrice';
+    return '\$$cleanPrice / $formattedBillingInterval';
   }
 
   /// Generates dynamic feature list according to documentation
   List<String> get features {
     final list = <String>[];
-    final intervalStr = (!isSubscription || billingInterval == null || billingInterval!.isEmpty)
-        ? ''
-        : (isWeekly ? ' a week' : ' a month');
+    final intervalStr = isWeekly ? ' a week' : ' a month';
 
     // Candidate features
     if (resumeCount > 0) {
@@ -146,20 +150,38 @@ class BackendPlanModel {
   }
 
   factory BackendPlanModel.fromJson(Map<String, dynamic> json) {
-    final nameLower = (json['name'] ?? '').toString().toLowerCase();
+    final name = json['name']?.toString() ?? '';
+    final nameLower = name.toLowerCase();
+    final pId = (json['product_id'] ?? '').toString().toLowerCase();
+    final id = (json['id'] as num?)?.toInt() ?? 0;
     final isRec =
         json['is_recommended'] == true ||
         nameLower.contains('best value') ||
         nameLower.contains('serious seeker') ||
         nameLower.contains('nerd out');
 
+    // Ensure billing interval is resolved accurately for all 8 plans
+    String? interval = json['billing_interval']?.toString();
+    if (interval == null || interval.isEmpty) {
+      if (nameLower.contains('weekend') ||
+          nameLower.contains('cram') ||
+          pId.contains('weekend') ||
+          pId.contains('cram') ||
+          id == 11 ||
+          id == 21) {
+        interval = 'week';
+      } else {
+        interval = 'month';
+      }
+    }
+
     return BackendPlanModel(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      name: json['name']?.toString() ?? '',
+      id: id,
+      name: name,
       planType: json['plan_type']?.toString() ?? '',
       productId: json['product_id']?.toString(),
       price: json['price']?.toString() ?? '0.00',
-      billingInterval: json['billing_interval']?.toString(),
+      billingInterval: interval,
       resumeCount: (json['resume_count'] as num?)?.toInt() ?? 0,
       interviewCount: (json['interview_count'] as num?)?.toInt() ?? 0,
       quizCount: (json['quiz_count'] as num?)?.toInt() ?? 0,
@@ -173,7 +195,7 @@ class BackendPlanModel {
       trialQuizCount: (json['trial_quiz_count'] as num?)?.toInt() ?? 0,
       trialDocumentUploadCount:
           (json['trial_document_upload_count'] as num?)?.toInt() ?? 0,
-      isSubscription: json['is_subscription'] as bool? ?? false,
+      isSubscription: json['is_subscription'] as bool? ?? true,
       isActive: json['is_active'] as bool? ?? true,
       isRecommended: isRec,
     );

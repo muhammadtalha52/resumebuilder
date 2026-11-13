@@ -80,6 +80,8 @@ class IAPNotifier extends StateNotifier<IAPState> {
   late final SubscriptionService _subscriptionService;
   StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
   Map<String, int> _productIdToPlanId = {};
+  final Set<String> _processingPurchaseIds = {};
+  final Set<String> _verifiedPurchaseIds = {};
 
   /// Initialize IAP service and load products
   Future<void> _initialize() async {
@@ -153,6 +155,7 @@ class IAPNotifier extends StateNotifier<IAPState> {
 
   /// Listen to purchase updates from the store
   void _listenToPurchaseUpdates() {
+    _purchaseSubscription?.cancel();
     final iap = InAppPurchase.instance;
     _purchaseSubscription = iap.purchaseStream.listen(
       (purchaseDetailsList) {
@@ -169,6 +172,15 @@ class IAPNotifier extends StateNotifier<IAPState> {
         );
       },
     );
+  }
+
+  /// Builds a stable deduplication key for a store purchase/transaction.
+  String _purchaseDedupKey(PurchaseDetails purchase) {
+    final id = purchase.purchaseID;
+    if (id != null && id.isNotEmpty) {
+      return id;
+    }
+    return '${purchase.productID}_${purchase.transactionDate ?? ''}';
   }
 
   /// Handle purchase updates
@@ -204,23 +216,48 @@ class IAPNotifier extends StateNotifier<IAPState> {
     if (purchase.status == PurchaseStatus.pending) {
       // Purchase is pending
       print('[IAPProvider] Purchase status is PENDING');
+      if (!mounted) return;
       state = state.copyWith(isPurchasing: true);
     } else if (purchase.status == PurchaseStatus.purchased ||
         purchase.status == PurchaseStatus.restored) {
-      // Verify purchase with backend
+      final txKey = _purchaseDedupKey(purchase);
+      if (_processingPurchaseIds.contains(txKey)) {
+        print(
+          '[IAPProvider] Skipping duplicate in-flight transaction: $txKey',
+        );
+        return;
+      }
+      if (_verifiedPurchaseIds.contains(txKey)) {
+        print(
+          '[IAPProvider] Transaction $txKey already verified in this session; completing cleanly',
+        );
+        if (purchase.pendingCompletePurchase) {
+          await _iapService.completePurchase(purchase);
+        }
+        return;
+      }
+
+      // Verify purchase with backend (guard added synchronously before await)
       print(
         '[IAPProvider] Purchase status is ${purchase.status == PurchaseStatus.purchased ? "PURCHASED" : "RESTORED"}',
       );
-      await _verifyPurchase(purchase);
+      _processingPurchaseIds.add(txKey);
+      try {
+        await _verifyPurchase(purchase, txKey: txKey);
+      } finally {
+        _processingPurchaseIds.remove(txKey);
+      }
     } else if (purchase.status == PurchaseStatus.error) {
       // Purchase failed
       print(
         '[IAPProvider] Purchase status is ERROR: ${purchase.error?.message}',
       );
-      state = state.copyWith(
-        isPurchasing: false,
-        error: purchase.error?.message ?? 'Purchase failed',
-      );
+      if (mounted) {
+        state = state.copyWith(
+          isPurchasing: false,
+          error: purchase.error?.message ?? 'Purchase failed',
+        );
+      }
 
       // Complete the purchase to remove from pending
       if (purchase.pendingCompletePurchase) {
@@ -229,7 +266,9 @@ class IAPNotifier extends StateNotifier<IAPState> {
     } else if (purchase.status == PurchaseStatus.canceled) {
       // Purchase canceled by user
       print('[IAPProvider] Purchase status is CANCELED');
-      state = state.copyWith(isPurchasing: false, error: null);
+      if (mounted) {
+        state = state.copyWith(isPurchasing: false, error: null);
+      }
 
       // Complete the purchase to remove from pending
       if (purchase.pendingCompletePurchase) {
@@ -278,13 +317,17 @@ class IAPNotifier extends StateNotifier<IAPState> {
   }
 
   /// Verify purchase with backend
-  Future<void> _verifyPurchase(PurchaseDetails purchase) async {
+  Future<void> _verifyPurchase(
+    PurchaseDetails purchase, {
+    required String txKey,
+  }) async {
     // Show loading during verification
+    if (!mounted) return;
     state = state.copyWith(isPurchasing: true);
 
     try {
       print('\n========== VERIFYING PURCHASE ==========');
-      final purchaseToken = _iapService.getPurchaseToken(purchase);
+      final purchaseToken = await _iapService.getPurchaseToken(purchase);
       final platform = _iapService.getPlatform();
 
       print('[IAPProvider] Extracted Purchase Token: $purchaseToken');
@@ -292,6 +335,7 @@ class IAPNotifier extends StateNotifier<IAPState> {
 
       if (purchaseToken == null) {
         print('[IAPProvider] ERROR: Purchase token is NULL');
+        if (!mounted) return;
         state = state.copyWith(
           isPurchasing: false,
           error: 'Failed to get purchase token',
@@ -299,17 +343,18 @@ class IAPNotifier extends StateNotifier<IAPState> {
         return;
       }
 
-      // For Android, use Google Pay endpoint
-      if (platform == 'android') {
-        final planId = _getPlanIdFromProductId(purchase.productID);
-        final transactionId = purchase.purchaseID ?? 'unknown';
+      final planId = _getPlanIdFromProductId(purchase.productID);
+      final transactionId = purchase.purchaseID ?? 'unknown';
 
+      final bool isSuccess;
+      final String? responseMessage;
+
+      if (platform == 'android') {
         final request = GooglePayPaymentRequest(
           planId: planId,
           paymentToken: purchaseToken,
           productId: purchase.productID,
           packageName: 'com.skillresy.app',
-          // Your app's package name
           transactionId: transactionId,
           notes: 'Payment from Android app for plan $planId',
         );
@@ -332,49 +377,9 @@ class IAPNotifier extends StateNotifier<IAPState> {
         print('  - Data: ${response.data}');
         print('========================================\n');
 
-        if (response.success) {
-          // Log purchase to Analytics
-          final product = PurchaseProducts.getProductById(purchase.productID);
-          final priceString = product?.price ?? '0';
-          final value = double.tryParse(priceString.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0.0;
-          await AnalyticsService.logPurchase(
-            transactionId: purchase.purchaseID ?? 'unknown',
-            value: value,
-            currency: 'USD',
-            planName: product?.name ?? purchase.productID,
-            productId: purchase.productID,
-          );
-          
-          // Complete the purchase
-          await _iapService.completePurchase(purchase);
-
-          // Update state
-          state = state.copyWith(
-            isPurchasing: false,
-            successMessage:
-                'Purchase successful! Your plan has been activated.',
-            error: null,
-          );
-
-          // Refresh usage allocation from backend
-          await _ref.read(usageProvider.notifier).fetchUsageAllocation();
-          await _ref.read(stripeSubscriptionProvider.notifier).refreshSubscription();
-        } else {
-          state = state.copyWith(
-            isPurchasing: false,
-            error: response.message ?? 'Payment processing failed',
-          );
-
-          // Still complete the purchase to avoid stuck state
-          if (purchase.pendingCompletePurchase) {
-            await _iapService.completePurchase(purchase);
-          }
-        }
+        isSuccess = response.success;
+        responseMessage = response.message;
       } else {
-        // For iOS, use Apple Pay endpoint
-        final planId = _getPlanIdFromProductId(purchase.productID);
-        final transactionId = purchase.purchaseID ?? 'unknown';
-
         final request = ApplePayPaymentRequest(
           planId: planId,
           receiptData: purchaseToken,
@@ -384,7 +389,9 @@ class IAPNotifier extends StateNotifier<IAPState> {
 
         print('[IAPProvider] Apple Pay Payment Request:');
         print('  - Plan ID: ${request.planId}');
-        print('  - Receipt Data: ${request.receiptData.substring(0, 50)}...');
+        print(
+          '  - Receipt Data: ${request.receiptData.length > 50 ? request.receiptData.substring(0, 50) : request.receiptData}...',
+        );
         print('  - Transaction ID: ${request.transactionId}');
         print('[IAPProvider] Sending payment request to backend...');
 
@@ -398,57 +405,88 @@ class IAPNotifier extends StateNotifier<IAPState> {
         print('  - Data: ${response.data}');
         print('========================================\n');
 
-        if (response.success) {
-          // Log purchase to Analytics
-          final product = PurchaseProducts.getProductById(purchase.productID);
-          final priceString = product?.price ?? '0';
-          final value = double.tryParse(priceString.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0.0;
-          await AnalyticsService.logPurchase(
-            transactionId: purchase.purchaseID ?? 'unknown',
-            value: value,
-            currency: 'USD',
-            planName: product?.name ?? purchase.productID,
-            productId: purchase.productID,
-          );
+        isSuccess = response.success;
+        responseMessage = response.message;
+      }
 
-          // Complete the purchase
-          await _iapService.completePurchase(purchase);
-
-          // Update state
-          state = state.copyWith(
-            isPurchasing: false,
-            successMessage:
-                'Purchase successful! Your plan has been activated.',
-            error: null,
-          );
-
-          // Refresh usage allocation from backend
-          await _ref.read(usageProvider.notifier).fetchUsageAllocation();
-          await _ref.read(stripeSubscriptionProvider.notifier).refreshSubscription();
-        } else {
-          state = state.copyWith(
-            isPurchasing: false,
-            error: response.message ?? 'Payment processing failed',
-          );
-
-          // Still complete the purchase to avoid stuck state
-          if (purchase.pendingCompletePurchase) {
-            await _iapService.completePurchase(purchase);
-          }
-        }
+      if (isSuccess) {
+        await _handleVerificationSuccess(purchase, txKey: txKey);
+      } else {
+        await _handleVerificationFailure(purchase, message: responseMessage);
       }
     } catch (e) {
       print('[IAPProvider] Verification error: $e');
+      if (purchase.pendingCompletePurchase) {
+        await _iapService.completePurchase(purchase);
+      }
+      if (!mounted) return;
       state = state.copyWith(
         isPurchasing: false,
         error: 'Verification error: ${e.toString()}',
       );
-
-      // Complete the purchase even on error
-      if (purchase.pendingCompletePurchase) {
-        await _iapService.completePurchase(purchase);
-      }
     }
+  }
+
+  /// Finalizes a verified purchase: records analytics, finishes the store transaction,
+  /// refreshes user subscription/credits before navigating to ThankYouScreen.
+  Future<void> _handleVerificationSuccess(
+    PurchaseDetails purchase, {
+    required String txKey,
+  }) async {
+    _verifiedPurchaseIds.add(txKey);
+
+    final product = PurchaseProducts.getProductById(purchase.productID);
+    final priceString = product?.price ?? '0';
+    final value =
+        double.tryParse(priceString.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0.0;
+    await AnalyticsService.logPurchase(
+      transactionId: purchase.purchaseID ?? 'unknown',
+      value: value,
+      currency: 'USD',
+      planName: product?.name ?? purchase.productID,
+      productId: purchase.productID,
+    );
+    await AnalyticsService.logSubscribe(
+      transactionId: purchase.purchaseID ?? 'unknown',
+      value: value,
+      currency: 'USD',
+      planName: product?.name ?? purchase.productID,
+      productId: purchase.productID,
+    );
+
+    await _iapService.completePurchase(purchase);
+
+    try {
+      await Future.wait([
+        _ref.read(usageProvider.notifier).fetchUsageAllocation(),
+        _ref.read(stripeSubscriptionProvider.notifier).refreshSubscription(),
+      ]);
+    } catch (e) {
+      print('[IAPProvider] Non-fatal error refreshing subscription state: $e');
+    }
+
+    if (!mounted) return;
+    state = state.copyWith(
+      isPurchasing: false,
+      successMessage: 'Purchase successful! Your plan has been activated.',
+      error: null,
+    );
+  }
+
+  /// Cleans up pending store state and surfaces a verification failure message.
+  Future<void> _handleVerificationFailure(
+    PurchaseDetails purchase, {
+    String? message,
+  }) async {
+    if (purchase.pendingCompletePurchase) {
+      await _iapService.completePurchase(purchase);
+    }
+
+    if (!mounted) return;
+    state = state.copyWith(
+      isPurchasing: false,
+      error: message ?? 'Payment processing failed',
+    );
   }
 
   /// Check for and process any pending purchases
@@ -495,11 +533,15 @@ class IAPNotifier extends StateNotifier<IAPState> {
 
       print('[IAPProvider] Purchase initiation result: $success');
 
+      if (!mounted) return;
       if (!success) {
+        final msg = _iapService.lastPurchaseError;
         state = state.copyWith(
           isInitiatingCheckout: false,
-          error:
-              'Failed to initiate purchase. Please check your payment method.',
+          error: msg == 'Purchase was cancelled.'
+              ? null
+              : (msg ??
+                  'Failed to initiate purchase. Please check your payment method.'),
         );
       } else {
         // Checkout sheet opened successfully, clear button loading

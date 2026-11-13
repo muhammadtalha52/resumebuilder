@@ -272,6 +272,13 @@ class StripeSubscriptionNotifier
           planName: sub?.plan.name,
           productId: sub?.plan.id.toString(),
         );
+        AnalyticsService.logSubscribe(
+          transactionId: sessionId,
+          value: priceVal,
+          currency: 'USD',
+          planName: sub?.plan.name,
+          productId: sub?.plan.id.toString(),
+        );
       }
     } on CheckoutNotFinishedException {
       // User closed the sheet without paying: show nothing new, let them try again

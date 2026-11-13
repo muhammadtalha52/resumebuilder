@@ -30,6 +30,10 @@
 	<string>000131bb44ba52cbf10e7540e48da161</string>
 	<key>FacebookDisplayName</key>
 	<string>SkillResy</string>
+	<key>FacebookAutoLogAppEventsEnabled</key>
+	<true/>
+	<key>FacebookAdvertiserIDCollectionEnabled</key>
+	<true/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
@@ -58,7 +62,7 @@
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>This app needs access to speech recognition to transcribe interview conversations and provide real-time AI assistance</string>
 	<key>NSUserTrackingUsageDescription</key>
-	<string>This identifier will be used to deliver personalized ads to you.</string>
+	<string>This identifier will be used to deliver personalized ads, measure campaign performance, and improve your app experience.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -105,6 +109,17 @@
 	<array>
 		<string>fetch</string>
 		<string>remote-notification</string>
+	</array>
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>v9wttpbfk9.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>n38lu8286q.skadnetwork</string>
+		</dict>
 	</array>
 </dict>
 </plist>

@@ -8,6 +8,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../config/app_router.dart';
 import '../constants/app_colors.dart';
+import '../firebase_options.dart';
 import '../utils/keys.dart';
 import 'auth_service.dart';
 
@@ -17,7 +18,9 @@ import 'auth_service.dart';
 /// so that the Flutter engine can execute it in the background when the app is terminated or paused.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   debugPrint('[NotificationService] Background message received: ${message.messageId}');
   debugPrint('[NotificationService] Background message title: ${message.notification?.title}');
   debugPrint('[NotificationService] Background message body: ${message.notification?.body}');
@@ -49,15 +52,17 @@ class NotificationService {
 
   /// Initializes push notification permissions, channels, local notifications,
   /// and listens for foreground, background, and cold-start events.
-  Future<void> initialize() async {
+  Future<void> initialize({bool requestPermissionImmediately = false}) async {
     if (_isInitialized) return;
 
     try {
       debugPrint('[NotificationService] Initializing notification service...');
 
-      // 1. Request user permission (Critical for iOS and Android 13+)
-      final settings = await _requestPermissions();
-      debugPrint('[NotificationService] Permission authorization status: ${settings.authorizationStatus}');
+      // 1. Request user permission immediately on Android or if requested
+      if (requestPermissionImmediately || !Platform.isIOS) {
+        final settings = await requestPermissions();
+        debugPrint('[NotificationService] Permission authorization status: ${settings.authorizationStatus}');
+      }
 
       // 2. Set iOS foreground presentation options (alert, sound, badge)
       await _fcm.setForegroundNotificationPresentationOptions(
@@ -83,10 +88,15 @@ class NotificationService {
 
       // 8. Fetch and cache initial FCM token
       _cachedFcmToken = await getFcmToken();
-      print('\n================================================================');
-      print('🔥 [SKILLRESY FCM TOKEN] COPY THIS TOKEN FOR TESTING:');
-      print('$_cachedFcmToken');
-      print('================================================================\n');
+      if (_cachedFcmToken != null) {
+        print('\n================================================================');
+        print('🔥 [SKILLRESY FCM TOKEN] COPY THIS TOKEN FOR TESTING:');
+        print('$_cachedFcmToken');
+        print('================================================================\n');
+
+        // Sync with backend if user is already logged in
+        await syncDeviceTokenWithBackend();
+      }
 
       _isInitialized = true;
       debugPrint('[NotificationService] Initialized successfully.');
@@ -103,7 +113,7 @@ class NotificationService {
   /// - On Android 12 and below: Permission is auto-granted, no popup.
   /// - On Android 13+: We first check the current status. If already granted or denied,
   ///   we skip the prompt to avoid asking the user on every app startup.
-  Future<NotificationSettings> _requestPermissions() async {
+  Future<NotificationSettings> requestPermissions() async {
     // Check current permission status before prompting
     final currentSettings = await _fcm.getNotificationSettings();
     final status = currentSettings.authorizationStatus;
@@ -198,6 +208,15 @@ class NotificationService {
   void _handleForegroundMessage(RemoteMessage message) {
     final notification = message.notification;
 
+    // On iOS, if message.notification != null, iOS already presented the banner
+    // because setForegroundNotificationPresentationOptions(alert: true) is enabled.
+    // Displaying a local notification here would cause a duplicate banner.
+    // For data-only messages on iOS (notification == null), we proceed to show it.
+    if (Platform.isIOS && notification != null) {
+      debugPrint('[NotificationService] Skipping local notification on iOS: already presented by FCM options.');
+      return;
+    }
+
     final title = notification?.title ?? message.data['title'] ?? 'SkillResy';
     final body = notification?.body ?? message.data['body'] ?? '';
 
@@ -250,13 +269,11 @@ class NotificationService {
     }
   }
 
-  /// Handles role-aware navigation on notification click.
+  /// Handles navigation on notification click.
   ///
-  /// Prevents cross-role overlapping:
+  /// Safe routing approach:
   /// - If user is unauthenticated -> navigate to `/login`
-  /// - If user is Candidate (role = 1) -> navigate to Candidate Home (`/home`)
-  /// - If user is Student (role = 2) -> navigate to Student Home (`/home`)
-  /// - Supports deep linking if target route/type exists in message data.
+  /// - If user is authenticated -> always navigate to `/home` (prevents any 404 on missing sub-routes)
   void _handleNotificationClick(Map<String, dynamic> data) {
     try {
       final box = GetStorage();
@@ -274,38 +291,8 @@ class NotificationService {
       final userMap = jsonDecode(userPref as String);
       final role = userMap['role'] as int? ?? 1;
 
-      debugPrint('[NotificationService] User logged in with role: $role');
-
-      // Check for deep link parameters in payload (e.g. data['type'])
-      final type = data['type']?.toString().toLowerCase();
-
-      if (role == 2) {
-        // --- STUDENT NAVIGATION ---
-        debugPrint('[NotificationService] Navigating to Student dashboard');
-        if (type == 'quiz' || type == 'quiz_summary') {
-          appRouter.go('/student/quiz-history');
-        } else if (type == 'document' || type == 'lecture') {
-          appRouter.go('/student/documents');
-        } else if (type == 'plan' || type == 'subscription') {
-          appRouter.go('/student/plans');
-        } else {
-          // Default: Student Home
-          appRouter.go('/home');
-        }
-      } else {
-        // --- CANDIDATE NAVIGATION (role == 1) ---
-        debugPrint('[NotificationService] Navigating to Candidate dashboard');
-        if (type == 'interview' || type == 'meeting') {
-          appRouter.go('/candidate/interview');
-        } else if (type == 'resume') {
-          appRouter.go('/candidate/resume');
-        } else if (type == 'plan' || type == 'subscription') {
-          appRouter.go('/candidate/plans');
-        } else {
-          // Default: Candidate Home
-          appRouter.go('/home');
-        }
-      }
+      debugPrint('[NotificationService] User logged in with role: $role, navigating to /home');
+      appRouter.go('/home');
     } catch (e, stack) {
       debugPrint('[NotificationService] Error handling navigation: $e');
       debugPrint(stack.toString());
@@ -326,12 +313,16 @@ class NotificationService {
         // On iOS, wait for APNs device token to be assigned
         String? apnsToken = await _fcm.getAPNSToken();
         int attempts = 0;
-        while (apnsToken == null && attempts < 5) {
+        while (apnsToken == null && attempts < 8) {
           await Future.delayed(const Duration(milliseconds: 500));
           apnsToken = await _fcm.getAPNSToken();
           attempts++;
         }
         debugPrint('[NotificationService] iOS APNs Token: $apnsToken');
+        if (apnsToken == null) {
+          debugPrint('[NotificationService] APNs token not available yet; deferred until permission is granted.');
+          return null;
+        }
       }
 
       final token = await _fcm.getToken();
@@ -341,6 +332,37 @@ class NotificationService {
     } catch (e) {
       debugPrint('[NotificationService] Failed to get FCM token: $e');
       return null;
+    }
+  }
+
+  /// Syncs current device token with backend if the user is authenticated.
+  Future<void> syncDeviceTokenWithBackend() async {
+    try {
+      final box = GetStorage();
+      final accessToken = box.read(AppKeys.accessToken);
+      if (accessToken == null || (accessToken as String).isEmpty) {
+        return;
+      }
+
+      final token = await getFcmToken();
+      if (token == null || token.isEmpty) return;
+
+      debugPrint('[NotificationService] Syncing current device token with backend...');
+      final authService = AuthService();
+      final currentPlatform = Platform.isIOS ? 'ios' : 'android';
+      String appVersion = '1.0.10';
+      try {
+        final info = await PackageInfo.fromPlatform();
+        appVersion = info.version;
+      } catch (_) {}
+
+      await authService.registerDeviceToken(
+        token: token,
+        platform: currentPlatform,
+        appVersion: appVersion,
+      );
+    } catch (e) {
+      debugPrint('[NotificationService] Error syncing token with backend: $e');
     }
   }
 

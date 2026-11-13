@@ -292,6 +292,7 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
 
     ref.listen<IAPState>(iapProvider, (prev, next) {
       if (next.successMessage != null && mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ref.read(iapProvider.notifier).clearSuccessMessage();
         Navigator.of(context).pop();
         context.go('/thank-you', extra: {'isTrial': false});
@@ -369,14 +370,18 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
                       const SizedBox(width: 5),
                       Text(
                         Platform.isIOS
-                            ? (widget.isStudent
-                                ? 'Student Learning Packs • Instant Activation'
-                                : 'One-Time Packs • Instant Activation')
-                            : (_selectedTab == 1
-                                ? 'Google Play Billing • Instant Activation'
+                            ? (trialDaysCount > 0
+                                ? '$trialDaysCount-Day Free Trial • Instant Activation'
                                 : (widget.isStudent
-                                    ? 'Student Special Access'
-                                    : '$trialDaysCount-Day Free Trial Included')),
+                                    ? 'Student Learning Plans • Instant Activation'
+                                    : 'Subscription Plans • Instant Activation'))
+                            : (_selectedTab == 1
+                                ? 'Google Pay • Instant Activation'
+                                : (trialDaysCount > 0
+                                    ? '$trialDaysCount-Day Free Trial Included'
+                                    : (widget.isStudent
+                                        ? 'Student Special Access'
+                                        : 'Subscription Plans'))),
                         style: TextStyle(
                           color: (!Platform.isIOS && _selectedTab == 1)
                               ? const Color(0xFF01875F)
@@ -589,7 +594,7 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    'Google Play Store',
+                    Platform.isIOS ? 'Apple Pay' : 'Google Pay',
                     style: TextStyle(
                       color: _selectedTab == 1 ? AppColors.primary : Colors.white,
                       fontWeight: FontWeight.bold,

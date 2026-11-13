@@ -61,8 +61,15 @@ class _ThankYouScreenState extends ConsumerState<ThankYouScreen> {
         sessionId: id,
       );
     } else {
-      // Fire purchase event strictly once using transaction ID deduplication to Meta and GA4
+      // Fire purchase & subscribe events strictly once using transaction ID deduplication to Meta and GA4
       AnalyticsService.logPurchase(
+        transactionId: id,
+        value: priceVal,
+        currency: 'USD',
+        planName: planName,
+        productId: widget.plan?.id.toString() ?? sub?.plan.id.toString(),
+      );
+      AnalyticsService.logSubscribe(
         transactionId: id,
         value: priceVal,
         currency: 'USD',
