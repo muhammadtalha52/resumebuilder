@@ -24,12 +24,28 @@ class SubscriptionErrorHandler {
         errorString.contains('product not available')) {
       return 'This subscription is temporarily unavailable. Please try again later.';
     }
-    if (errorString.contains('payment invalid') ||
-        errorString.contains('payment declined')) {
-      return 'Payment was declined. Please check your payment method and try again.';
+    // Stripe & Card specific decline reasons
+    if (errorString.contains('insufficient funds') ||
+        errorString.contains('insufficient_funds')) {
+      return 'Your card has insufficient funds. Try a different card.';
     }
-    if (errorString.contains('insufficient funds')) {
-      return 'Insufficient funds. Please update your payment method and try again.';
+    if (errorString.contains('expired_card') ||
+        errorString.contains('card has expired') ||
+        errorString.contains('card expired')) {
+      return 'Your card has expired. Please try a different card.';
+    }
+    if (errorString.contains('incorrect_cvc') ||
+        errorString.contains('invalid_cvc') ||
+        errorString.contains('security code') ||
+        errorString.contains('incorrect cvc')) {
+      return 'Your card security code (CVC) is incorrect. Please check and try again.';
+    }
+    if (errorString.contains('payment invalid') ||
+        errorString.contains('payment declined') ||
+        errorString.contains('card_declined') ||
+        errorString.contains('card was declined') ||
+        errorString.contains('card declined')) {
+      return 'Your card was declined. Please try a different card.';
     }
 
     // Network and connection errors

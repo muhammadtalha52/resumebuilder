@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../models/backend_plan_model.dart';
 import '../models/stripe_subscription_model.dart';
 import '../utils/endpoint_headers.dart';
+import '../utils/subscription_error_handler.dart';
 import 'api_client.dart';
 
 /// Exception thrown when a user leaves the checkout sheet without completing payment
@@ -162,6 +163,14 @@ class StripeSubscriptionService {
     }
   }
 
+  bool _isCheckoutCancelledOrUnfinished(String msg) {
+    final lower = msg.toLowerCase();
+    return lower.contains('not finished') ||
+        lower.contains('not complete') ||
+        lower.contains('cancelled') ||
+        lower.contains('canceled');
+  }
+
   /// 5. Verify Checkout: POST /api/plan/subscription/verify/
   /// Body: { "session_id": "cs_..." }
   Future<SubscriptionStateResponse> verifyCheckoutSession({
@@ -180,19 +189,35 @@ class StripeSubscriptionService {
       if (response.statusCode == 200 && data != null) {
         return SubscriptionStateResponse.fromJson(data);
       } else if (response.statusCode == 400) {
-        final msg = data?['message'] ?? 'That checkout is not finished';
-        throw CheckoutNotFinishedException(msg);
+        final rawMsg = data?['message'] ?? data?['error'] ?? 'That checkout is not finished';
+        final msg = rawMsg is String ? rawMsg : rawMsg.toString();
+        if (_isCheckoutCancelledOrUnfinished(msg)) {
+          throw CheckoutNotFinishedException(msg);
+        } else {
+          final friendlyMsg = SubscriptionErrorHandler.getErrorMessage(msg);
+          throw StripeSubscriptionException(friendlyMsg.isNotEmpty ? friendlyMsg : msg, statusCode: response.statusCode);
+        }
       } else {
-        final msg = data?['message'] ?? 'Verification failed';
-        throw StripeSubscriptionException(msg, statusCode: response.statusCode);
+        final rawMsg = data?['message'] ?? data?['error'] ?? 'Verification failed';
+        final msg = rawMsg is String ? rawMsg : rawMsg.toString();
+        final friendlyMsg = SubscriptionErrorHandler.getErrorMessage(msg);
+        throw StripeSubscriptionException(friendlyMsg.isNotEmpty ? friendlyMsg : msg, statusCode: response.statusCode);
       }
     } on DioException catch (e) {
       if (e.response?.statusCode == 400) {
-        final msg = e.response?.data?['message'] ?? 'That checkout is not finished';
-        throw CheckoutNotFinishedException(msg);
+        final rawMsg = e.response?.data?['message'] ?? e.response?.data?['error'] ?? 'That checkout is not finished';
+        final msg = rawMsg is String ? rawMsg : rawMsg.toString();
+        if (_isCheckoutCancelledOrUnfinished(msg)) {
+          throw CheckoutNotFinishedException(msg);
+        } else {
+          final friendlyMsg = SubscriptionErrorHandler.getErrorMessage(msg);
+          throw StripeSubscriptionException(friendlyMsg.isNotEmpty ? friendlyMsg : msg, statusCode: e.response?.statusCode);
+        }
       }
-      final msg = e.response?.data?['message'] ?? 'Verification request failed';
-      throw StripeSubscriptionException(msg, statusCode: e.response?.statusCode);
+      final rawMsg = e.response?.data?['message'] ?? e.response?.data?['error'] ?? e.message ?? 'Verification request failed';
+      final msg = rawMsg is String ? rawMsg : rawMsg.toString();
+      final friendlyMsg = SubscriptionErrorHandler.getErrorMessage(msg);
+      throw StripeSubscriptionException(friendlyMsg.isNotEmpty ? friendlyMsg : msg, statusCode: e.response?.statusCode);
     } catch (e) {
       if (e is CheckoutNotFinishedException || e is StripeSubscriptionException) {
         rethrow;

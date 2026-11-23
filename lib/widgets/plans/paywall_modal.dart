@@ -10,6 +10,7 @@ import '../../providers/stripe_subscription_provider.dart';
 import '../../services/analytics_service.dart';
 import '../../services/onboarding_funnel_service.dart';
 import '../../widgets/plans/subscription_plan_card.dart';
+import '../../widgets/plans/subscription_legal_footer.dart';
 
 /// High-converting, non-intrusive Paywall Modal.
 ///
@@ -222,7 +223,7 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
         // Native In-App Purchase (StoreKit on iOS / Google Play on Android)
         await _purchaseStoreKitOrPlayIAP(plan);
       } else {
-        // Android: Stripe Checkout (Card with 3-Day Free Trial)
+        // Android: Stripe Checkout (Card with Free Trial)
         final notifier = ref.read(stripeSubscriptionProvider.notifier);
         await notifier.startCheckout(context, plan);
       }
@@ -319,8 +320,8 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
 
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    final modalHeight = (screenHeight * 0.92).clamp(660.0, 820.0);
-    final carouselHeight = (screenHeight * 0.52).clamp(415.0, 445.0);
+    final modalHeight = (screenHeight * 0.95).clamp(700.0, 880.0);
+    final carouselHeight = (screenHeight * 0.62).clamp(510.0, 560.0);
 
     final trialPlan = activePlans.cast<BackendPlanModel?>().firstWhere(
       (p) => p != null && p.hasTrial,
@@ -479,6 +480,7 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
                                 isPlanCheckingOut ||
                                 stripeState.isUpdating ||
                                 iapState.isPurchasing,
+                            onRestorePurchases: () => ref.read(iapProvider.notifier).restorePurchases(),
                           ),
                         );
                       },
@@ -505,7 +507,9 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
+                const SubscriptionLegalFooter(lightText: true),
+                const SizedBox(height: 8),
 
                 // "Not now" button
                 GestureDetector(
@@ -574,7 +578,7 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    'Subscriptions (Stripe)',
+                    'Subscriptions',
                     style: TextStyle(
                       color: _selectedTab == 0 ? AppColors.primary : Colors.white,
                       fontWeight: FontWeight.bold,

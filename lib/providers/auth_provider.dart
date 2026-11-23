@@ -363,6 +363,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> signUpWithEmailAndPassword({
     required String email,
     required String password,
+    String? fullName,
+    String? phoneNumber,
+    String? hometown,
     String? heardAboutUs,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
@@ -375,6 +378,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         email: email,
         password: password,
         role: 1, // Candidate role
+        fullName: fullName,
+        phoneNumber: phoneNumber,
+        hometown: hometown,
         heardAboutUs: heardAboutUs,
         fcmToken: fcmToken,
       );

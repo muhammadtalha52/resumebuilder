@@ -16,6 +16,7 @@ import '../../../widgets/plans/active_subscription_card.dart';
 
 import '../../../widgets/plans/subscription_dialogs.dart';
 import '../../../widgets/plans/subscription_plan_card.dart';
+import '../../../widgets/plans/subscription_legal_footer.dart';
 import '../../../widgets/plans/subscription_rules_widget.dart';
 
 class CandidatePlansScreen extends ConsumerStatefulWidget {
@@ -33,7 +34,7 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
       PageController(viewportFraction: 0.92);
   int _currentPage = 0;
   int _currentIapPage = 0;
-  int _selectedTab = Platform.isIOS ? 1 : 0; // On iOS force Store IAP only, on Android allow both
+  int _selectedTab = Platform.isIOS ? 1 : 0; // On iOS force Store IAP, on Android allow Stripe & Google Pay
 
   // Documented fallback plans for candidate (role 1) if offline/syncing
   static const List<BackendPlanModel> _fallbackCandidatePlans = [
@@ -105,7 +106,7 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (appLogic.accessToken.isNotEmpty) {
         // Load Stripe subscription plans only on Android
-        if (true) {
+        if (!Platform.isIOS) {
           ref.read(stripeSubscriptionProvider.notifier).loadData(role: 1);
         }
         // Always load store IAP mapping
@@ -328,7 +329,7 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
                   // Plans Carousel
                   SliverToBoxAdapter(
                     child: SizedBox(
-                      height: 520,
+                      height: 560,
                       child: (!Platform.isIOS && _selectedTab == 0)
                           ? _buildStripePlansCarousel(stripeState)
                           : _buildIapPlansCarousel(iapState, stripeState),
@@ -341,6 +342,8 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
                       children: [
                         const SizedBox(height: 8),
                         _buildPageIndicator(stripeState),
+                        const SizedBox(height: 12),
+                        const SubscriptionLegalFooter(lightText: true),
                         const SizedBox(height: 12),
                         // Subscription Rules Section (Mandatory Rules from doc)
                         if (!Platform.isIOS && _selectedTab == 0)
@@ -481,11 +484,11 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
         final plan = plans[index];
         final isPlanCheckingOut = state.checkingOutPlanId == plan.id;
         return SubscriptionPlanCard(
-
           plan: plan,
           currentSubscription: state.subscription,
           onSelect: () => _onStripePlanSelected(plan, notifier),
           isLoading: isPlanCheckingOut || state.isUpdating,
+          onRestorePurchases: () => ref.read(iapProvider.notifier).restorePurchases(),
         );
       },
     );
@@ -513,6 +516,7 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
           onSelect: () => _onIapPlanSelected(plan),
           isLoading:
               iapState.isLoadingPlansMapping || iapState.isPurchasing,
+          onRestorePurchases: () => ref.read(iapProvider.notifier).restorePurchases(),
         );
       },
     );
