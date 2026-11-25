@@ -281,7 +281,7 @@ class SubscriptionPlanCard extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  'Stays ${plan.trialDays} Days Free Trial',
+                  '${plan.trialDays}-Day Free Trial',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,

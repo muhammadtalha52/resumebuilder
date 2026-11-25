@@ -5,6 +5,7 @@ import '../../../../constants/app_colors.dart';
 import '../../../../constants/salary_ranges.dart';
 import '../../../../providers/onboarding_provider.dart';
 import '../../../../services/location_service.dart';
+import '../../../../widgets/dialogs/location_dialog.dart';
 import '../../../../utils/snackbar_utils.dart';
 import '../../../../widgets/common/custom_picker_field.dart';
 import '../../../../widgets/common/tag_field.dart';
@@ -119,12 +120,21 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
   Future<void> _detectLocation() async {
     if (_isDetectingLocation) return;
 
+    final isServiceEnabled = await _locationService.isLocationServiceEnabled();
+    if (!isServiceEnabled) {
+      if (!mounted) return;
+      await showEnableLocationDialog(context);
+      return;
+    }
+
+    if (!mounted) return;
+
     setState(() {
       _isDetectingLocation = true;
     });
 
     try {
-      final location = await _locationService.getCurrentCityAndState();
+      final location = await _locationService.detectLocationWithDialogs(context);
 
       if (location != null && mounted) {
         setState(() {
@@ -136,12 +146,6 @@ class _Step2CareerGoalsState extends ConsumerState<Step2CareerGoals> {
             message: 'Location detected successfully!',
           );
         }
-      } else if (mounted) {
-        showErrorSnackBar(
-          context: context,
-          message:
-              'Could not detect location. Please enable GPS and grant permission.',
-        );
       }
     } catch (e) {
       if (mounted) {

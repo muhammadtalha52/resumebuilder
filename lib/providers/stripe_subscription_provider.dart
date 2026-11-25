@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'dart:io' show Platform;
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -176,6 +177,7 @@ class StripeSubscriptionNotifier
     BuildContext context,
     BackendPlanModel plan,
   ) async {
+    if (Platform.isAndroid) return;
     state = state.copyWith(
       isCheckingOut: true,
       checkingOutPlanId: plan.id,
@@ -385,6 +387,7 @@ class StripeSubscriptionNotifier
 
   /// Open Stripe Invoice in browser
   Future<void> openInvoice(String url) async {
+    if (Platform.isAndroid) return;
     try {
       final uri = Uri.parse(url);
       await launchUrl(uri, mode: LaunchMode.externalApplication);

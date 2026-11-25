@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/student_signup_provider.dart';
 import '../../services/location_service.dart';
+import '../../widgets/dialogs/location_dialog.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../utils/url_launcher_utils.dart';
 import '../../widgets/common/custom_button.dart';
@@ -273,12 +274,21 @@ class _StudentStep2AcademicInfoState
   Future<void> _detectLocation() async {
     if (_isDetectingLocation) return;
 
+    final isServiceEnabled = await _locationService.isLocationServiceEnabled();
+    if (!isServiceEnabled) {
+      if (!mounted) return;
+      await showEnableLocationDialog(context);
+      return;
+    }
+
+    if (!mounted) return;
+
     setState(() {
       _isDetectingLocation = true;
     });
 
     try {
-      final location = await _locationService.getCurrentCityAndState();
+      final location = await _locationService.detectLocationWithDialogs(context);
 
       if (location != null && mounted) {
         setState(() {
@@ -290,12 +300,6 @@ class _StudentStep2AcademicInfoState
             message: 'Location detected successfully!',
           );
         }
-      } else if (mounted) {
-        showErrorSnackBar(
-          context: context,
-          message:
-              'Could not detect location. Please enable GPS and grant permission.',
-        );
       }
     } catch (e) {
       if (mounted) {

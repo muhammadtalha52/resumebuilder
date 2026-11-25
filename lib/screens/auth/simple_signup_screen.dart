@@ -15,6 +15,7 @@ import '../../widgets/common/custom_button.dart';
 import '../../widgets/common/custom_text_field.dart';
 import '../../widgets/common/password_strength_indicator.dart';
 import '../../widgets/dialogs/email_exists_dialog.dart';
+import '../../widgets/dialogs/location_dialog.dart';
 import '../../widgets/common/server_url_tap_detector.dart';
 import 'account_creation_loading_screen.dart';
 
@@ -99,22 +100,32 @@ class _SimpleSignupScreenState extends ConsumerState<SimpleSignupScreen> {
   }
 
   Future<void> _detectLocation() async {
+    if (_isDetectingLocation) return;
+
+    final locationService = LocationService();
+    final isServiceEnabled = await locationService.isLocationServiceEnabled();
+    if (!isServiceEnabled) {
+      if (!mounted) return;
+      await showEnableLocationDialog(context);
+      return;
+    }
+
+    if (!mounted) return;
+
     setState(() {
       _isDetectingLocation = true;
     });
 
     try {
-      final locationService = LocationService();
-      final location = await locationService.getCurrentCityAndState();
+      final location = await locationService.detectLocationWithDialogs(context);
 
       if (!mounted) return;
 
       if (location != null) {
         _hometownController.text = location;
-      } else {
-        showErrorSnackBar(
+        showSuccessSnackBar(
           context: context,
-          message: 'Unable to detect location. Please enter manually.',
+          message: 'Location detected successfully!',
         );
       }
     } catch (e) {

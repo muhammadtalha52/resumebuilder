@@ -17,7 +17,6 @@ import '../../../widgets/plans/active_subscription_card.dart';
 import '../../../widgets/plans/subscription_dialogs.dart';
 import '../../../widgets/plans/subscription_plan_card.dart';
 import '../../../widgets/plans/subscription_legal_footer.dart';
-import '../../../widgets/plans/subscription_rules_widget.dart';
 
 class CandidatePlansScreen extends ConsumerStatefulWidget {
   const CandidatePlansScreen({super.key});
@@ -29,12 +28,9 @@ class CandidatePlansScreen extends ConsumerStatefulWidget {
 
 class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
     with WidgetsBindingObserver {
-  final PageController _pageController = PageController(viewportFraction: 0.92);
   final PageController _iapPageController =
       PageController(viewportFraction: 0.92);
-  int _currentPage = 0;
   int _currentIapPage = 0;
-  int _selectedTab = Platform.isIOS ? 1 : 0; // On iOS force Store IAP, on Android allow Stripe & Google Pay
 
   // Documented fallback plans for candidate (role 1) if offline/syncing
   static const List<BackendPlanModel> _fallbackCandidatePlans = [
@@ -119,7 +115,6 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _pageController.dispose();
     _iapPageController.dispose();
     super.dispose();
   }
@@ -128,13 +123,17 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       if (appLogic.accessToken.isEmpty) return;
-      // Re-check pending checkout or refresh subscription status upon returning
-      final pendingSessionId =
-          ref.read(stripeSubscriptionProvider).pendingSessionId;
-      if (pendingSessionId != null && pendingSessionId.isNotEmpty) {
-        ref
-            .read(stripeSubscriptionProvider.notifier)
-            .verifySession(pendingSessionId);
+      if (!Platform.isAndroid) {
+        // Re-check pending checkout or refresh subscription status upon returning
+        final pendingSessionId =
+            ref.read(stripeSubscriptionProvider).pendingSessionId;
+        if (pendingSessionId != null && pendingSessionId.isNotEmpty) {
+          ref
+              .read(stripeSubscriptionProvider.notifier)
+              .verifySession(pendingSessionId);
+        } else {
+          ref.read(stripeSubscriptionProvider.notifier).refreshSubscription();
+        }
       } else {
         ref.read(stripeSubscriptionProvider.notifier).refreshSubscription();
       }
@@ -170,38 +169,6 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
       context.push('/login');
     }
     return false;
-  }
-
-  Future<void> _onStripePlanSelected(
-    BackendPlanModel plan,
-    StripeSubscriptionNotifier notifier,
-  ) async {
-    if (!await _ensureAuthenticated()) return;
-    if (!mounted) return;
-    final stripeState = ref.read(stripeSubscriptionProvider);
-    final currentSub = stripeState.subscription;
-
-    if (currentSub != null && currentSub.isActiveOrTrial) {
-      if (currentSub.plan.id == plan.id) {
-        // Already on this plan
-        return;
-      }
-      // Upgrade or Downgrade confirmation dialog
-      final confirmed = await SubscriptionDialogs.showPlanChangeDialog(
-        context: context,
-        targetPlan: plan,
-        currentSubscription: currentSub,
-      );
-
-      if (confirmed == true && mounted) {
-        await notifier.updateSubscriptionPlan(context, plan);
-        ref.read(usageProvider.notifier).fetchUsageAllocation();
-      }
-    } else {
-      // Start Stripe Checkout flow in Safari View Controller / Custom Tabs
-      await notifier.startCheckout(context, plan);
-      ref.read(usageProvider.notifier).fetchUsageAllocation();
-    }
   }
 
   Future<void> _onIapPlanSelected(BackendPlanModel plan) async {
@@ -284,11 +251,6 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
                       children: [
                         _buildHeaderWithTitleAndClose(context),
                         _buildSubtitle(),
-                        if (!Platform.isIOS) ...[
-                          const SizedBox(height: 12),
-                          _buildTypeTabs(),
-                          const SizedBox(height: 8),
-                        ],
                       ],
                     ),
                   ),
@@ -329,10 +291,8 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
                   // Plans Carousel
                   SliverToBoxAdapter(
                     child: SizedBox(
-                      height: 560,
-                      child: (!Platform.isIOS && _selectedTab == 0)
-                          ? _buildStripePlansCarousel(stripeState)
-                          : _buildIapPlansCarousel(iapState, stripeState),
+                      height: 650,
+                      child: _buildIapPlansCarousel(iapState, stripeState),
                     ),
                   ),
 
@@ -344,10 +304,6 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
                         _buildPageIndicator(stripeState),
                         const SizedBox(height: 12),
                         const SubscriptionLegalFooter(lightText: true),
-                        const SizedBox(height: 12),
-                        // Subscription Rules Section (Mandatory Rules from doc)
-                        if (!Platform.isIOS && _selectedTab == 0)
-                          const SubscriptionRulesWidget(isStudent: false),
                         const SizedBox(height: AppSizes.paddingL),
                       ],
                     ),
@@ -388,109 +344,6 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
             ),
         ],
       ),
-    );
-  }
-
-  Widget _buildTypeTabs() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        height: 44,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.25),
-          ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedTab = 0;
-                  });
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: _selectedTab == 0
-                        ? Colors.white
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    'Subscriptions',
-                    style: TextStyle(
-                      color: _selectedTab == 0
-                          ? AppColors.primary
-                          : Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedTab = 1;
-                  });
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: _selectedTab == 1
-                        ? Colors.white
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    Platform.isIOS ? 'Apple Pay' : 'Google Pay',
-                    style: TextStyle(
-                      color: _selectedTab == 1
-                          ? AppColors.primary
-                          : Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStripePlansCarousel(StripeSubscriptionState state) {
-    final plans =
-        state.plans.isNotEmpty ? state.plans : _fallbackCandidatePlans;
-    final notifier = ref.read(stripeSubscriptionProvider.notifier);
-
-    return PageView.builder(
-      controller: _pageController,
-      onPageChanged: (index) {
-        setState(() {
-          _currentPage = index;
-        });
-      },
-      itemCount: plans.length,
-      itemBuilder: (context, index) {
-        final plan = plans[index];
-        final isPlanCheckingOut = state.checkingOutPlanId == plan.id;
-        return SubscriptionPlanCard(
-          plan: plan,
-          currentSubscription: state.subscription,
-          onSelect: () => _onStripePlanSelected(plan, notifier),
-          isLoading: isPlanCheckingOut || state.isUpdating,
-          onRestorePurchases: () => ref.read(iapProvider.notifier).restorePurchases(),
-        );
-      },
     );
   }
 
@@ -649,7 +502,7 @@ class _CandidatePlansScreenState extends ConsumerState<CandidatePlansScreen>
     final count = state.plans.isNotEmpty
         ? state.plans.length
         : _fallbackCandidatePlans.length;
-    final activeIndex = _selectedTab == 0 ? _currentPage : _currentIapPage;
+    final activeIndex = _currentIapPage;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

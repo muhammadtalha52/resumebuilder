@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -37,6 +38,7 @@ class WebAppBanner extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (Platform.isAndroid) return const SizedBox.shrink();
     final isDismissed = ref.watch(webAppBannerDismissedProvider);
 
     if (isDismissed) return const SizedBox.shrink();
@@ -136,6 +138,7 @@ class WebAppProfileTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (Platform.isAndroid) return const SizedBox.shrink();
     return GestureDetector(
       onTap: () => _openWebApp(),
       child: Container(

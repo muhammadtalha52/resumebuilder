@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
 import '../models/backend_plan_model.dart';
 import '../models/stripe_subscription_model.dart';
@@ -128,6 +129,11 @@ class StripeSubscriptionService {
   /// 3. Start Checkout: POST /api/plan/subscription/checkout/
   /// Body: { "plan_id": 12, "return_origin": "https://dev-app.skillresy.com" }
   Future<StripeCheckoutData> createCheckoutSession({required int planId}) async {
+    if (Platform.isAndroid) {
+      throw StripeSubscriptionException(
+        'Stripe checkout is disabled on Android.',
+      );
+    }
     final origin = ApiEndpoints.stripeReturnOrigin;
     try {
       log('[StripeService] Creating checkout session for planId: $planId, return_origin: $origin');

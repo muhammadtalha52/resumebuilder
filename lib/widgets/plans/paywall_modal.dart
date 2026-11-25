@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -62,7 +61,6 @@ class PaywallModal extends ConsumerStatefulWidget {
 class _PaywallModalState extends ConsumerState<PaywallModal> {
   late PageController _pageController;
   int _currentPage = 2; // Default to popular plan (index 2)
-  int _selectedTab = Platform.isIOS ? 1 : 0; // On iOS force Store IAP, on Android allow both
   bool _isProcessing = false;
 
   // Fallback plans for Candidate (Job Seeker) - strictly aligned with StoreKit consumable products
@@ -219,14 +217,8 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
     setState(() => _isProcessing = true);
 
     try {
-      if (Platform.isIOS || _selectedTab == 1) {
-        // Native In-App Purchase (StoreKit on iOS / Google Play on Android)
-        await _purchaseStoreKitOrPlayIAP(plan);
-      } else {
-        // Android: Stripe Checkout (Card with Free Trial)
-        final notifier = ref.read(stripeSubscriptionProvider.notifier);
-        await notifier.startCheckout(context, plan);
-      }
+      // Native In-App Purchase (StoreKit on iOS / Google Play Billing on Android)
+      await _purchaseStoreKitOrPlayIAP(plan);
     } catch (e) {
       debugPrint('[PaywallModal] Purchase error: $e');
     } finally {
@@ -320,8 +312,8 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
 
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    final modalHeight = (screenHeight * 0.95).clamp(700.0, 880.0);
-    final carouselHeight = (screenHeight * 0.62).clamp(510.0, 560.0);
+    final modalHeight = (screenHeight * 0.95).clamp(700.0, 920.0);
+    final carouselHeight = (screenHeight * 0.72).clamp(620.0, 670.0);
 
     final trialPlan = activePlans.cast<BackendPlanModel?>().firstWhere(
       (p) => p != null && p.hasTrial,
@@ -370,23 +362,13 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
                       const Text('🎉', style: TextStyle(fontSize: 12)),
                       const SizedBox(width: 5),
                       Text(
-                        Platform.isIOS
-                            ? (trialDaysCount > 0
-                                ? '$trialDaysCount-Day Free Trial • Instant Activation'
-                                : (widget.isStudent
-                                    ? 'Student Learning Plans • Instant Activation'
-                                    : 'Subscription Plans • Instant Activation'))
-                            : (_selectedTab == 1
-                                ? 'Google Pay • Instant Activation'
-                                : (trialDaysCount > 0
-                                    ? '$trialDaysCount-Day Free Trial Included'
-                                    : (widget.isStudent
-                                        ? 'Student Special Access'
-                                        : 'Subscription Plans'))),
-                        style: TextStyle(
-                          color: (!Platform.isIOS && _selectedTab == 1)
-                              ? const Color(0xFF01875F)
-                              : AppColors.primary,
+                        trialDaysCount > 0
+                            ? '$trialDaysCount-Day Free Trial • Instant Activation'
+                            : (widget.isStudent
+                                ? 'Student Learning Plans • Instant Activation'
+                                : 'Subscription Plans • Instant Activation'),
+                        style: const TextStyle(
+                          color: AppColors.primary,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -425,11 +407,6 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
                   ),
                 ),
 
-                // Type Tabs (Only on Android, exactly matching CandidatePlansScreen)
-                if (!Platform.isIOS) ...[
-                  const SizedBox(height: 14),
-                  _buildTypeTabs(screenWidth),
-                ],
                 const SizedBox(height: 12),
 
                 // Horizontal Plans Carousel
@@ -549,67 +526,6 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  /// Translucent Type Tabs matching CandidatePlansScreen
-  Widget _buildTypeTabs(double screenWidth) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-      child: Container(
-        height: 42,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.25),
-          ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _selectedTab = 0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: _selectedTab == 0 ? Colors.white : Colors.transparent,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    'Subscriptions',
-                    style: TextStyle(
-                      color: _selectedTab == 0 ? AppColors.primary : Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12.5,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _selectedTab = 1),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: _selectedTab == 1 ? Colors.white : Colors.transparent,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    Platform.isIOS ? 'Apple Pay' : 'Google Pay',
-                    style: TextStyle(
-                      color: _selectedTab == 1 ? AppColors.primary : Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12.5,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

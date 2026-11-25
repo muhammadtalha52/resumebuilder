@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../models/stripe_subscription_model.dart';
@@ -237,7 +238,7 @@ class ActiveSubscriptionCard extends StatelessWidget {
                         ),
                 ),
               ),
-              if (payments.isNotEmpty) ...[
+              if (!Platform.isAndroid && payments.isNotEmpty) ...[
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton(
