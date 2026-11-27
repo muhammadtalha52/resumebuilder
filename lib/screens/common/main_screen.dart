@@ -7,10 +7,10 @@ import '../../providers/user_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/stripe_subscription_provider.dart';
 import '../../providers/iap_provider.dart';
+import '../../providers/usage_provider.dart';
 import '../../services/analytics_service.dart';
 import '../../services/onboarding_funnel_service.dart';
 import '../../widgets/tour/guided_tour_overlay.dart';
-import '../../widgets/plans/paywall_modal.dart';
 import '../candidate/interview/meetings_screen.dart';
 import '../candidate/profile/profile_screen.dart';
 import '../candidate/dashboard_screen.dart';
@@ -49,9 +49,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final isStudent = ref.read(isStudentProvider);
-      // Pre-warm plans in background so Paywall opens instantly with zero delay
+      // Pre-warm plans & usage credits in background
       ref.read(stripeSubscriptionProvider.notifier).loadData(role: isStudent ? 2 : 1);
       ref.read(iapProvider.notifier).loadPlansMapping();
+      ref.read(usageProvider.notifier).fetchUsageAllocation();
 
       _checkAndLaunchFunnel();
     });
@@ -71,7 +72,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
     if (!mounted) return;
 
-    final isStudent = ref.read(isStudentProvider);
     final hasActiveSub =
         ref.read(stripeSubscriptionProvider).hasActiveSubscription;
 
@@ -90,18 +90,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
     if (!isTourDone) {
       _launchGuidedTour();
-    } else {
-      // 2. Tour already done -> Check 72h Cooldown & Session Cap for Paywall
-      final canShow = await OnboardingFunnelService.instance
-          .canShowPaywallModalAsync(hasActiveSubscription: hasActiveSub);
-      if (canShow && mounted) {
-        PaywallModal.show(
-          context,
-          isStudent: isStudent,
-          triggerReason: 'no_plan',
-        );
-      }
     }
+    // SKIL-266: Never force paywall on launch/post-onboarding; users land directly
+    // on the app and use their initial free credits until exhausted.
   }
 
   void _launchGuidedTour({bool force = false}) {
@@ -132,28 +123,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       onFinish: () async {
         await OnboardingFunnelService.instance.markTourCompleted();
         AnalyticsService.logTourCompleted(stepsCompleted: steps.length);
-
-        // Immediately show Paywall modal if no active plan
-        if (mounted && !ref.read(stripeSubscriptionProvider).hasActiveSubscription) {
-          PaywallModal.show(
-            context,
-            isStudent: isStudent,
-            triggerReason: 'post_tour',
-          );
-        }
       },
       onSkip: (step) async {
         await OnboardingFunnelService.instance.markTourCompleted();
         AnalyticsService.logTourSkipped(stepNumber: step);
-
-        // Immediately show Paywall modal if no active plan
-        if (mounted && !ref.read(stripeSubscriptionProvider).hasActiveSubscription) {
-          PaywallModal.show(
-            context,
-            isStudent: isStudent,
-            triggerReason: 'post_tour',
-          );
-        }
       },
     );
   }

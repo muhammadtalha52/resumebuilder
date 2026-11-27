@@ -114,11 +114,14 @@ class _PracticeSetupScreenState extends ConsumerState<PracticeSetupScreen> {
           final hasActiveSub =
               ref.read(stripeSubscriptionProvider).hasActiveSubscription;
           if (!hasActiveSub) {
-            AnalyticsService.logPaywallShown(trigger: 'first_action_trial');
+            AnalyticsService.logPaywallShown(trigger: 'credits_exhausted');
+            AnalyticsService.logPaywallViewedAfterFreeCredits(
+              userType: 'candidate',
+            );
             await PaywallModal.show(
               context,
               isStudent: false,
-              triggerReason: 'first_action_trial',
+              triggerReason: 'credits_exhausted',
             );
             if (mounted) {
               await ref.read(usageProvider.notifier).fetchUsageAllocation();

@@ -9,6 +9,7 @@ import '../models/student_signup_request.dart';
 import '../utils/endpoint_headers.dart';
 import 'analytics_service.dart';
 import 'api_client.dart';
+import 'device_id_service.dart';
 
 class AuthService {
   final APIClient _apiClient = APIClient();
@@ -160,9 +161,11 @@ class AuthService {
     try {
       final currentPlatform = Platform.isIOS ? 'ios' : 'android';
       final version = appVersion ?? await _getAppVersion();
+      final deviceId = await DeviceIdService.instance.getDeviceId();
       var requestData = {
         'platform': currentPlatform,
         'app_version': version,
+        'device_id': deviceId,
         if (fcmToken != null && fcmToken.isNotEmpty) 'fcm_token': fcmToken,
         'email': request.email,
         'password': request.password,
@@ -227,6 +230,7 @@ class AuthService {
       final response = await _apiClient.dio.post(
         ApiEndpoints.register,
         data: requestData,
+        options: Options(headers: {'X-Device-ID': deviceId}),
       );
       
       debugPrint("Response Status: ${response.statusCode}");
@@ -329,9 +333,11 @@ class AuthService {
     try {
       final currentPlatform = Platform.isIOS ? 'ios' : 'android';
       final version = appVersion ?? await _getAppVersion();
+      final deviceId = await DeviceIdService.instance.getDeviceId();
       final requestData = request.toJson();
       requestData['platform'] = currentPlatform;
       requestData['app_version'] = version;
+      requestData['device_id'] = deviceId;
       if (fcmToken != null && fcmToken.isNotEmpty) {
         requestData['fcm_token'] = fcmToken;
       }
@@ -344,6 +350,7 @@ class AuthService {
       final response = await _apiClient.dio.post(
         ApiEndpoints.register,
         data: requestData,
+        options: Options(headers: {'X-Device-ID': deviceId}),
       );
       
       debugPrint("Response Status: ${response.statusCode}");
@@ -456,12 +463,14 @@ class AuthService {
     try {
       final currentPlatform = Platform.isIOS ? 'ios' : 'android';
       final version = appVersion ?? await _getAppVersion();
+      final deviceId = await DeviceIdService.instance.getDeviceId();
       final requestData = {
         'email': email,
         'password': password,
         'role': role,
         'platform': currentPlatform,
         'app_version': version,
+        'device_id': deviceId,
         if (fullName != null && fullName.isNotEmpty) 'full_name': fullName,
         if (phoneNumber != null && phoneNumber.isNotEmpty) 'phone_number': phoneNumber,
         if (hometown != null && hometown.isNotEmpty) 'home_town': hometown,
@@ -477,6 +486,7 @@ class AuthService {
       final response = await _apiClient.dio.post(
         ApiEndpoints.registerSimple,
         data: requestData,
+        options: Options(headers: {'X-Device-ID': deviceId}),
       );
       
       debugPrint("Response Status: ${response.statusCode}");

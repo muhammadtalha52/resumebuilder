@@ -2181,11 +2181,14 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
             final hasActiveSub =
                 ref.read(stripeSubscriptionProvider).hasActiveSubscription;
             if (!hasActiveSub) {
-              AnalyticsService.logPaywallShown(trigger: 'first_action_trial');
+              AnalyticsService.logPaywallShown(trigger: 'credits_exhausted');
+              AnalyticsService.logPaywallViewedAfterFreeCredits(
+                userType: 'candidate',
+              );
               await PaywallModal.show(
                 context,
                 isStudent: false,
-                triggerReason: 'first_action_trial',
+                triggerReason: 'credits_exhausted',
               );
               if (mounted) {
                 await ref.read(usageProvider.notifier).fetchUsageAllocation();
@@ -2221,6 +2224,21 @@ class _ResumeReviewScreenState extends ConsumerState<ResumeReviewScreen> {
 
         // Has credits, proceed with resume generation
         await _generateResume();
+
+        if (mounted) {
+          final generated = ref.read(resumeProvider).generatedResumeData;
+          final hasActiveSub =
+              ref.read(stripeSubscriptionProvider).hasActiveSubscription;
+          if (generated?.pdfBase64 != null &&
+              generated!.pdfBase64!.isNotEmpty &&
+              !hasActiveSub) {
+            AnalyticsService.logFreeCreditUsed(
+              userType: 'candidate',
+              featureType: 'resume',
+            );
+          }
+          await ref.read(usageProvider.notifier).fetchUsageAllocation();
+        }
 
         // Check if resume was generated successfully with PDF
         final resumeState = ref.read(resumeProvider);

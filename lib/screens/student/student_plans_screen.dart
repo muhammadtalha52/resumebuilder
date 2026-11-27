@@ -17,6 +17,7 @@ import '../../widgets/plans/active_subscription_card.dart';
 import '../../widgets/plans/subscription_dialogs.dart';
 import '../../widgets/plans/subscription_plan_card.dart';
 import '../../widgets/plans/subscription_legal_footer.dart';
+import '../../widgets/plans/trial_hero_banner.dart';
 
 class StudentPlansScreen extends ConsumerStatefulWidget {
   const StudentPlansScreen({super.key});
@@ -30,6 +31,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
   final PageController _iapPageController =
       PageController(viewportFraction: 0.92);
   int _currentIapPage = 0;
+  String? _lastSelectedPlanId;
 
   // Documented fallback plans for Student (role 2)
   static const List<BackendPlanModel> _fallbackStudentPlans = [
@@ -166,6 +168,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
   }
 
   Future<void> _onIapPlanSelected(BackendPlanModel plan) async {
+    _lastSelectedPlanId = plan.id.toString();
     if (!await _ensureAuthenticated()) return;
     if (!mounted) return;
     final iapState = ref.read(iapProvider);
@@ -216,7 +219,13 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
       if (next.successMessage != null && mounted) {
         ScaffoldMessenger.of(context).clearSnackBars();
         ref.read(iapProvider.notifier).clearSuccessMessage();
-        context.go('/thank-you', extra: {'isTrial': false});
+        AnalyticsService.logTrialStartedFromPaywall(
+          userType: 'student',
+          planId: _lastSelectedPlanId ?? 'unknown',
+        );
+        ref.read(usageProvider.notifier).fetchUsageAllocation();
+        ref.read(stripeSubscriptionProvider.notifier).refreshSubscription();
+        context.go('/thank-you', extra: {'isTrial': true});
       } else if (next.error != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(next.error!), backgroundColor: Colors.red),
@@ -243,6 +252,21 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
                       children: [
                         _buildHeaderWithTitleAndClose(context),
                         _buildSubtitle(),
+                        const SizedBox(height: 8),
+                        TrialHeroBanner(
+                          isStudent: true,
+                          isLoading: iapState.isLoadingPlansMapping ||
+                              iapState.isPurchasing,
+                          onStartTrial: () {
+                            final plans = stripeState.plans.isNotEmpty
+                                ? stripeState.plans
+                                : _fallbackStudentPlans;
+                            final targetIndex = _currentIapPage < plans.length
+                                ? _currentIapPage
+                                : 0;
+                            _onIapPlanSelected(plans[targetIndex]);
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -374,99 +398,80 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
       orElse: () => null,
     );
     final trialDaysCount = trialPlan?.trialDays ?? 7;
-    return SizedBox(
-      height: 260,
-      child: Stack(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+      child: Column(
         children: [
-          Positioned(
-            top: 8,
-            left: 0,
-            right: 0,
-            height: 210,
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24.0,
-                  vertical: 20.0,
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
                 ),
                 child: Image.asset(
                   'assets/icons/fox-mascot.png',
-                  height: 125,
                   fit: BoxFit.contain,
                 ),
               ),
-            ),
-          ),
-          Positioned(
-            top: 8,
-            left: 20,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(AppSizes.radiusM),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('🎉', style: TextStyle(fontSize: 12)),
-                  const SizedBox(width: 4),
-                  Text(
-                    '$trialDaysCount-Day Free Trial',
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '$trialDaysCount-Day Free Trial',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSizes.paddingL,
-              ),
-              child: Text(
-                'Student Learning Plans',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                  onPressed: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go(
+                        appLogic.accessToken.isNotEmpty ? '/home' : '/welcome',
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
-          Positioned(
-            top: 0,
-            right: 20,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(AppSizes.radiusM),
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.close, color: AppColors.primary),
-                onPressed: () {
-                  if (context.canPop()) {
-                    context.pop();
-                  } else {
-                    context.go(appLogic.accessToken.isNotEmpty ? '/home' : '/welcome');
-                  }
-                },
-              ),
+          const SizedBox(height: 10),
+          Text(
+            'Pricing Plans',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              shadows: [
+                Shadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
           ),
         ],
@@ -478,7 +483,7 @@ class _StudentPlansScreenState extends ConsumerState<StudentPlansScreen>
     return const Padding(
       padding: EdgeInsets.symmetric(horizontal: AppSizes.paddingL, vertical: 4),
       child: Text(
-        'Supercharge your academic study sessions and quizzes with AI assistance',
+        'Choose the perfect plan for your studies. All plans include our core AI features.',
         textAlign: TextAlign.center,
         style: TextStyle(
           color: AppColors.white,

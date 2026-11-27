@@ -14,6 +14,7 @@ import '../services/api_client.dart';
 import '../services/transcription/transcriber_interface.dart';
 import '../services/transcription/assembly_ai_transcriber.dart';
 import 'usage_provider.dart';
+import 'stripe_subscription_provider.dart';
 
 enum InterviewSessionState {
   idle,
@@ -976,7 +977,15 @@ class ContinuousTranscriptionNotifier
                 print('⚠️ Failed to mark interview credit as used');
               }
             })
-            .then((_) => AnalyticsService.logCreditsSpent(1))
+            .then((_) {
+              AnalyticsService.logCreditsSpent(1);
+              if (!_ref.read(stripeSubscriptionProvider).hasActiveSubscription) {
+                AnalyticsService.logFreeCreditUsed(
+                  userType: 'candidate',
+                  featureType: 'interview',
+                );
+              }
+            })
             .catchError((e) {
               print('⚠️ Error marking interview credit as used: $e');
               // Silent fail - don't interrupt user experience

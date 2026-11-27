@@ -6,10 +6,12 @@ import '../../models/backend_plan_model.dart';
 import '../../models/purchase_product_model.dart';
 import '../../providers/iap_provider.dart';
 import '../../providers/stripe_subscription_provider.dart';
+import '../../providers/usage_provider.dart';
 import '../../services/analytics_service.dart';
 import '../../services/onboarding_funnel_service.dart';
 import '../../widgets/plans/subscription_plan_card.dart';
 import '../../widgets/plans/subscription_legal_footer.dart';
+import '../../widgets/plans/trial_hero_banner.dart';
 
 /// High-converting, non-intrusive Paywall Modal.
 ///
@@ -62,6 +64,7 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
   late PageController _pageController;
   int _currentPage = 2; // Default to popular plan (index 2)
   bool _isProcessing = false;
+  String? _lastSelectedPlanId;
 
   // Fallback plans for Candidate (Job Seeker) - strictly aligned with StoreKit consumable products
   static const List<BackendPlanModel> _candidatePlans = [
@@ -208,6 +211,7 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
   }
 
   Future<void> _handlePlanSelected(BackendPlanModel plan) async {
+    _lastSelectedPlanId = plan.id.toString();
     AnalyticsService.logTrialStartClicked(
       planId: plan.id,
       planName: plan.name,
@@ -287,8 +291,14 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
       if (next.successMessage != null && mounted) {
         ScaffoldMessenger.of(context).clearSnackBars();
         ref.read(iapProvider.notifier).clearSuccessMessage();
+        AnalyticsService.logTrialStartedFromPaywall(
+          userType: widget.isStudent ? 'student' : 'candidate',
+          planId: _lastSelectedPlanId ?? 'unknown',
+        );
+        ref.read(usageProvider.notifier).fetchUsageAllocation();
+        ref.read(stripeSubscriptionProvider.notifier).refreshSubscription();
         Navigator.of(context).pop();
-        context.go('/thank-you', extra: {'isTrial': false});
+        context.go('/thank-you', extra: {'isTrial': true});
       } else if (next.error != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -378,26 +388,24 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
                 ),
                 const SizedBox(height: 10),
 
-                // Main Heading (Plans Screen style)
-                Text(
-                  widget.isStudent
-                      ? 'Ace Your Studies With AI'
-                      : 'Choose Your Plan',
-                  style: const TextStyle(
-                    fontSize: 22,
+                // Main Heading (Pricing Plans)
+                const Text(
+                  'Pricing Plans',
+                  style: TextStyle(
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 6),
 
-                // Subtitle (Plans Screen style)
+                // Subtitle
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
                   child: Text(
                     widget.isStudent
-                        ? 'Summarize lectures, practice unlimited AI quizzes, and excel in every course.'
-                        : 'Tap into AI tools that fine-tune your resume and interview skills for your dream job',
+                        ? 'Choose the perfect plan for your studies. All plans include our core AI features.'
+                        : 'Choose the perfect plan for your career growth. All plans include our core AI features.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
@@ -407,7 +415,18 @@ class _PaywallModalState extends ConsumerState<PaywallModal> {
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
+                TrialHeroBanner(
+                  isStudent: widget.isStudent,
+                  trialDays: trialDaysCount,
+                  isLoading: _isProcessing || iapState.isPurchasing,
+                  onStartTrial: () {
+                    if (activePlans.isNotEmpty) {
+                      _handlePlanSelected(activePlans[_currentPage]);
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
 
                 // Horizontal Plans Carousel
                 if (stripeState.isLoading && stripePlans.isEmpty)

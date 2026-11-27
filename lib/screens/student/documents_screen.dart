@@ -625,25 +625,26 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       // Always fetch latest usage from API
       await ref.read(usageProvider.notifier).fetchUsageAllocation();
 
-      // Get remaining document upload count
-      final remainingUploads =
-          ref
-              .read(usageProvider)
-              .usageAllocation
-              ?.remainingDocumentUploadCount ??
-          0;
+      // Get remaining document upload & quiz counts
+      final usage = ref.read(usageProvider).usageAllocation;
+      final remainingUploads = usage?.remainingDocumentUploadCount ?? 0;
+      final remainingQuizzes = usage?.remainingQuizCount ?? 0;
 
-      if (remainingUploads <= 0) {
+      // SKIL-266: Do not block document upload if the student still has free quiz credits
+      if (remainingUploads <= 0 && remainingQuizzes <= 0) {
         // Show dialog and redirect to student plans
         if (context.mounted) {
           final hasActiveSub =
               ref.read(stripeSubscriptionProvider).hasActiveSubscription;
           if (!hasActiveSub) {
-            AnalyticsService.logPaywallShown(trigger: 'first_action_trial');
+            AnalyticsService.logPaywallShown(trigger: 'credits_exhausted');
+            AnalyticsService.logPaywallViewedAfterFreeCredits(
+              userType: 'student',
+            );
             await PaywallModal.show(
               context,
               isStudent: true,
-              triggerReason: 'first_action_trial',
+              triggerReason: 'credits_exhausted',
             );
             if (context.mounted) {
               await ref.read(usageProvider.notifier).fetchUsageAllocation();
@@ -798,7 +799,15 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
               count: 1,
               description: 'Document uploaded',
             )
-            .then((_) => AnalyticsService.logCreditsSpent(1))
+            .then((_) {
+              AnalyticsService.logCreditsSpent(1);
+              if (!ref.read(stripeSubscriptionProvider).hasActiveSubscription) {
+                AnalyticsService.logFreeCreditUsed(
+                  userType: 'student',
+                  featureType: 'document_upload',
+                );
+              }
+            })
             .catchError((e) {
               print('Failed to mark credits used: $e');
               // Silent fail - don't interrupt user experience
@@ -869,11 +878,14 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
           final hasActiveSub =
               ref.read(stripeSubscriptionProvider).hasActiveSubscription;
           if (!hasActiveSub) {
-            AnalyticsService.logPaywallShown(trigger: 'first_action_trial');
+            AnalyticsService.logPaywallShown(trigger: 'credits_exhausted');
+            AnalyticsService.logPaywallViewedAfterFreeCredits(
+              userType: 'student',
+            );
             await PaywallModal.show(
               context,
               isStudent: true,
-              triggerReason: 'first_action_trial',
+              triggerReason: 'credits_exhausted',
             );
             if (context.mounted) {
               await ref.read(usageProvider.notifier).fetchUsageAllocation();
@@ -932,7 +944,15 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             count: 1,
             description: 'Quiz generated from documents',
           )
-          .then((_) => AnalyticsService.logCreditsSpent(1))
+          .then((_) {
+            AnalyticsService.logCreditsSpent(1);
+            if (!ref.read(stripeSubscriptionProvider).hasActiveSubscription) {
+              AnalyticsService.logFreeCreditUsed(
+                userType: 'student',
+                featureType: 'quiz',
+              );
+            }
+          })
           .catchError((e) {
             print('Failed to mark credits used: $e');
             // Silent fail - don't interrupt user experience

@@ -1,8 +1,10 @@
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../constants/app_colors.dart';
 import '../../models/backend_plan_model.dart';
+import '../../models/purchase_product_model.dart';
 import '../../models/stripe_subscription_model.dart';
 import '../../providers/iap_provider.dart';
 import '../../utils/url_launcher_utils.dart';
@@ -46,13 +48,18 @@ class SubscriptionPlanCard extends ConsumerWidget {
 
     // Candidate features
     if (plan.resumeCount > 0) {
-      list.add('${plan.resumeCount} Resumes$intervalStr');
+      list.add('${plan.resumeCount} tailored resumes$intervalStr');
     }
     if (plan.interviewCount > 0) {
-      list.add('${plan.interviewCount} Live Sessions$intervalStr');
+      list.add(
+        '${plan.interviewCount} live interview or meeting sessions$intervalStr',
+      );
     }
     if (plan.askScoutCount > 0) {
       list.add('${plan.askScoutCount} Ask Scout questions$intervalStr');
+    }
+    if (plan.resumeCount > 0 || plan.interviewCount > 0) {
+      list.add('Recommended job matches');
     }
 
     // Student features
@@ -65,20 +72,83 @@ class SubscriptionPlanCard extends ConsumerWidget {
       list.add('${plan.documentUploadCount} Document uploads$intervalStr');
     }
 
-    // Trial or student extras
+    // Student extras
     if (plan.quizCount > 0 || plan.documentUploadCount > 0) {
       list.add('Quiz history & progress tracking included');
-    }
-    if (!isOneTime && plan.hasTrial) {
-      list.add('${plan.trialDays}-day free trial included');
     }
 
     return list;
   }
 
+  String get _planSubtitle {
+    final name = plan.name.toLowerCase();
+    if (name.contains('weekend')) return 'Interview this week? Get ready fast.';
+    if (name.contains('scouting') || name.contains('just')) {
+      return 'For a few applications a month.';
+    }
+    if (name.contains('serious') || name.contains('seeker')) {
+      return 'For an active search with regular interviews.';
+    }
+    if (name.contains('hunter') || name.contains('job')) {
+      return 'For a full-time search across many roles.';
+    }
+    if (name.contains('cram')) return 'Quick exam & assignment prep.';
+    if (name.contains('basic')) return 'Light weekly studying.';
+    if (name.contains('mid')) return 'Regular quizzes & study guides.';
+    if (name.contains('nerd')) return 'Full semester AI study power.';
+    return plan.isWeekly
+        ? 'Flexible weekly access to all AI features.'
+        : 'Full monthly access to all AI features.';
+  }
+
+  String _resolveProductId() {
+    if (plan.productId != null && plan.productId!.isNotEmpty) {
+      return plan.productId!;
+    }
+    final name = plan.name.toLowerCase();
+    if (name.contains('cram')) return PurchaseProducts.cramSessionProductId;
+    if (name.contains('basic')) return PurchaseProducts.basicStudentProductId;
+    if (name.contains('mid')) return PurchaseProducts.midStudentProductId;
+    if (name.contains('nerd')) return PurchaseProducts.nerdOutProductId;
+    if (name.contains('weekend')) return PurchaseProducts.weekendWarriorProductId;
+    if (name.contains('scouting') || name.contains('just')) {
+      return PurchaseProducts.justScoutingProductId;
+    }
+    if (name.contains('serious') || name.contains('seeker')) {
+      return PurchaseProducts.seriousSeekerProductId;
+    }
+    if (name.contains('hunter') || name.contains('job')) {
+      return PurchaseProducts.jobHunterProductId;
+    }
+    return '';
+  }
+
+  String _getLocalizedPrice(IAPState iapState) {
+    final targetId = _resolveProductId();
+    if (targetId.isNotEmpty) {
+      for (final ProductDetails p in iapState.products) {
+        if (p.id == targetId &&
+            p.price.isNotEmpty &&
+            p.rawPrice > 0 &&
+            !p.price.toLowerCase().contains('free')) {
+          return p.price;
+        }
+      }
+    }
+    return '\$${plan.price.replaceAll('\$', '')}';
+  }
+
+  bool get _isStudentPlan =>
+      plan.quizCount > 0 ||
+      plan.documentUploadCount > 0 ||
+      plan.trialQuizCount > 0 ||
+      plan.trialDocumentUploadCount > 0;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hasActiveSub = currentSubscription?.isActiveOrTrial ?? false;
+    final iapState = ref.watch(iapProvider);
+    final localizedPrice = _getLocalizedPrice(iapState);
 
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
@@ -241,80 +311,70 @@ class SubscriptionPlanCard extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
 
-            // Plan Name
+            // Plan Name & Subtitle
             Text(
               plan.name,
               style: const TextStyle(
-                fontSize: 22,
+                fontSize: 21,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 6),
-
-            // Price clarity line (Apple Guideline 3.1.2(c))
-            if (!isOneTime && plan.hasTrial) ...[
-              Text.rich(
-                TextSpan(
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: AppColors.textPrimary,
-                    height: 1.25,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: '${plan.trialDays} days free trial, then ',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    TextSpan(
-                      text: '\$${plan.price.replaceAll('\$', '')}/${plan.isWeekly ? 'week' : 'month'}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
+            const SizedBox(height: 3),
+            Text(
+              _planSubtitle,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.grey,
               ),
+            ),
+            const SizedBox(height: 10),
+
+            // Prominent Localized Price + Green Free Trial Pill
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  customPrice ?? localizedPrice,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  isOneTime
+                      ? 'one-time pack'
+                      : (plan.isWeekly ? 'per week' : 'per month'),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.grey,
+                  ),
+                ),
+              ],
+            ),
+            if (!isOneTime && plan.hasTrial) ...[
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFECE5),
-                  borderRadius: BorderRadius.circular(6),
+                  color: AppColors.success.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.success.withValues(alpha: 0.45),
+                  ),
                 ),
                 child: Text(
-                  '${plan.trialDays}-Day Free Trial',
+                  '${plan.trialDays}-day free trial',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFE06D53),
+                    color: AppColors.success,
                   ),
                 ),
-              ),
-            ] else ...[
-              // Price & Billing interval (non-trial)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    customPrice ?? '\$${plan.price.replaceAll('\$', '')}',
-                    style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    isOneTime
-                        ? 'one-time pack'
-                        : (plan.isWeekly ? 'per week' : 'per month'),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
               ),
             ],
 
@@ -369,8 +429,8 @@ class SubscriptionPlanCard extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
 
-            // Billing Disclosure (Apple Guideline 3.1.2(c))
-            _buildBillingDisclosure(hasActiveSub),
+            // Billing Disclosure (Apple Guideline 3.1.2(c) & Google Play)
+            _buildBillingDisclosure(hasActiveSub, localizedPrice),
             const SizedBox(height: 8),
 
             // Restore Purchases link
@@ -460,27 +520,29 @@ class SubscriptionPlanCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildBillingDisclosure(bool hasActiveSub) {
+  Widget _buildBillingDisclosure(bool hasActiveSub, String localizedPrice) {
     if (isOneTime) return const SizedBox.shrink();
 
-    final cleanPrice = plan.price.replaceAll('\$', '');
-    final priceStr = '\$$cleanPrice';
+    final priceStr = localizedPrice;
     final interval = plan.isWeekly ? 'week' : 'month';
     final renewFreq = plan.isWeekly ? 'weekly' : 'monthly';
-    final storeName = Platform.isIOS ? 'Apple ID' : 'Google Play';
+    final storeName = Platform.isIOS ? 'App Store' : 'Google Play';
     final cancelPath = Platform.isIOS
-        ? 'Settings > Apple ID > Subscriptions'
+        ? 'Settings > App Store > Subscriptions'
         : 'Google Play Store > Subscriptions';
+
+    final benefitsSummary = _isStudentPlan
+        ? '${plan.quizCount} Study Quizzes and ${plan.documentUploadCount} Document Uploads'
+        : '${plan.resumeCount} Resumes, ${plan.interviewCount} Live Sessions, and ${plan.askScoutCount} Ask Scout questions';
 
     String disclosure;
     if (plan.hasTrial) {
       disclosure =
           'Billing begins automatically after the ${plan.trialDays}-day free trial '
-          'at $priceStr/$interval unless cancelled. '
-          'Subscription auto-renews $renewFreq until cancelled. '
+          'at $priceStr/$interval unless cancelled. Active benefits include: '
+          '$benefitsSummary ($renewFreq). First charge happens on Day ${plan.trialDays + 1} of the trial. '
           'Payment will be charged to your $storeName account. '
-          'Cancel anytime (at least 24 hours before the period ends) '
-          'in $cancelPath.';
+          'Cancel anytime in $cancelPath.';
     } else {
       disclosure =
           '$priceStr/$interval. Subscription auto-renews $renewFreq until '
@@ -549,7 +611,7 @@ class SubscriptionPlanCard extends ConsumerWidget {
     } else if (hasActiveSub) {
       buttonText = isNextPendingPlan ? 'Change Plan' : 'Switch to this Plan';
     } else if (plan.hasTrial) {
-      buttonText = 'Start ${plan.trialDays}-Day Free Trial';
+      buttonText = 'Start At \$0 Today';
     } else {
       buttonText = 'Subscribe Now';
     }

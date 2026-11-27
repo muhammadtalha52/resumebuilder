@@ -220,6 +220,85 @@ class AnalyticsService {
     }
   }
 
+  /// SKIL-266 Event: free_credit_used
+  static Future<void> logFreeCreditUsed({
+    required String userType,
+    required String featureType,
+  }) async {
+    final params = <String, Object>{
+      'user_type': userType,
+      'feature_type': featureType,
+    };
+    try {
+      await _fb.logEvent(name: 'free_credit_used', parameters: params);
+      await _fb.flush();
+    } catch (e) {
+      debugPrint('❌ Failed to log Meta free_credit_used: $e');
+    }
+    try {
+      await _ga.logEvent(name: 'free_credit_used', parameters: params);
+    } catch (e) {
+      debugPrint('❌ Failed to log GA free_credit_used: $e');
+    }
+    logBackendEvent('free_credit_used', properties: params);
+  }
+
+  /// SKIL-266 Event: paywall_viewed_after_free_credits
+  static Future<void> logPaywallViewedAfterFreeCredits({
+    required String userType,
+  }) async {
+    final params = <String, Object>{
+      'user_type': userType,
+    };
+    try {
+      await _fb.logEvent(
+        name: 'paywall_viewed_after_free_credits',
+        parameters: params,
+      );
+      await _fb.flush();
+    } catch (e) {
+      debugPrint('❌ Failed to log Meta paywall_viewed_after_free_credits: $e');
+    }
+    try {
+      await _ga.logEvent(
+        name: 'paywall_viewed_after_free_credits',
+        parameters: params,
+      );
+    } catch (e) {
+      debugPrint('❌ Failed to log GA paywall_viewed_after_free_credits: $e');
+    }
+    logBackendEvent('paywall_viewed_after_free_credits', properties: params);
+  }
+
+  /// SKIL-266 Event: trial_started_from_paywall
+  static Future<void> logTrialStartedFromPaywall({
+    required String userType,
+    required String planId,
+  }) async {
+    final params = <String, Object>{
+      'user_type': userType,
+      'plan_id': planId,
+    };
+    try {
+      await _fb.logEvent(
+        name: 'trial_started_from_paywall',
+        parameters: params,
+      );
+      await _fb.flush();
+    } catch (e) {
+      debugPrint('❌ Failed to log Meta trial_started_from_paywall: $e');
+    }
+    try {
+      await _ga.logEvent(
+        name: 'trial_started_from_paywall',
+        parameters: params,
+      );
+    } catch (e) {
+      debugPrint('❌ Failed to log GA trial_started_from_paywall: $e');
+    }
+    logBackendEvent('trial_started_from_paywall', properties: params);
+  }
+
   /// Backend Event Tracking API (Fire and forget)
   static Future<void> logBackendEvent(String eventName, {Map<String, dynamic> properties = const {}}) async {
     try {
